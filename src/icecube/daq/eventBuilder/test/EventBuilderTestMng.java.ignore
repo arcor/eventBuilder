@@ -1,0 +1,81 @@
+/**
+ * EventBuilderTestMng
+ * Date: Dec 21, 2005 11:03:37 AM
+ * 
+ * (c) 2005 IceCube Collaboration
+ */
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.dispatch.Dispatcher;
+
+import icecube.daq.eventBuilder.EventBuilderInterface;
+
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
+
+/**
+ * @author artur
+ * @version $Id: EventBuilderTestMng.java,v 1.2 2006/01/05 19:57:43 dglo Exp $
+ */
+public class EventBuilderTestMng implements EventBuilderInterface {
+    /**
+     * return the component ID
+     *
+     * @return int a componentID
+     */
+    public int getDAQCompID() {
+        return 0;
+    }
+
+    /**
+     * return the component name
+     *
+     * @return a String the name of the component
+     */
+    public String getDAQCompName() {
+        return "eventBuilder";
+    }
+
+    /**
+     * return an int value representing the DAQ run number
+     *
+     * @return an int value representing the DAQ run number
+     */
+    public int getDAQRunNumber() {
+        return 0;
+    }
+
+    /**
+     * return an int value representing the run number
+     *
+     * @return an int value representing the run number
+     */
+    public int getRunNumber() {
+        return 0;
+    }
+
+
+    /**
+     * return DAQ dispatch
+     *
+     * @return DAQ dispatch
+     */
+    public Dispatcher getDAQDispatch() {
+        return null;
+    }
+
+    /**
+     * return monitoring data object
+     * @return monitoring data object
+     */
+    public MonitoringData getMonitoringData() {
+        return null;
+    }
+
+    /**
+     * has a monitoring data object been created?
+     * @return <tt>true</tt> if monitoring data object has been created
+     */
+    public boolean hasMonitoringData() {
+        return false;
+    }
+}

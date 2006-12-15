@@ -1,0 +1,739 @@
+/**
+ * EventBuilderTestFrame
+ * Date: Aug 24, 2005 12:50:39 PM
+ *
+ * (c) 2005 IceCube Collaboration
+ */
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.common.DAQComponentInputProcess;
+import icecube.daq.common.DAQComponentOutputProcess;
+import icecube.daq.common.DAQComponentProcessManager;
+import icecube.daq.common.DAQdataChannelMBean;
+
+import icecube.daq.dispatch.DispatchException;
+import icecube.daq.dispatch.Dispatcher;
+
+import icecube.daq.eventBuilder.EventBuilderDAQComponentProcessFactory;
+import icecube.daq.eventBuilder.EventBuilderGlobalTrigPayloadInputEngine;
+import icecube.daq.eventBuilder.EventBuilderManager;
+import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
+import icecube.daq.eventBuilder.EventBuilderSPdataPayloadInputEngine;
+import icecube.daq.eventBuilder.EventBuilderSPreqPayloadOutputEngine;
+import icecube.daq.eventBuilder.SPDataAnalysis;
+
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
+
+import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.SourceIdRegistry;
+
+import icecube.daq.splicer.SplicedAnalysis;
+import icecube.daq.splicer.Splicer;
+import icecube.daq.splicer.SplicerImpl;
+
+import icecube.daq.testUtil.EventInputSourceGenerator;
+import icecube.daq.testUtil.FileInputSource;
+import icecube.daq.testUtil.FileInputSourceMng;
+import icecube.daq.testUtil.FileWriterChannel;
+import icecube.daq.testUtil.InputSource;
+import icecube.daq.testUtil.InputSourceGeneratorMng;
+import icecube.daq.testUtil.InputSourceManager;
+import icecube.daq.testUtil.OutputDestination;
+
+import icecube.icebucket.logging.LoggingConsumer;
+
+import java.io.IOException;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+/**
+ * @author artur
+ * @version $Id: EventBuilderTestFrame.java,v 1.57.2.1 2006/11/01 21:41:24 dglo Exp $
+ */
+public class EventBuilderTestFrame
+    implements DAQComponentProcessManager
+{
+    private static final String SINK_NOTIFICATION_ID = "SinkID";
+    private static final String SOURCE_NOTIFICATION_ID = "SourceID";
+
+    // The default source filenames for the input engines
+    private static final String sourceGTFileName = "globalTrigInput";
+    private static final String sourceSPDataFileName = "stringProcDataInput";
+
+    // The destination filenames for the output engines
+    private static final String destSPReqFileName = "stringProcReqOutput";
+    private static final String destSPCacheReqFileName =
+        "stringProcCacheOutput";
+
+    private static final int NUM_STRING_PROCESSORS = 5;
+
+    private static final Log log =
+        LogFactory.getLog(EventBuilderTestFrame.class);
+
+    private boolean sinkStopNotificationCalled;
+    private boolean sinkErrorNotificationCalled;
+    private boolean sinkStopNotificationStatus;
+    private String receivedStopNotificationID = "";
+    private String receivedErrorNotificationID = "";
+    private boolean sourceStopNotificationCalled;
+    private boolean sourceErrorNotificationCalled;
+    private boolean sourceStopNotificationStatus;
+
+    // The threads of the eventbuilder as represented by
+    // the input/output engines.
+    private EventBuilderGlobalTrigPayloadInputEngine gtInputProcess;
+    private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
+    private DAQComponentInputProcess spDataInputProcess;
+    private EventBuilderSPcachePayloadOutputEngine spCacheOutputProcess;
+    private Dispatcher dispatcher;
+
+    private EventBuilderManager ebMgr;
+
+    private InputSourceManager gtInputSrcMng;
+    private InputSourceManager spInputSrcMng;
+
+    private EventInputSourceGenerator evtGen;
+
+    private IByteBufferCache bufferCache;
+    private MasterPayloadFactory masterFactory;
+    private SPDataAnalysis splicedAnalysis;
+    private Splicer splicer;
+
+    private List outputDests = new ArrayList();
+
+    EventBuilderTestFrame(String[] args)
+        throws Exception
+    {
+        ArgHandler argHandler = new ArgHandler(args);
+
+        // set up cache manager
+        bufferCache = new ByteBufferCache(256, 50000000, 50000000,"EventBuilderTestFrame");
+
+        masterFactory = new MasterPayloadFactory(bufferCache);
+
+        dispatcher = new TcalFakeDispatcher(bufferCache);
+        if (log.isInfoEnabled()) {
+            log.info("initialized Dispatcher with TcalFakeDispatcher");
+        }
+
+        splicedAnalysis = new SPDataAnalysis(masterFactory, new EventBuilderTestMng());
+        splicer = new SplicerImpl(splicedAnalysis);
+        splicer.addSplicerListener(splicedAnalysis);
+
+        final String factoryName = DAQCmdInterface.DAQ_EVENTBUILDER;
+        EventBuilderDAQComponentProcessFactory eventBuilderFac =
+            new EventBuilderDAQComponentProcessFactory(null, factoryName, 0);
+
+        final String partName =
+            DAQCmdInterface.DAQ_MAIN_DATA_COLLECTION_PARTITION;
+        eventBuilderFac.setPartitionName(partName);
+        eventBuilderFac.setBufferCacheMgr(bufferCache);
+        eventBuilderFac.setMasterPayloadFactory(masterFactory);
+        eventBuilderFac.setDispatcher(dispatcher);
+        eventBuilderFac.setSplicer(splicer);
+        eventBuilderFac.setSplicedAnalysis(splicedAnalysis);
+
+        // The interface between the front and back end of the eventbuilder
+        List mt_TriggerList = Collections.synchronizedList(new ArrayList());
+
+        // set up input/output processing
+        gtInputProcess =
+            (EventBuilderGlobalTrigPayloadInputEngine)
+            eventBuilderFac.createGlobalTriggerInputProcessor
+            (this, SINK_NOTIFICATION_ID, "globalTrigInput");
+
+        spReqOutputProcess =
+            (EventBuilderSPreqPayloadOutputEngine)
+            eventBuilderFac.createStringProcDataReqOutputProcessor
+            (this, SOURCE_NOTIFICATION_ID, destSPReqFileName);
+
+        spDataInputProcess =
+            eventBuilderFac.createStringProcDataInputProcessor
+            (this, SINK_NOTIFICATION_ID, "stringProcInput");
+
+
+        spCacheOutputProcess  =
+            (EventBuilderSPcachePayloadOutputEngine)
+            eventBuilderFac.createStringProcDataCacheOutputProcessor
+            (this, SOURCE_NOTIFICATION_ID, destSPCacheReqFileName);
+
+        ebMgr = new EventBuilderManager();
+        ebMgr.setMonitoringData(new MonitoringData());
+        eventBuilderFac.setConfigPtr(ebMgr);
+
+        eventBuilderFac.postCreationProcessing(gtInputProcess,
+                                               spDataInputProcess,
+                                               spReqOutputProcess,
+                                               spCacheOutputProcess);
+
+        argHandler.finish();
+    }
+
+    /**
+     * Handle ERROR notification.
+     *
+     * @param notificationID ???
+     * @param info ???
+     * @param e ???
+     */
+    public synchronized void
+        DAQComponentProcessErrorNotification(String notificationID,
+                                             String info, Exception e)
+    {
+        receivedErrorNotificationID = notificationID;
+        if (notificationID.compareTo(SOURCE_NOTIFICATION_ID) == 0) {
+            sourceErrorNotificationCalled = true;
+        }
+        if (notificationID.compareTo(SINK_NOTIFICATION_ID) == 0) {
+            sinkErrorNotificationCalled = true;
+        }
+    }
+
+    /**
+     * Handle STOP notification.
+     *
+     * @param notificationID ???
+     * @param status ???
+     */
+    public synchronized void
+        DAQComponentProcessStopNotification(String notificationID,
+                                            boolean status)
+    {
+        receivedStopNotificationID = notificationID;
+        if (notificationID.compareTo(SOURCE_NOTIFICATION_ID) == 0) {
+            sourceStopNotificationCalled = true;
+            sourceStopNotificationStatus = status;
+        }
+        if (notificationID.compareTo(SINK_NOTIFICATION_ID) == 0) {
+            sinkStopNotificationCalled = true;
+            sinkStopNotificationStatus = status;
+        }
+    }
+
+    /**
+     * Standard configuration notification.
+     *
+     * @param info ???
+     * @param status ???
+     */
+    public void DAQConfigurationNotification(String info, boolean status)
+    {
+
+    }
+
+    private void addInputChannels()
+        throws Exception
+    {
+        addInputChannels("GTInputEngine", gtInputSrcMng,
+                         DAQCmdInterface.DAQ_GLOBAL_TRIGGER,
+                         gtInputProcess);
+        addInputChannels("SPDataInputEngine", spInputSrcMng,
+                         DAQCmdInterface.DAQ_STRINGPROCESSOR,
+                         spDataInputProcess);
+    }
+
+    private void addInputChannels(String engineName,
+                                  InputSourceManager inputSrcMng,
+                                  String farEndType,
+                                  DAQComponentInputProcess inputProc)
+        throws Exception
+    {
+        InputSource[] inputSrcs = inputSrcMng.getInputSources();
+        for (int i = 0; i < inputSrcs.length; i++) {
+            DAQdataChannelMBean dcInputSink =
+                new DAQdataChannelMBean(null, null, i, null, null);
+
+            dcInputSink.setFarEndType(farEndType);
+            dcInputSink.setFarEndID(i);
+
+            dcInputSink.setChannelType(DAQdataChannelMBean.DAQ_READ_CHANNEL);
+
+            dcInputSink.setSelectableChannel(inputSrcs[i].getSourceChannel());
+
+            inputProc.addDataChannel(dcInputSink);
+
+            sleep(50);
+        }
+
+        if (log.isInfoEnabled()) {
+            log.info("Creating " + engineName + " with " +
+                     inputSrcs.length + " channels");
+        }
+    }
+
+    private void addOutputChannels()
+        throws Exception
+    {
+        addOutputChannels("SPreqOutputEngine", destSPReqFileName,
+                          spReqOutputProcess);
+        addOutputChannels("SPcacheOutputEngine", destSPCacheReqFileName,
+                          spCacheOutputProcess);
+
+        try {
+            dispatcher.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG +
+                                    ebMgr.getDAQRunNumber());
+        } catch (DispatchException de) {
+            log.error("Couldn't write data boundary", de);
+        }
+
+        if (evtGen != null) {
+            // give list of valid target SourceIDs to event generator 
+            Collection coll =
+                spReqOutputProcess.getPayloadDestinationCollection().
+                getAllSourceIDs();
+            evtGen.setTargetSourceIds(coll);
+        }
+    }
+
+    private void addOutputChannels(String engineName, String fileName,
+                                   DAQComponentOutputProcess outProc)
+        throws Exception
+    {
+        final String farEndType = DAQCmdInterface.DAQ_STRINGPROCESSOR;
+
+        for (int i = 0; i < NUM_STRING_PROCESSORS; i++) {
+            DAQdataChannelMBean dcOutputSource =
+                new DAQdataChannelMBean(null, null, i, null, null);
+
+            dcOutputSource.setFarEndType(farEndType);
+            dcOutputSource.setFarEndID(i);
+
+            final String chanType = DAQdataChannelMBean.DAQ_WRITE_CHANNEL;
+            dcOutputSource.setChannelType(chanType);
+
+            String tempFileName = i + fileName;
+            FileWriterChannel fwc = new FileWriterChannel(tempFileName, i);
+            dcOutputSource.setSelectableChannel(fwc.getSinkChannel());
+            outProc.addDataChannel(dcOutputSource);
+            outputDests.add(fwc);
+        }   // end for ( int i =0;... )
+
+        if (log.isInfoEnabled()) {
+            log.info("Creating " + engineName + " with " +
+                     NUM_STRING_PROCESSORS + " channels");
+        }
+    }
+
+    /**
+     * Check that all engines have stopped.
+     *
+     * @throws Exception if a problem was encountered
+     */
+    private void checkStopped()
+        throws Exception
+    {
+        if (isInputEngineRunning()) {
+            if (log.isWarnEnabled()) {
+                log.warn("InputEngine should not be in RUNNING state");
+            }
+
+            stopInputProcessEngine();
+        } else {
+            if (log.isInfoEnabled()) {
+                log.info("InputEngine stopped normally");
+            }
+        }
+
+        sleep(10000);
+
+        if (isOutputEngineRunning()) {
+            if (log.isWarnEnabled()) {
+                log.warn("OutputEngine should not be in" +
+                         " RUNNING state. Calling a forced stop");
+            }
+
+            stopOutputProcessEngine();
+        } else {
+            if (log.isInfoEnabled()) {
+                log.info("OutputEngine stopped normally");
+            }
+        }
+    }
+
+    /**
+     * Clean up after run has completed.
+     */
+    public void cleanup()
+    {
+        waitForStoppedOutput();
+
+        try {
+            dispatcher.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG +
+                                    ebMgr.getDAQRunNumber());
+        } catch (DispatchException de) {
+            log.error("Couldn't write data boundary", de);
+        }
+    }
+
+    private boolean isInputEngineRunning()
+    {
+        return (gtInputProcess.isRunning() || spDataInputProcess.isRunning());
+    }
+
+    private boolean isOutputEngineRunning()
+    {
+        return (spReqOutputProcess.isRunning() ||
+                spCacheOutputProcess.isRunning());
+    }
+
+    private boolean isSplicerRunning()
+    {
+        return (splicer != null && splicer.getState() != Splicer.STOPPED);
+    }
+
+    private void printReport()
+    {
+        if (log.isErrorEnabled()) {
+            log.error(bufferCache);
+            if (!ebMgr.hasMonitoringData()) {
+                log.error("No monitoring data available");
+            } else {
+                log.error(ebMgr.getMonitoringData());
+            }
+        }
+    }
+
+    static final void sleep(int sleepTime)
+    {
+        try {
+            Thread.sleep(sleepTime);
+        } catch (InterruptedException ie) {
+            // ignore interruptions
+        }
+    }
+
+    private void startInputProcessEngine()
+        throws Exception
+    {
+        spDataInputProcess.startProcessing();
+        spInputSrcMng.startProcessing();
+
+        gtInputProcess.startProcessing();
+        gtInputSrcMng.startProcessing();
+
+    }
+
+    private void startOutputProcessEngine()
+        throws Exception
+    {
+        spCacheOutputProcess.startProcessing();
+        spReqOutputProcess.startProcessing();
+
+        for (int i = 0; i < outputDests.size(); i++) {
+            OutputDestination outputDest =
+                (OutputDestination) outputDests.get(i);
+            outputDest.startProcessing();
+        }
+
+    }   //  End Method  startOutputProcessEngine()
+
+
+    private void stopInputProcessEngine()
+        throws Exception
+    {
+        spInputSrcMng.stopProcessing();
+        spDataInputProcess.forcedStopProcessing();
+
+        spInputSrcMng.stopProcessing();
+        gtInputProcess.forcedStopProcessing();
+    }
+
+    private void stopOutputProcessEngine()
+    {
+        spCacheOutputProcess.forcedStopProcessing();
+        spReqOutputProcess.forcedStopProcessing();
+
+        for (int i = 0; i < outputDests.size(); i++) {
+            OutputDestination outputDest =
+                (OutputDestination) outputDests.get(i);
+            outputDest.stopProcessing();
+        }
+    }
+
+
+    /**
+     * Test event builder from start to finish.
+     *
+     * @throws Exception if a problem was encountered
+     */
+    public void testStartAndFinishEventBuilder()
+        throws Exception
+    {
+        addInputChannels();
+        addOutputChannels();
+
+        startOutputProcessEngine();
+
+        startInputProcessEngine();
+        if (splicer != null) {
+            splicer.start();
+        }
+
+        while (isInputEngineRunning() || isOutputEngineRunning() ||
+               isSplicerRunning())
+        {
+            sleep(200);
+        }
+
+        checkStopped();
+    }
+
+
+    private void waitForStoppedOutput()
+    {
+        boolean logged = false;
+        while (true) {
+            boolean allStopped = true;
+            for (int i = 0; i < outputDests.size(); i++) {
+                OutputDestination outputDest =
+                    (OutputDestination) outputDests.get(i);
+                if (outputDest.isRunning()) {
+                    allStopped = false;
+
+                    if (!logged) {
+                        if (log.isInfoEnabled()) {
+                            log.info("Waiting for output destinations");
+                        }
+
+                        logged = true;
+                    }
+
+                    break;
+                }
+            }
+
+            if (allStopped) {
+                break;
+            }
+
+            sleep(500);
+        }
+
+        if (logged) {
+            if (log.isInfoEnabled()) {
+                log.info("Done waiting for output destinations");
+            }
+        }
+    }
+
+    /**
+     * Command line argument handler.
+     */
+    class ArgHandler
+    {
+        private String gtSourceFile;
+        private ArrayList spSourceList;
+        private int numGenerated;
+        private long randomSeed;
+        private String outputFile = "EventPayloadDaqDispOutput";
+
+        /**
+         * Process command line arguments.
+         *
+         * @param args command-line arguments
+         *
+         */
+        ArgHandler(String[] args)
+        {
+            boolean usage = false;
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].charAt(0) == '-') {
+                    if (args[i].charAt(1) == 'l') {
+                        i++;
+                        if (!setLogLevel(args[i])) {
+                            System.err.println("Bad log level '" + args[i] +
+                                               "'");
+                            usage = true;
+                        }
+                    } else if (args[i].charAt(1) == 'n') {
+                        i++;
+                        try {
+                            numGenerated = Integer.parseInt(args[i]);
+                        } catch (NumberFormatException nfe) {
+                            System.err.println("Bad number of triggers '" +
+                                               args[i] + "'");
+                            usage = true;
+                        }
+
+                        if (numGenerated <= 0) {
+                            System.err.println("Illegal number of triggers '" +
+                                               args[i] + "'");
+                            usage = true;
+                        }
+                    } else if (args[i].charAt(1) == 'o') {
+                        i++;
+                        if (args[i].equalsIgnoreCase("null")) {
+                            outputFile = null;
+                        } else {
+                            outputFile = args[i];
+                        }
+                    } else if (args[i].charAt(1) == 'r') {
+                        i++;
+                        try {
+                            randomSeed = Long.parseLong(args[i]);
+                        } catch (NumberFormatException nfe) {
+                            System.err.println("Bad random seed '" +
+                                               args[i] + "'");
+                            usage = true;
+                        }
+                    } else {
+                        System.err.println("Unknown option '" + args[i] +
+                                           "'");
+                        usage = true;
+                    }
+                } else if (gtSourceFile == null) {
+                    gtSourceFile = args[i];
+                } else {
+                    if (spSourceList == null) {
+                        spSourceList = new ArrayList();
+                    }
+
+                    spSourceList.add(args[i]);
+                }
+            }
+
+            // validate file-based input
+            if (numGenerated == 0) {
+                if (gtSourceFile == null) {
+                    // if nothing specified, use default file names
+                    gtSourceFile = sourceGTFileName;
+                    spSourceList = new ArrayList();
+                    spSourceList.add(sourceSPDataFileName);
+                } else if (spSourceList == null) {
+                    System.err.println("Specified global trigger file" +
+                                       " without hit file");
+                    usage = true;
+                }
+            }
+
+            if (usage) {
+                System.err.println("java EventBuilderTestFrame" +
+                                   " [-l logLevel]" +
+                                   " [-n numGenerated]" +
+                                   " [-o outputFile]" +
+                                   " [-r randomSeed]" +
+                                   " [trigRequestFile hitFile [hitFile ...]]" +
+                                   "");
+                System.exit(1);
+            }
+        }
+
+        void finish()
+            throws IOException
+        {
+            final int maxHitsPerTrigger = 1;
+
+            if (numGenerated > 0) {
+                if (randomSeed == 0) {
+                    evtGen = new EventInputSourceGenerator(maxHitsPerTrigger);
+                } else {
+                    evtGen = new EventInputSourceGenerator(randomSeed,
+                                                           maxHitsPerTrigger);
+                }
+
+                evtGen.setNumOfHits(numGenerated);
+
+                InputSource[] gtSrcs = new InputSource[] {
+                    evtGen.getTriggerRequestSource(),
+                };
+                gtInputSrcMng =
+                    new InputSourceGeneratorMng(gtSrcs);
+
+                spInputSrcMng =
+                    new InputSourceGeneratorMng(evtGen.getHitSources());
+            } else {
+                final int gtId = SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID;
+                FileInputSource gtSrc =
+                    new FileInputSource(gtSourceFile, gtId);
+                gtInputSrcMng =
+                    new FileInputSourceMng(new InputSource[] { gtSrc });
+
+                final int spId = SourceIdRegistry.STRINGPROCESSOR_SOURCE_ID;
+                InputSource[] spSrc = new InputSource[spSourceList.size()];
+                for (int i = 0; i < spSrc.length; i++) {
+                    spSrc[i] =
+                        new FileInputSource((String) spSourceList.get(i),
+                                            spId + i);
+                }
+                spInputSrcMng = new FileInputSourceMng(spSrc);
+            }
+
+            ((TcalFakeDispatcher) dispatcher).setFileName(outputFile);
+        }
+
+        private boolean setLogLevel(String levelStr)
+        {
+            Level level;
+            if (levelStr.equalsIgnoreCase("off")) {
+                level = Level.OFF;
+            } else if (levelStr.equalsIgnoreCase("fatal")) {
+                level = Level.FATAL;
+            } else if (levelStr.equalsIgnoreCase("error")) {
+                level = Level.ERROR;
+            } else if (levelStr.equalsIgnoreCase("warn")) {
+                level = Level.WARN;
+            } else if (levelStr.equalsIgnoreCase("info")) {
+                level = Level.INFO;
+            } else if (levelStr.equalsIgnoreCase("debug")) {
+                level = Level.DEBUG;
+            } else if (levelStr.equalsIgnoreCase("all")) {
+                level = Level.ALL;
+            } else {
+                return false;
+            }
+
+            Logger.getRootLogger().setLevel(level);
+            return true;
+        }
+    }
+
+    /**
+     * Run event builder tests.
+     *
+     * @param args command-line arguments
+     *
+     * @throws Exception if any problems were encountered
+     */
+    public static final void main(String[] args)
+        throws Exception
+    {
+        LoggingConsumer.installDefault();
+
+        EventBuilderTestFrame tstFrame = new EventBuilderTestFrame(args);
+
+        final long start = System.currentTimeMillis();
+
+        tstFrame.testStartAndFinishEventBuilder();
+
+        tstFrame.cleanup();
+        System.out.println("Completed in " +
+                           (System.currentTimeMillis() - start) + "ms");
+
+        if (log.isInfoEnabled()) {
+            log.info("Waiting 10 seconds for things to finish");
+        }
+
+        sleep(1000);
+
+        tstFrame.printReport();
+
+        if (log.isInfoEnabled()) {
+            log.info("Testing.....DONE!");
+        }
+
+        System.exit(0);
+
+    }   //End Method main()
+}

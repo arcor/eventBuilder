@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE mbean PUBLIC
+      "-//JBoss//DTD JBOSS XMBEAN 1.1//EN"
+      "http://www.jboss.org/j2ee/dtd/jboss_xmbean_1_1.dtd" [
+]>
+<mbean>
+    <description>
+        Monitoring information for EventBuilderSPreqPayloadOutputEngine manager.
+    </description>
+    <class>
+        icecube.daq.eventBuilder.EventBuilderSPreqPayloadOutputEngine
+    </class>
+
+    <attribute access="read-only"
+        getMethod="getPresentState">
+        <description>
+            Present state of manager.
+        </description>
+        <name>PresentState</name>
+        <type>java.lang.String</type>
+    </attribute>
+
+    <attribute access="read-only"
+        getMethod="getPresentChannelStates">
+        <description>
+            Present states of all channels in manager.
+        </description>
+        <name>PresentChannelStates</name>
+        <type>[Ljava.lang.String;</type>
+    </attribute>
+
+    <attribute access="read-only"
+        getMethod="getBytesSent">
+        <description>
+            Bytes sent by this channel.
+        </description>
+        <name>BytesProcessed</name>
+        <type>[Ljava.lang.Long;</type>
+    </attribute>
+
+    <attribute access="read-only"
+            getMethod="getRecordsSent">
+            <description>
+                Records sent by this channel.
+            </description>
+            <name>RecordsProcessed</name>
+            <type>[Ljava.lang.Long;</type>
+        </attribute>
+
+    <attribute access="read-only"
+            getMethod="getStopMessagesSent">
+            <description>
+                Stop messages sent by this channel.
+            </description>
+            <name>StopMessagesSent</name>
+            <type>[Ljava.lang.Long;</type>
+        </attribute>
+</mbean>

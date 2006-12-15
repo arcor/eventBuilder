@@ -1,0 +1,510 @@
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.common.DAQCmdInterface;
+
+import icecube.daq.eventBuilder.EventBuilderReadoutRequestGenerator;
+
+import icecube.daq.payload.IDOMID;
+import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.SourceIdRegistry;
+
+import icecube.daq.payload.impl.UTCTime8B;
+
+import icecube.daq.trigger.IReadoutRequest;
+import icecube.daq.trigger.IReadoutRequestElement;
+
+import icecube.daq.trigger.impl.DOMID8B;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Vector;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import junit.framework.Test;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import junit.framework.Test;
+
+class MockReadoutRequestElement
+    implements IReadoutRequestElement
+{
+    private static final String gtName = DAQCmdInterface.DAQ_GLOBAL_TRIGGER;
+    private static final ISourceID gtSrcId =
+        SourceIdRegistry.getISourceIDFromNameAndId(gtName, 0);
+
+    private int type;
+    private ISourceID srcId;
+    private IDOMID domId;
+    private IUTCTime firstTime;
+    private IUTCTime lastTime;
+
+    private MockReadoutRequestElement(int type, ISourceID srcId, long domId,
+                                      long firstTime, long lastTime)
+    {
+        this.type = type;
+        this.srcId = srcId;
+        this.domId = (domId == 0 ? null : new DOMID8B(domId));
+        this.firstTime = new UTCTime8B(firstTime);
+        this.lastTime = new UTCTime8B(lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createGlobalRequest(long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_IIIT_GLOBAL, null,
+                                             0, firstTime, lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createIceTopDOMRequest(ISourceID srcId, long domId,
+                               long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_IT_MODULE, srcId,
+                                             domId, firstTime, lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createIceTopRequest(long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_IT_GLOBAL, null,
+                                             0, firstTime, lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createInIceDOMRequest(ISourceID srcId, long domId,
+                              long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_II_MODULE, srcId,
+                                             domId, firstTime, lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createInIceRequest(long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_II_GLOBAL, null,
+                                             0, firstTime, lastTime);
+    }
+
+    public static final MockReadoutRequestElement
+        createStringRequest(ISourceID srcId, long firstTime, long lastTime)
+    {
+        return new MockReadoutRequestElement(READOUT_TYPE_II_STRING, srcId,
+                                             0, firstTime, lastTime);
+    }
+
+    public int getReadoutType()
+    {
+        return type;
+    }
+
+    public IDOMID getDomID()
+    {
+        return domId;
+    }
+
+    public ISourceID getSourceID()
+    {
+        return srcId;
+    }
+
+    public IUTCTime getFirstTimeUTC()
+    {
+        return firstTime;
+    }
+
+    public IUTCTime getLastTimeUTC()
+    {
+        return lastTime;
+    }
+}
+
+public class EventBuilderReadoutRequestGeneratorTest
+    extends TestCase
+{
+    private static final long NO_DOM_ID = 0xffffffffffffffffL;
+
+    private static MasterPayloadFactory masterFactory =
+        new MasterPayloadFactory();
+
+    public EventBuilderReadoutRequestGeneratorTest(String name)
+    {
+        super(name);
+    }
+
+    private static final Collection getDestinations(int numIceTop,
+                                                    int numInIce)
+    {
+        ArrayList list = new ArrayList();
+
+        final String iceTopDAQ = DAQCmdInterface.DAQ_ICETOP_DATA_HANDLER;
+        for (int i = 0; i < numIceTop; i++) {
+            final ISourceID srcId =
+                SourceIdRegistry.getISourceIDFromNameAndId(iceTopDAQ, i);
+            list.add(srcId);
+        }
+
+        final String inIceDAQ = DAQCmdInterface.DAQ_STRINGPROCESSOR;
+        for (int i = 0; i < numInIce; i++) {
+            final ISourceID srcId =
+                SourceIdRegistry.getISourceIDFromNameAndId(inIceDAQ, i);
+            list.add(srcId);
+        }
+
+        return list;
+    }
+
+    public static Test suite()
+    {
+        return new TestSuite(EventBuilderReadoutRequestGeneratorTest.class);
+    }
+
+    public void testEmpty()
+        throws Exception
+    {
+        final int numIceTop = 0;
+        final int numInIce = 0;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        try {
+            reqGen.setDestinations(destList);
+            fail("Expected empty list to fail");
+        } catch (Error err) {
+            // expect this to fail
+        }
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(new Vector(), 1, timeStamp);
+        assertEquals("Unexpected number of results",
+                     numIceTop + numInIce, result.size());
+    }
+
+    public void testGlobalRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createGlobalRequest
+                  (startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results",
+                     numIceTop + numInIce, result.size());
+
+        int totIceTop = 0;
+        int totInIce = 0;
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected readout type",
+                         IReadoutRequestElement.READOUT_TYPE_II_STRING,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         NO_DOM_ID, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public void testIceTopRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createIceTopRequest
+                  (startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results",
+                     numIceTop, result.size());
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected record type",
+                         IReadoutRequestElement.READOUT_TYPE_II_STRING,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         NO_DOM_ID, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public void testIceTopDomRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final ISourceID srcId = (ISourceID) destList.iterator().next();
+        final long domId = 666666666L;
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createIceTopDOMRequest
+                  (srcId, domId, startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results", 1, result.size());
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected record type",
+                         IReadoutRequestElement.READOUT_TYPE_II_MODULE,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         domId, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public void testInIceRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createInIceRequest
+                  (startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results",
+                     numInIce, result.size());
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected record type",
+                         IReadoutRequestElement.READOUT_TYPE_II_STRING,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         NO_DOM_ID, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public void testInIceDomRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final ISourceID srcId = (ISourceID) destList.iterator().next();
+        final long domId = 666666666L;
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createInIceDOMRequest
+                  (srcId, domId, startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results", 1, result.size());
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected record type",
+                         IReadoutRequestElement.READOUT_TYPE_II_MODULE,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         domId, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public void testStringRequest()
+        throws Exception
+    {
+        final int numIceTop = 2;
+        final int numInIce = 4;
+
+        final Collection destList = getDestinations(numIceTop, numInIce);
+
+        EventBuilderReadoutRequestGenerator reqGen =
+            new EventBuilderReadoutRequestGenerator(masterFactory);
+        reqGen.setDestinations(destList);
+
+        final ISourceID srcId = (ISourceID) destList.iterator().next();
+        final long startTime = 12345L;
+        final long endTime = 67890L;
+
+        Vector elems = new Vector();
+        elems.add(MockReadoutRequestElement.createStringRequest
+                  (srcId, startTime, endTime));
+
+        UTCTime8B timeStamp = new UTCTime8B(123456789);
+
+        Collection result = reqGen.generator(elems, 1, timeStamp);
+        assertEquals("Unexpected number of results", 1, result.size());
+
+        Iterator iter = result.iterator();
+        while (iter.hasNext()) {
+            IReadoutRequest payload = (IReadoutRequest) iter.next();
+
+            assertEquals("Bad request source ID",
+                         SourceIdRegistry.EVENTBUILDER_SOURCE_ID,
+                         payload.getSourceID().getSourceID());
+
+
+            Vector recs = payload.getReadoutRequestElements();
+            assertEquals("Expected 1 result record", 1, recs.size());
+
+            IReadoutRequestElement rrElem =
+                (IReadoutRequestElement) recs.get(0);
+            assertEquals("Unexpected record type",
+                         IReadoutRequestElement.READOUT_TYPE_II_STRING,
+                         rrElem.getReadoutType());
+            assertEquals("Unexpected DOM ID",
+                         NO_DOM_ID, rrElem.getDomID().getDomIDAsLong());
+            // not checking SourceID
+            assertEquals("Unexpected start time", startTime,
+                         rrElem.getFirstTimeUTC().getUTCTimeAsLong());
+            assertEquals("Unexpected end time", endTime,
+                         rrElem.getLastTimeUTC().getUTCTimeAsLong());
+        }
+    }
+
+    public static final void main(String[] args)
+    {
+        junit.textui.TestRunner.run(suite());
+    }
+}

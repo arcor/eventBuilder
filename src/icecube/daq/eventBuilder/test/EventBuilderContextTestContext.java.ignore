@@ -1,0 +1,1918 @@
+package icecube.daq.eventBuilder.test;
+
+import java.io.PrintStream;
+
+public final class EventBuilderContextTestContext
+    extends statemap.FSMContext
+{
+// Member methods.
+
+    public EventBuilderContextTestContext(EventBuilderContextTest owner)
+    {
+        super();
+
+        _owner = owner;
+        setState(EventBuilderSM.Deployed);
+        EventBuilderSM.Deployed.Entry(this);
+    }
+
+    public synchronized void ConfigSig()
+    {
+        _transition = "ConfigSig";
+        getState().ConfigSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void DeploySig()
+    {
+        _transition = "DeploySig";
+        getState().DeploySig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void DisposeSig()
+    {
+        _transition = "DisposeSig";
+        getState().DisposeSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void ErrorSig()
+    {
+        _transition = "ErrorSig";
+        getState().ErrorSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void ForcedStopSig()
+    {
+        _transition = "ForcedStopSig";
+        getState().ForcedStopSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void InitializeSig()
+    {
+        _transition = "InitializeSig";
+        getState().InitializeSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_ConfigAbandonSig()
+    {
+        _transition = "Int_ConfigAbandonSig";
+        getState().Int_ConfigAbandonSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_ConfigDoneSig()
+    {
+        _transition = "Int_ConfigDoneSig";
+        getState().Int_ConfigDoneSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_ConfigFailSig()
+    {
+        _transition = "Int_ConfigFailSig";
+        getState().Int_ConfigFailSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_ConfigRunDownCompleteSig()
+    {
+        _transition = "Int_ConfigRunDownCompleteSig";
+        getState().Int_ConfigRunDownCompleteSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_DisposeCompleteSig()
+    {
+        _transition = "Int_DisposeCompleteSig";
+        getState().Int_DisposeCompleteSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_Exception(String name, Exception e)
+    {
+        _transition = "Int_Exception";
+        getState().Int_Exception(this, name, e);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_StopRunDownCompleteSig()
+    {
+        _transition = "Int_StopRunDownCompleteSig";
+        getState().Int_StopRunDownCompleteSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void Int_StopSig()
+    {
+        _transition = "Int_StopSig";
+        getState().Int_StopSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void OfflineSig()
+    {
+        _transition = "OfflineSig";
+        getState().OfflineSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void OnlineSig()
+    {
+        _transition = "OnlineSig";
+        getState().OnlineSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void StartSig()
+    {
+        _transition = "StartSig";
+        getState().StartSig(this);
+        _transition = "";
+        return;
+    }
+
+    public synchronized void StopSig()
+    {
+        _transition = "StopSig";
+        getState().StopSig(this);
+        _transition = "";
+        return;
+    }
+
+    protected EventBuilderContextTestState getState()
+        throws statemap.StateUndefinedException
+    {
+        if (_state == null)
+        {
+            throw(new statemap.StateUndefinedException());
+        }
+
+        return((EventBuilderContextTestState) _state);
+    }
+
+    protected EventBuilderContextTest getOwner()
+    {
+        return(_owner);
+    }
+
+// Member data.
+
+    transient private EventBuilderContextTest _owner;
+
+    protected static abstract class EventBuilderContextTestState
+        extends statemap.State
+    {
+        protected EventBuilderContextTestState(String name, int id)
+        {
+            super (name, id);
+        }
+
+        protected void Entry(EventBuilderContextTestContext context) {}
+        protected void Exit(EventBuilderContextTestContext context) {}
+
+        protected void ConfigSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void DeploySig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void DisposeSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void ErrorSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void ForcedStopSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void InitializeSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_ConfigAbandonSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_ConfigDoneSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_ConfigFailSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_ConfigRunDownCompleteSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_DisposeCompleteSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+        {
+            Default(context);
+        }
+
+        protected void Int_StopRunDownCompleteSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Int_StopSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void OfflineSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void OnlineSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void StartSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void StopSig(EventBuilderContextTestContext context)
+        {
+            Default(context);
+        }
+
+        protected void Default(EventBuilderContextTestContext context)
+        {
+            if (context.getDebugFlag() == true)
+            {
+                PrintStream str = context.getDebugStream();
+
+                str.println("TRANSITION   : Default");
+            }
+
+            throw (
+                new statemap.TransitionUndefinedException(
+                    "State: " +
+                    context.getState().getName() +
+                    ", Transition: " +
+                    context.getTransition()));
+        }
+    }
+
+    /* package */ static abstract class EventBuilderSM
+    {
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Deployed Deployed;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Offline Offline;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Idle Idle;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Configuring Configuring;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_ConfigureRunDown ConfigureRunDown;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Ready Ready;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Running Running;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Error Error;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Stopping Stopping;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Stopped Stopped;
+        /* package */ static EventBuilderSM_Default.EventBuilderSM_Disposing Disposing;
+        private static EventBuilderSM_Default Default;
+
+        static
+        {
+            Deployed = new EventBuilderSM_Default.EventBuilderSM_Deployed("EventBuilderSM.Deployed", 0);
+            Offline = new EventBuilderSM_Default.EventBuilderSM_Offline("EventBuilderSM.Offline", 1);
+            Idle = new EventBuilderSM_Default.EventBuilderSM_Idle("EventBuilderSM.Idle", 2);
+            Configuring = new EventBuilderSM_Default.EventBuilderSM_Configuring("EventBuilderSM.Configuring", 3);
+            ConfigureRunDown = new EventBuilderSM_Default.EventBuilderSM_ConfigureRunDown("EventBuilderSM.ConfigureRunDown", 4);
+            Ready = new EventBuilderSM_Default.EventBuilderSM_Ready("EventBuilderSM.Ready", 5);
+            Running = new EventBuilderSM_Default.EventBuilderSM_Running("EventBuilderSM.Running", 6);
+            Error = new EventBuilderSM_Default.EventBuilderSM_Error("EventBuilderSM.Error", 7);
+            Stopping = new EventBuilderSM_Default.EventBuilderSM_Stopping("EventBuilderSM.Stopping", 8);
+            Stopped = new EventBuilderSM_Default.EventBuilderSM_Stopped("EventBuilderSM.Stopped", 9);
+            Disposing = new EventBuilderSM_Default.EventBuilderSM_Disposing("EventBuilderSM.Disposing", 10);
+            Default = new EventBuilderSM_Default("EventBuilderSM.Default", -1);
+        }
+
+    }
+
+    protected static class EventBuilderSM_Default
+        extends EventBuilderContextTestState
+    {
+        protected EventBuilderSM_Default(String name, int id)
+        {
+            super (name, id);
+        }
+
+        private static final class EventBuilderSM_Deployed
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Deployed(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterDeployed();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitDeployed();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Deployed.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void DeploySig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Deployed.DeploySig()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Deployed", "DeploySig");
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Deployed.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Deployed.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void OfflineSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Deployed.OfflineSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Offline", "OfflineSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Offline);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Offline
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Offline(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterOffline();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitOffline();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Offline.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Offline.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void OnlineSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Offline.OnlineSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "OnlineSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Idle
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Idle(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterIdle();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitIdle();
+                return;
+            }
+
+            protected void ConfigSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Idle.ConfigSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Configuring", "ConfigSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Configuring);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Idle.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Idle.InitializeSig()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Idle.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void OfflineSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Idle.OfflineSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Offline", "OfflineSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Offline);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Configuring
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Configuring(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterConfiguring();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitConfiguring();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "ConfigureRunDown", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.ConfigureRunDown);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_ConfigAbandonSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.Int_ConfigAbandonSig()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_ConfigAbandonSig");
+                    ctxt.abandonConfigure();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void Int_ConfigDoneSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.Int_ConfigDoneSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Ready", "Int_ConfigDoneSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Ready);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_ConfigFailSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.Int_ConfigFailSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "ConfigureRunDown", "Int_ConfigFailSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.ConfigureRunDown);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Configuring.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_ConfigureRunDown
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_ConfigureRunDown(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterConfigureRunDown();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitConfigureRunDown();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.ConfigureRunDown.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.ConfigureRunDown.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_ConfigRunDownCompleteSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.ConfigureRunDown.Int_ConfigRunDownCompleteSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "Int_ConfigRunDownCompleteSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.ConfigureRunDown.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Ready
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Ready(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterReady();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitReady();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Ready.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Ready.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Ready.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void StartSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Ready.StartSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Running", "StartSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Running);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Running
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Running(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterRunning();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitRunning();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void ErrorSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.ErrorSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Error", "ErrorSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Error);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void Int_StopSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.Int_StopSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Stopping", "Int_StopSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Stopping);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void StopSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Running.StopSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Stopping", "StopSig");
+                    ctxt.stopSigTransition();
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Stopping);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Error
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Error(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterError();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitError();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Error.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Error.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Error.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Stopping
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Stopping(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterStopping();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitStopping();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopping.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void ForcedStopSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopping.ForcedStopSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Stopped", "ForcedStopSig");
+                    ctxt.forcedStopTransition();
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Stopped);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopping.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopping.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void Int_StopRunDownCompleteSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopping.Int_StopRunDownCompleteSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Stopped", "Int_StopRunDownCompleteSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Stopped);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Stopped
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Stopped(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterStopped();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitStopped();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopped.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void DisposeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopped.DisposeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Disposing", "DisposeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Disposing);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void ForcedStopSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopped.ForcedStopSig()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "ForcedStopSig");
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopped.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Stopped.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+        }
+
+        private static final class EventBuilderSM_Disposing
+            extends EventBuilderSM_Default
+        {
+            private EventBuilderSM_Disposing(String name, int id)
+            {
+                super (name, id);
+            }
+
+            protected void Entry(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.enterDisposing();
+                return;
+            }
+
+            protected void Exit(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                ctxt.exitDisposing();
+                return;
+            }
+
+            protected void Default(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Disposing.Default()");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Default");
+                    ctxt.illegalTransition();
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+
+            protected void ErrorSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Disposing.ErrorSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Error", "ErrorSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Error);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void InitializeSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Disposing.InitializeSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Idle", "InitializeSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Idle);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_DisposeCompleteSig(EventBuilderContextTestContext context)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Disposing.Int_DisposeCompleteSig()");
+                }
+
+                (context.getState()).Exit(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "Ready", "Int_DisposeCompleteSig");
+                }
+                finally
+                {
+                    context.setState(EventBuilderSM.Ready);
+                    (context.getState()).Entry(context);
+                }
+                return;
+            }
+
+            protected void Int_Exception(EventBuilderContextTestContext context, String name, Exception e)
+            {
+                EventBuilderContextTest ctxt = context.getOwner();
+
+                if (context.getDebugFlag() == true)
+                {
+                    PrintStream str = context.getDebugStream();
+
+                    str.println("TRANSITION   : EventBuilderSM.Disposing.Int_Exception(String name, Exception e)");
+                }
+
+                EventBuilderContextTestState endState = context.getState();
+
+                context.clearState();
+                try
+                {
+                    ctxt.setComponentState("EventBuilderSM", "nil", "Int_Exception(name : String, e : Exception)");
+                    ctxt.handleException(name, e);
+                }
+                finally
+                {
+                    context.setState(endState);
+                }
+                return;
+            }
+        }
+    }
+}
