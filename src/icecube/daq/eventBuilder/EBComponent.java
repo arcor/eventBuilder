@@ -18,9 +18,6 @@ import icecube.daq.juggler.component.DAQCompException;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
 
-import icecube.daq.juggler.mock.MockAppender;
-import icecube.daq.juggler.mock.MockDispatcher;
-
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
