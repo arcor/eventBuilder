@@ -2,6 +2,8 @@ package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
 
+/* HAQ */
+
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
 
