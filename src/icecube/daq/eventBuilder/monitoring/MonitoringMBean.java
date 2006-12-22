@@ -708,4 +708,9 @@ public class MonitoringMBean
     {
         data = mon;
     }
+
+    public String toString()
+    {
+        return data.toString();
+    }
 }
