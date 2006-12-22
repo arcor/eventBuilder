@@ -71,7 +71,7 @@ public class EBComponent
         masterFactory = new MasterPayloadFactory(bufMgr);
 
         MonitoringData monData = new MonitoringData();
-        addMBean(new MonitoringMBean(monData));
+        addMBean("backEnd", new MonitoringMBean(monData));
 
         splicedAnalysis = new SPDataAnalysis(masterFactory);
         Splicer splicer = new SplicerImpl(splicedAnalysis);
