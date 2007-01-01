@@ -8,7 +8,6 @@ import icecube.daq.io.FileDispatcher;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
-import icecube.daq.eventBuilder.monitoring.MonitoringMBean;
 
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
@@ -71,7 +70,7 @@ public class EBComponent
         masterFactory = new MasterPayloadFactory(bufMgr);
 
         MonitoringData monData = new MonitoringData();
-        addMBean("backEnd", new MonitoringMBean(monData));
+        addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis(masterFactory);
         Splicer splicer = new SplicerImpl(splicedAnalysis);

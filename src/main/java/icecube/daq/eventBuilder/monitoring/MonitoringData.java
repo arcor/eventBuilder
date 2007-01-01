@@ -4,6 +4,7 @@ package icecube.daq.eventBuilder.monitoring;
  * Wrapper for all monitored data objects.
  */
 public class MonitoringData
+    implements MonitoringDataMBean
 {
     /** Back end monitoring. */
     private BackEndMonitor backEnd;
