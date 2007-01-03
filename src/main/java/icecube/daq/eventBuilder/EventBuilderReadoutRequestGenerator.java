@@ -321,8 +321,8 @@ public class EventBuilderReadoutRequestGenerator
 
             case DOM:
             case OLD_DOM:
-                if (LOG.isInfoEnabled()) {
-                    LOG.info("Saw request DOM for current Trigger");
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Saw request DOM for current Trigger");
                 }
 
                 generateDomRequest(eventReadoutRequests, eventId, sid, domid,
