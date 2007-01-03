@@ -123,6 +123,7 @@ public class EBComponent
      */
     public void setRunNumber(int runNumber)
     {
+        backEnd.reset();
         backEnd.setRunNumber(runNumber);
         splicedAnalysis.setRunNumber(runNumber);
     }

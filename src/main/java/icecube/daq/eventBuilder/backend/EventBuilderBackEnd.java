@@ -160,6 +160,8 @@ public class EventBuilderBackEnd
     private int runNumber;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
+    /** Has the back end been reset? */
+    private boolean isReset;
 
     private MemoryStatistics memStats = new MemoryStatistics();
 
@@ -780,6 +782,9 @@ public class EventBuilderBackEnd
      */
     public IPayload makeDataPayload(IPayload reqPayload, List dataList)
     {
+        // remember that we need to be reset
+        isReset = false;
+
         if (reqPayload == null) {
             try {
                 throw new NullPointerException("No request");
@@ -871,23 +876,27 @@ public class EventBuilderBackEnd
      */
     public void reset()
     {
-        prevRunTotalEvents = getNumOutputsSent();
+        if (!isReset) {
+            prevRunTotalEvents = getNumOutputsSent();
 
-        recycleFinalData();
+            recycleFinalData();
 
-        cumDispTime = 0;
-        curDispTime = 0;
-        execListLen = 0;
-        execListMax = 0;
-        maxDispSize = 0;
-        maxDispTime = 0;
-        numDispTimes = 0;
-        numExecuteCalls = 0;
-        numRecycled = 0;
-        numTruncateCalls = 0;
+            cumDispTime = 0;
+            curDispTime = 0;
+            execListLen = 0;
+            execListMax = 0;
+            maxDispSize = 0;
+            maxDispTime = 0;
+            numDispTimes = 0;
+            numExecuteCalls = 0;
+            numRecycled = 0;
+            numTruncateCalls = 0;
 
-        runNumber = Integer.MIN_VALUE;
-        reportedBadRunNumber = false;
+            runNumber = Integer.MIN_VALUE;
+            reportedBadRunNumber = false;
+
+            isReset = true;
+        }
 
         super.reset();
     }
