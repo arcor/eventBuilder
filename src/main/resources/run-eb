@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Find the top of the workspace regardless of where this script was
+# started from
+SCRIPT_DIR=`dirname $0`
+START_DIR=`pwd`
+REL_PATH_TO_WS="../../.."
+WS_DIR=`cd ${START_DIR}/${SCRIPT_DIR}/${REL_PATH_TO_WS} && pwd`
+
+# The local user's maven repository from which the required libs will
+# be found
+REPO_DIR=${HOME}/.m2/repository
+
+REQ_PROJECTS="eventBuilder-prod \
+juggler \
+payload \
+splicer \
+daq-io \
+daq-common \
+daq-request-filler \
+daq-log"
+
+REQ_LIBS="commons-logging \
+log4j \
+xmlrpc-common \
+xmlrpc-client \
+xmlrpc-server \
+icebucket \
+concurrent \
+jmxtools \
+ws-commons-util"
+
+CLASSPATH=""
+for proj in ${REQ_PROJECTS}; do
+  CLASSPATH=${WS_DIR}/${proj}/target/${proj}-${pom.version}.jar:${CLASSPATH}
+done
+
+for lib in ${REQ_LIBS}; do
+  # This will break if there is more than one such lib under the REPO_DIR
+  CLASSPATH=`find ${REPO_DIR} -name ${lib}\*.jar`:${CLASSPATH}
+done
+
+export CLASSPATH
+#echo "CLASSPATH=${CLASSPATH}"
+java icecube.daq.eventBuilder.EBComponent $@
