@@ -177,6 +177,10 @@ public class MockDispatcher
         return events.size();
     }
 
+    public long getTotalDispatchedEvents(){
+        return events.size();
+    }
+
     /**
      * Load all payload data in case underlying ByteBuffer gets reused.
      */
