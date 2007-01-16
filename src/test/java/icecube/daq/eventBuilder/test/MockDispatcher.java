@@ -182,6 +182,24 @@ public class MockDispatcher
     }
 
     /**
+     * Set the destination directory where the dispatch files will be saved.
+     *
+     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     */
+    public void setDispatchDestStorage(String dirName) {
+        throw new UnsupportedOperationException("Unimplemented");
+    }
+
+    /**
+     * Set the maximum size of the dispatch file.
+     *
+     * @param maxFileSize the maximum size of the dispatch file.
+     */
+    public void setMaxFileSize(long maxFileSize) {
+        throw new UnsupportedOperationException("Unimplemented");
+    }
+
+    /**
      * Load all payload data in case underlying ByteBuffer gets reused.
      */
     private static final void loadEvent(IEventPayload evt)

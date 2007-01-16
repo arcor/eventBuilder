@@ -54,6 +54,8 @@ public class EBComponent
     private EventBuilderBackEnd backEnd;
     private SPDataAnalysis splicedAnalysis;
 
+    private Dispatcher dispatcher;
+
     /**
      * Create a hit generator.
      */
@@ -77,7 +79,7 @@ public class EBComponent
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
-        Dispatcher dispatcher = new FileDispatcher("physics");
+        dispatcher = new FileDispatcher("physics");
 
         backEnd =
             new EventBuilderBackEnd(masterFactory, bufMgr, splicer,
@@ -126,6 +128,24 @@ public class EBComponent
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
         splicedAnalysis.setRunNumber(runNumber);
+    }
+
+    /**
+     * Set the destination directory where the dispatch files will be saved.
+     *
+     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     */
+    public void setDispatchDestStorage(String dirName) {
+        dispatcher.setDispatchDestStorage(dirName);
+    }
+
+    /**
+     * Set the maximum size of the dispatch file.
+     *
+     * @param maxFileSize the maximum size of the dispatch file.
+     */
+    public void setMaxFileSize(long maxFileSize) {
+        dispatcher.setMaxFileSize(maxFileSize);
     }
 
     /**
