@@ -28,7 +28,6 @@ public class MonitoringData
         if (backEnd == null) {
             return 0;
         }
-
         return backEnd.getAverageDispatchTime();
     }
 
@@ -720,6 +719,32 @@ public class MonitoringData
     }
 
     /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    public int getDiskAvailable(){
+        if (backEnd == null) {
+            return -1;
+        }
+        return backEnd.getDiskAvailable();
+    }
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    public int getDiskSize(){
+        if (backEnd == null) {
+            return -1;
+        }
+        return backEnd.getDiskSize();
+    }
+
+    /**
      * String representation of monitoring data.
      *
      * @return monitored data
@@ -802,6 +827,10 @@ public class MonitoringData
                 append(getTotalTriggerStopsReceived());
             buf.append("\n  tRsPerSecond ").
                 append(getTriggerRequestsPerSecond());
+            buf.append("\n  getDiskAvailable ").
+                append(getDiskAvailable());
+            buf.append("\n  getDiskSize ").
+                append(getDiskSize());
         }
         if (gtInput == null) {
             buf.append("\n  No gtInput monitoring data available");

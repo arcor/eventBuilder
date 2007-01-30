@@ -200,6 +200,26 @@ public class MockDispatcher
     }
 
     /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    public int getDiskAvailable(){
+        throw new UnsupportedOperationException("Unimplemented");
+    }
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    public int getDiskSize(){
+        throw new UnsupportedOperationException("Unimplemented");
+    }
+
+    /**
      * Load all payload data in case underlying ByteBuffer gets reused.
      */
     private static final void loadEvent(IEventPayload evt)
