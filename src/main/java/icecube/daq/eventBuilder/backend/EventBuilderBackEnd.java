@@ -379,6 +379,28 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    public int getDiskAvailable()
+    {
+        return dispatcher.getDiskAvailable();
+    }
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    public int getDiskSize()
+    {
+        return dispatcher.getDiskSize();
+    }
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
@@ -1050,25 +1072,5 @@ public class EventBuilderBackEnd
     public void splicerStopped()
     {
         addDataStop();
-    }
-
-    /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the number of units still available in the disk.
-     */
-    public int getDiskAvailable(){
-        return dispatcher.getDiskAvailable();
-    }
-
-    /**
-     * Returns the total number of units in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the total number of units in the disk.
-     */
-    public int getDiskSize(){
-        return dispatcher.getDiskSize();
     }
 }
