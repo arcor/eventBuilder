@@ -90,7 +90,7 @@ public class EBComponent
                                                          "globalTrigInput",
                                                          backEnd, bufMgr,
                                                          masterFactory);
-        addEngine(DAQConnector.TYPE_GLOBAL_TRIGGER, gtInputProcess);
+        addMonitoredEngine(DAQConnector.TYPE_GLOBAL_TRIGGER, gtInputProcess);
 
         spReqOutputProcess =
             new EventBuilderSPreqPayloadOutputEngine(COMPONENT_NAME, compId,
@@ -101,7 +101,7 @@ public class EBComponent
             new EventBuilderSPdataPayloadInputEngine(COMPONENT_NAME, compId,
                                                      "spDataInput", bufMgr,
                                                      masterFactory, splicer);
-        addEngine(DAQConnector.TYPE_READOUT_DATA, spDataInputProcess);
+        addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA, spDataInputProcess);
 
         spFlushOutputProcess =
             new EventBuilderSPcachePayloadOutputEngine(COMPONENT_NAME, compId,
