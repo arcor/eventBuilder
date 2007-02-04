@@ -365,20 +365,4 @@ public interface MonitoringDataMBean
      * @return trigger requests per second
      */
     double getTriggerRequestsPerSecond();
-
-    /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the number of units still available in the disk.
-     */
-    int getDiskAvailable();
-
-    /**
-     * Returns the total number of units in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the total number of units in the disk.
-     */
-    int getDiskSize();
 }
