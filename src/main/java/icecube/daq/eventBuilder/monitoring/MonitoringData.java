@@ -202,20 +202,6 @@ public class MonitoringData
     }
 
     /**
-     * Get memory statistics.
-     *
-     * @return memory statistics
-     */
-    public String getMemoryStatistics()
-    {
-        if (backEnd == null) {
-            return "<NO BACKEND>";
-        }
-
-        return backEnd.getMemoryStatistics();
-    }
-
-    /**
      * Get number of readouts which could not be loaded.
      *
      * @return num bad readouts
@@ -782,7 +768,6 @@ public class MonitoringData
                 append(getMaximumDispatchTime());
             buf.append("\n  maxExecuteListLength ").
                 append(getMaximumExecuteListLength());
-            buf.append("\n  memoryStatistics ").append(getMemoryStatistics());
             buf.append("\n  numBadReadouts ").append(getNumBadReadouts());
             buf.append("\n  numBadTRs ").append(getNumBadTriggerRequests());
             buf.append("\n  numDispatchTimes ").append(getNumDispatchTimes());

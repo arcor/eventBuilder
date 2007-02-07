@@ -82,12 +82,6 @@ public interface BackEndMonitor
      */
     long getMaximumExecuteListLength();
 
-    /**
-     * Get memory statistics.
-     *
-     * @return memory statistics
-     */
-    String getMemoryStatistics();
 
     /**
      * Get number of readouts which could not be loaded.

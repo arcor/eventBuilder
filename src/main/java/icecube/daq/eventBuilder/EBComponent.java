@@ -18,6 +18,8 @@ import icecube.daq.juggler.component.DAQCompException;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
 
+import icecube.daq.juggler.mbean.MemoryStatistics;
+
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
@@ -68,6 +70,8 @@ public class EBComponent
         IByteBufferCache bufMgr =
             new ByteBufferCache(256, 50000000L, 5000000L, "EventBuilder");
         addCache(bufMgr);
+
+        addMBean("memory", new MemoryStatistics());
 
         masterFactory = new MasterPayloadFactory(bufMgr);
 

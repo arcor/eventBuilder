@@ -46,65 +46,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * JVM memory statistics.
- */
-class MemoryStatistics
-{
-    /** Memory size designators. */
-    private static final String[] MEMORY_SUFFIX = { "", "K", "G", "T" };
-
-    /** Keep pointer to runtime data. */
-    private Runtime rt = Runtime.getRuntime();
-
-    /**
-     * Simple constructor.
-     */
-    public MemoryStatistics()
-    {
-    }
-
-    /**
-     * Flush unused data from garbage collector.
-     */
-    public void flushMemory()
-    {
-        rt.runFinalization();
-        rt.gc();
-    }
-
-    /**
-     * Format byte size as a string.
-     *
-     * @param bytes
-     */
-    private static String formatBytes(long bytes)
-    {
-        int sufIdx = 0;
-        while (bytes > 1024 * 1024 && sufIdx < MEMORY_SUFFIX.length - 1) {
-            bytes /= 1024;
-            sufIdx++;
-        }
-
-        return Long.toString(bytes) + MEMORY_SUFFIX[sufIdx];
-    }
-
-    /**
-     * Return description of current statistics.
-     *
-     * @return description of current statistics
-     */
-    public String toString()
-    {
-        long free = rt.freeMemory();
-        long total = rt.totalMemory();
-
-        return (formatBytes(total - free) + " used, " +
-                formatBytes(free) + " of " +
-                formatBytes(total) + " free.");
-    }
-}
-
-/**
  * Pull trigger requests from the front-end queue and readout data
  * from the splicer queue, and use those inputs to build events and send
  * them to DAQ dispatch.
@@ -162,8 +103,6 @@ public class EventBuilderBackEnd
     private boolean reportedBadRunNumber;
     /** Has the back end been reset? */
     private boolean isReset;
-
-    private MemoryStatistics memStats = new MemoryStatistics();
 
     /**
      * Constructor
@@ -428,16 +367,6 @@ public class EventBuilderBackEnd
     public long getMaximumExecuteListLength()
     {
         return execListMax;
-    }
-
-    /**
-     * Get memory statistics.
-     *
-     * @return memory statistics
-     */
-    public String getMemoryStatistics()
-    {
-        return memStats.toString();
     }
 
     /**
