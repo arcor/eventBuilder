@@ -17,6 +17,7 @@ import icecube.daq.eventBuilder.monitoring.GlobalTriggerInputMonitor;
 import icecube.daq.io.PushPayloadInputEngine;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.MasterPayloadFactory;
 
 import icecube.daq.payload.splicer.Payload;
@@ -124,7 +125,7 @@ public class EventBuilderGlobalTrigPayloadInputEngine
         }
 
         try {
-            ((Payload) pay).loadPayload();
+            ((ILoadablePayload) pay).loadPayload();
         } catch (Exception ex) {
             LOG.error("Cannot load trigger request", ex);
             throw new IOException("Cannot load trigger request");

@@ -16,6 +16,7 @@ import icecube.daq.eventbuilder.impl.EventPayload_v2;
 import icecube.daq.eventbuilder.impl.EventPayload_v2Factory;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
@@ -225,7 +226,7 @@ public class EventBuilderBackEnd
      *
      * @param data payload
      */
-    public void disposeData(IPayload data)
+    public void disposeData(ILoadablePayload data)
     {
         splicer.truncate((Spliceable) data);
     }
@@ -731,7 +732,8 @@ public class EventBuilderBackEnd
      *
      * @return The EventPayload created for the current TriggerRequest.
      */
-    public IPayload makeDataPayload(IPayload reqPayload, List dataList)
+    public ILoadablePayload makeDataPayload(IPayload reqPayload,
+                                            List dataList)
     {
         // remember that we need to be reset
         isReset = false;
@@ -859,7 +861,7 @@ public class EventBuilderBackEnd
      *
      * @return <tt>true</tt> if event was sent
      */
-    public boolean sendOutput(IPayload output)
+    public boolean sendOutput(ILoadablePayload output)
     {
         boolean sent = sendToDaqDispatch(output);
 
@@ -875,7 +877,7 @@ public class EventBuilderBackEnd
      *
      * @return <tt>true</tt> if event was sent
      */
-    private boolean sendToDaqDispatch(IPayload event)
+    private boolean sendToDaqDispatch(ILoadablePayload event)
     {
         EventPayload_v2 tmpEvent = (EventPayload_v2) event;
 

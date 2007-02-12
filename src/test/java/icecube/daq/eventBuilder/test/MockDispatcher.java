@@ -11,6 +11,7 @@ import icecube.daq.eventbuilder.IReadoutDataPayload;
 import icecube.daq.eventbuilder.impl.EventPayload_v2;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.MasterPayloadFactory;
 
 import icecube.daq.payload.splicer.Payload;
@@ -225,7 +226,7 @@ public class MockDispatcher
     private static final void loadEvent(IEventPayload evt)
     {
         try {
-            ((Payload) evt.getTriggerRequestPayload()).loadPayload();
+            ((ILoadablePayload) evt.getTriggerRequestPayload()).loadPayload();
         } catch (Exception ex) {
             throw new Error("Couldn't load trigger request payload" +
                             " for event #" + evt.getEventUID(), ex);
@@ -236,7 +237,7 @@ public class MockDispatcher
             IReadoutDataPayload roData =
                 (IReadoutDataPayload) iter.next();
             try {
-                ((Payload) roData).loadPayload();
+                ((ILoadablePayload) roData).loadPayload();
             } catch (Exception ex) {
                 throw new Error("Couldn't load readout data payload#" +
                                 roData.getReadoutDataPayloadNumber() +
@@ -247,7 +248,7 @@ public class MockDispatcher
             Iterator dIter = roData.getDataPayloads().iterator();
             while (dIter.hasNext()) {
                 try {
-                    ((Payload) dIter.next()).loadPayload();
+                    ((ILoadablePayload) dIter.next()).loadPayload();
                 } catch (Exception ex) {
                     throw new Error("Couldn't load data for readout" +
                                     " data payload#" +
