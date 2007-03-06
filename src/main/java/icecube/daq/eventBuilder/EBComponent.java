@@ -68,7 +68,7 @@ public class EBComponent
         final int compId = 0;
 
         IByteBufferCache bufMgr =
-            new ByteBufferCache(256, 50000000L, 5000000L, "EventBuilder");
+            new ByteBufferCache(256, 100000000L, 75000000L, "EventBuilder");
         addCache(bufMgr);
 
         addMBean("memory", new MemoryStatistics());

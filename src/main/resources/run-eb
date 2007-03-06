@@ -61,4 +61,4 @@ fi
 
 export CLASSPATH
 #echo "CLASSPATH=${CLASSPATH}"
-java icecube.daq.eventBuilder.EBComponent $@
+java -Xmx1024m icecube.daq.eventBuilder.EBComponent $@
