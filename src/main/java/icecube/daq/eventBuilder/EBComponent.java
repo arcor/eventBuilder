@@ -108,7 +108,8 @@ public class EBComponent
         spReqOutputProcess =
             new EventBuilderSPreqPayloadOutputEngine(COMPONENT_NAME, compId,
                                                      "spReqOutput");
-        addEngine(DAQConnector.TYPE_READOUT_REQUEST, spReqOutputProcess, true);
+        addMonitoredEngine(DAQConnector.TYPE_READOUT_REQUEST,
+                           spReqOutputProcess, true);
 
         try {
             rdoutDataInputProcess =
