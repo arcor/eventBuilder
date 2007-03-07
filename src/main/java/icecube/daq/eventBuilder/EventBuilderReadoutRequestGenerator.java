@@ -1,20 +1,29 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
+
 import icecube.daq.payload.IDOMID;
-import icecube.daq.payload.IPayload;
-import icecube.daq.payload.IReadoutRequest;
-import icecube.daq.payload.IReadoutRequestElement;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.payload.impl.ReadoutRequestFactory;
+
+import icecube.daq.trigger.IReadoutRequest;
+import icecube.daq.trigger.IReadoutRequestElement;
+
+import icecube.daq.trigger.impl.DOMID8B;
+import icecube.daq.trigger.impl.ReadoutRequestPayload;
+import icecube.daq.trigger.impl.ReadoutRequestPayloadFactory;
+import icecube.daq.trigger.impl.TriggerRequestPayloadFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * User: nehar
@@ -35,7 +44,7 @@ public class EventBuilderReadoutRequestGenerator
 {
     //convenient mnemonics for the readout types
     private static final int GLOBAL =
-        IReadoutRequestElement.READOUT_TYPE_GLOBAL;
+        IReadoutRequestElement.READOUT_TYPE_IIIT_GLOBAL;
     private static final int INICE =
         IReadoutRequestElement.READOUT_TYPE_II_GLOBAL;
     private static final int ICETOP =
@@ -52,29 +61,28 @@ public class EventBuilderReadoutRequestGenerator
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
-    private static final Logger LOG =
-        Logger.getLogger(EventBuilderReadoutRequestGenerator.class);
+    private static final Log LOG =
+        LogFactory.getLog(EventBuilderReadoutRequestGenerator.class);
 
     //Factory object used to create readout requests.
-    private ReadoutRequestFactory factory;
+    private ReadoutRequestPayloadFactory readoutFactory;
 
     // collection of ISourceIDs of all InIce string procs.
-    private Collection<ISourceID> inIceSources;
+    private Collection inIceSources;
 
     // collection of Source id's of all IceTop IDHs
-    private Collection<ISourceID> iceTopSources;
-
-    // collection of Source id's of other hubs (only AMANDA, for now)
-    private Collection<ISourceID> otherSources;
+    private Collection iceTopSources;
 
     /**
      * Create a readout request generator.
      *
-     * @param factory readout request factory
+     * @param master master payload factory
      */
-    public EventBuilderReadoutRequestGenerator(ReadoutRequestFactory factory)
+    public EventBuilderReadoutRequestGenerator(MasterPayloadFactory master)
     {
-        this.factory = factory;
+        final int reqType = PayloadRegistry.PAYLOAD_ID_READOUT_REQUEST;
+        readoutFactory =
+            (ReadoutRequestPayloadFactory) master.getPayloadFactory(reqType);
     }
 
     /**
@@ -96,19 +104,39 @@ public class EventBuilderReadoutRequestGenerator
                                     IUTCTime lastTime,
                                     IUTCTime timeStamp)
     {
-        IReadoutRequest req =
-            factory.createPayload(timeStamp.longValue(), eventId,
-                                  ME.getSourceID());
-        req.addElement(DOM, stringID.getSourceID(), firstTime.longValue(),
-                       lastTime.longValue(), domID.longValue());
+        IReadoutRequestElement elem =
+            TriggerRequestPayloadFactory.createReadoutRequestElement
+            (DOM, firstTime, lastTime, domID, stringID);
 
+        Vector readoutElements = new Vector();
+        readoutElements.add(0, elem);
+
+        // so this gives me an IReadoutRequest
+        IReadoutRequest req =
+            (IReadoutRequest) ReadoutRequestPayloadFactory.createReadoutRequest
+            (ME, eventId, readoutElements);
+
+        ReadoutRequestPayload payload = null;
         try {
-            ((IPayload) req).loadPayload();
+            payload =
+                (ReadoutRequestPayload) readoutFactory.createPayload
+                (timeStamp, req);
         } catch (Exception e) {
-            LOG.warn("ReadoutRequestGenerator", e);
+            if (LOG.isWarnEnabled()) {
+                LOG.warn("Couldn't get ReadoutRequestPayload" +
+                         " from IReadoutRequest", e);
+            }
         }
 
-        requests.add(req);
+        try {
+            payload.loadPayload();
+        } catch (Exception e) {
+            if (LOG.isWarnEnabled()) {
+                LOG.warn("ReadoutRequestGenerator", e);
+            }
+        }
+
+        requests.add(payload);
     }
 
     /**
@@ -117,13 +145,13 @@ public class EventBuilderReadoutRequestGenerator
      *  in response to a Global request from a ReadoutRequestElement that
      *  came in the incoming TriggerRequestPayload.
      */
-    private void generateGlobalRequest(Collection<IReadoutRequest> requests,
+    private void generateGlobalRequest(Collection requests,
                                        int eventId,
                                        IUTCTime firstTime,
                                        IUTCTime lastTime,
                                        IUTCTime timeStamp)
     {
-        if (requests.size() > 0) {
+        if (requests.size() > 0 && LOG.isErrorEnabled()) {
             // TODO: this doesn't look right
             LOG.error("Throwing away " + requests.size() +
                       " requests when adding global request");
@@ -137,26 +165,25 @@ public class EventBuilderReadoutRequestGenerator
         //all icetop
         generateStringGlobalRequest(requests, iceTopSources, eventId,
                                     firstTime, lastTime, timeStamp);
-        //all other
-        generateStringGlobalRequest(requests, otherSources, eventId,
-                                    firstTime, lastTime, timeStamp);
     }
 
     /**
      *  Generate ReadoutRequests for all strings of a given type.
      */
-    private void generateStringGlobalRequest(Collection<IReadoutRequest> reqs,
-                                             Collection<ISourceID> sources,
+    private void generateStringGlobalRequest(Collection requests,
+                                             Collection sources,
                                              int eventId,
                                              IUTCTime firstTime,
                                              IUTCTime lastTime,
                                              IUTCTime timeStamp)
     {
         // create readoutRequests for each string in icetop
-        for (ISourceID curr : sources) {
+        Iterator iter = sources.iterator();
+        while (iter.hasNext()) {
+            ISourceID curr = (ISourceID) iter.next();
 
-            generateStringRequest(reqs, eventId, curr, firstTime, lastTime,
-                                  timeStamp);
+            generateStringRequest(requests, eventId, curr,
+                                  firstTime, lastTime, timeStamp);
         }
     }
 
@@ -164,33 +191,54 @@ public class EventBuilderReadoutRequestGenerator
      * Generate an all-string request for the string proc (or IDH)
      * specified by the source id.
      *
-     * @param stringID The source id of the String proc to send out create
+     * @param stringid The source id of the String proc to send out create
      *                 request.
      * @param rtype The readout type to be sent for current string.
      *
      * @return the readout request for the string.
      */
-    private void generateStringRequest(Collection<IReadoutRequest> requests,
+    private void generateStringRequest(Collection requests,
                                        int eventId,
-                                       ISourceID stringID,
+                                       ISourceID stringid,
                                        IUTCTime firstUTC,
                                        IUTCTime lastUTC,
                                        IUTCTime timeStamp)
     {
-        IReadoutRequest req =
-            factory.createPayload(timeStamp.longValue(), eventId,
-                                  ME.getSourceID());
-        req.addElement(STRING, stringID.getSourceID(), firstUTC.longValue(),
-                       lastUTC.longValue(), -1L);
+        //all string request
+        DOMID8B domId = new DOMID8B();
 
+        IReadoutRequestElement elem = (IReadoutRequestElement)
+            ReadoutRequestPayloadFactory.createReadoutRequestElement
+            (STRING, firstUTC, lastUTC, domId, stringid);
+
+        Vector readoutElements = new Vector();
+        readoutElements.add(elem);
+
+        // so this gives me an IReadoutRequest
+        IReadoutRequest req =
+            (IReadoutRequest) ReadoutRequestPayloadFactory.createReadoutRequest
+            (ME, eventId, readoutElements);
+
+        ReadoutRequestPayload payload = null;
         try {
-            ((IPayload) req).loadPayload();
+            payload = (ReadoutRequestPayload)
+                readoutFactory.createPayload(timeStamp, req);
         } catch (Exception e) {
-            LOG.error("ReadoutRequestGenerator", e);
+            if (LOG.isWarnEnabled()) {
+                LOG.warn("Couldn't get ReadoutRequestPayload" +
+                         " from IReadoutRequest", e);
+            }
+        }
+        try {
+            payload.loadPayload();
+        } catch (Exception e) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("ReadoutRequestGenerator", e);
+            }
             return;
         }
 
-        requests.add(req);
+        requests.add(payload);
     }
 
     /**
@@ -202,19 +250,23 @@ public class EventBuilderReadoutRequestGenerator
      *
      * @return list of targetted requests
      */
-    public Collection generator(Collection<IReadoutRequestElement> rdoutElems,
-                                int eventId, IUTCTime timeStamp)
+    public Collection generator(Collection readoutElements, int eventId,
+                                IUTCTime timeStamp)
     {
         //initialize to empty vectors to avoid Null pointer exceptions.
-        ArrayList<IReadoutRequest> eventReadoutRequests =
-            new ArrayList<IReadoutRequest>();
+        ArrayList eventReadoutRequests = new ArrayList();
 
-        for (IReadoutRequestElement tmp : rdoutElems) {
+        // Go through the element list
+        Iterator iter = readoutElements.iterator();
+        while (iter.hasNext()) {
+
+            //  Some initialization stuff for this readout element
+            IReadoutRequestElement tmp = (IReadoutRequestElement) iter.next();
 
             //readout type for the current element.
             int elementType = tmp.getReadoutType();
             ISourceID sid = tmp.getSourceID();
-            IDOMID domid = tmp.getDOMID();
+            IDOMID domid = tmp.getDomID();
             IUTCTime firstTime = tmp.getFirstTimeUTC();
             IUTCTime lastTime = tmp.getLastTimeUTC();
 
@@ -280,8 +332,11 @@ public class EventBuilderReadoutRequestGenerator
                 //-----------------------------------------------------
             default:
                 // weird DOM type, just ignore and go on
-                LOG.warn("Got weird readout request " + elementType +
-                         " in current Trigger");
+
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn("Got weird readout request " + elementType +
+                             " in current Trigger");
+                }
 
                 break;
             }
@@ -296,26 +351,20 @@ public class EventBuilderReadoutRequestGenerator
      *
      * @param sourceIds set of connected source IDs
      */
-    public void setDestinations(Collection<ISourceID> sourceIds)
+    public void setDestinations(Collection sourceIds)
     {
         if (sourceIds == null || sourceIds.size() == 0) {
             throw new Error("No source IDs specified");
         }
 
-        if (otherSources == null) {
-            otherSources = new ArrayList<ISourceID>();
-        } else {
-            otherSources.clear();
-        }
-
         if (iceTopSources == null) {
-            iceTopSources = new ArrayList<ISourceID>();
+            iceTopSources = new ArrayList();
         } else {
             iceTopSources.clear();
         }
 
         if (inIceSources == null) {
-            inIceSources = new ArrayList<ISourceID>();
+            inIceSources = new ArrayList();
         } else {
             inIceSources.clear();
         }
@@ -323,16 +372,16 @@ public class EventBuilderReadoutRequestGenerator
         Iterator iter = sourceIds.iterator();
         while (iter.hasNext()) {
             ISourceID srcId = (ISourceID) iter.next();
-
-            if (SourceIdRegistry.isIniceHubSourceID(srcId)) {
+            final String daqName =
+                SourceIdRegistry.getDAQNameFromISourceID(srcId);
+            if (daqName == DAQCmdInterface.DAQ_STRINGPROCESSOR) {
                 inIceSources.add(srcId);
-            } else if (SourceIdRegistry.isIcetopHubSourceID(srcId)) {
+            } else if (daqName == DAQCmdInterface.DAQ_ICETOP_DATA_HANDLER) {
                 iceTopSources.add(srcId);
-            } else if (SourceIdRegistry.isAnyHubSourceID(srcId)) {
-                otherSources.add(srcId);
             } else {
-                LOG.error("Ignoring non-hub target #" +
-                          srcId.getSourceID());
+                LOG.error("Unknown target #" + srcId.getSourceID() + " \"" +
+                          daqName + "\" is assumed to be an in-ice source");
+                inIceSources.add(srcId);
             }
         }
     }

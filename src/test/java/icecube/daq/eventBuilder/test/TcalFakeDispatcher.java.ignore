@@ -1,0 +1,190 @@
+/**
+ * TcalFakeDispatcher
+ * Date: Sep 30, 2005 3:05:32 PM
+ * 
+ * (c) 2005 IceCube Collaboration
+ */
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.dispatch.Dispatcher;
+import icecube.daq.dispatch.DispatchException;
+import icecube.daq.dispatch.DispatchFullException;
+import icecube.daq.payload.IByteBufferCache;
+
+import java.nio.channels.WritableByteChannel;
+import java.nio.ByteBuffer;
+import java.io.IOException;
+import java.io.FileOutputStream;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * This is the a fake dispatcher class for testing. If the fileName is null
+ * the ByteBuffers will be disposed.
+ * @author artur
+ * @version $Id: TcalFakeDispatcher.java,v 1.3 2006/01/12 18:06:54 dglo Exp $
+ */
+public class TcalFakeDispatcher
+    implements Dispatcher
+{
+    private static final Log log =
+        LogFactory.getLog(TcalFakeDispatcher.class);
+
+    private WritableByteChannel channel;
+    private boolean running = false;
+    private String fileName;
+    private IByteBufferCache bufferCache;
+
+    public TcalFakeDispatcher(IByteBufferCache bufferCache) {
+        this(null, bufferCache);
+    }
+
+    public TcalFakeDispatcher(String fileName, IByteBufferCache bufferCache) {
+        this.fileName = fileName;
+        this.bufferCache = bufferCache;
+    }
+
+    /**
+     * Signals to the dispatch system that the set of events that preceed this
+     * call are separated, by some criteria, for those that succeed it.
+     *
+     * @throws icecube.daq.dispatch.DispatchException
+     *          is there is a problem in the Dispatch system.
+     */
+    public void dataBoundary() throws DispatchException {
+        if (running){
+            try {
+                if (channel != null){
+                    channel.close();
+                }
+                running = false;
+            } catch(IOException ioe){
+                if (log.isErrorEnabled()){
+                    log.error("couldn't close to the file channel: ", ioe);
+                }
+                throw new DispatchException(ioe);
+            }
+        } else {
+           try {
+               if (fileName != null){
+                   channel = new FileOutputStream(fileName).getChannel();
+               }
+           } catch(IOException ioe){
+               if (log.isErrorEnabled()){
+                   log.error("couldn't open the file channel: ", ioe);
+               }
+               throw new DispatchException(ioe);
+           }
+        }
+    }
+
+
+    /**
+     * Signals to the dispatch system that the set of events that preceed this
+     * call are separated, by some criteria, for those that succeed it.
+     * <p/>
+     * The message supplied with this method is opaque to the system, i.e. it
+     * is not used by the system, and it simple passed on through the any
+     * delivery client.
+     *
+     * @param message a String explaining the reason for the boundary.
+     * @throws DispatchException is there is a problem in the Dispatch system.
+     */
+   public void dataBoundary(String message) throws DispatchException {
+        if (running){
+            try {
+                if (channel != null){
+                    channel.close();
+                }
+                running = false;
+            } catch(IOException ioe){
+                if (log.isErrorEnabled()){
+                    log.error("couldn't close to the file channel: ", ioe);
+                }
+                throw new DispatchException(ioe);
+            }
+        } else {
+           try {
+               if (fileName != null){
+                   channel = new FileOutputStream(fileName).getChannel();
+               }
+           } catch(IOException ioe){
+               if (log.isErrorEnabled()){
+                   log.error("couldn't open the file channel: ", ioe);
+               }
+               throw new DispatchException(ioe);
+           }
+        }
+    }
+    /**
+     * Copies the event in the buffer into this object. The buffer should be
+     * prepared for reading so normally a {@link java.nio.ByteBuffer#flip flip} should
+     * be done before this call and a {@link java.nio.ByteBuffer#compact compact}
+     * afterwards.
+     *
+     * @param buffer the ByteBuffer containg the event.
+     * @throws icecube.daq.dispatch.DispatchFullException
+     *                           if the event can not currently be
+     *                           accepted.
+     * @throws DispatchException is there is a problem in the Dispatch system.
+     */
+    public void dispatchEvent(ByteBuffer buffer) throws DispatchFullException, DispatchException {
+        running = true;
+        buffer.position(0);
+        try {
+            if (channel != null){
+                channel.write(buffer);
+            }
+            //bufferCache.returnBuffer(buffer);
+            if (log.isDebugEnabled()){
+                log.debug("write ByteBuffer of length: " + buffer.limit() + " to file.");
+            }
+        }catch(IOException ioe){
+            if (log.isErrorEnabled()){
+                log.error("couldn't write to the file: ", ioe);
+            }
+            throw new DispatchException(ioe);
+        }
+    }
+
+    /**
+     * Copies the events in the buffer into this object. The buffer should be
+     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
+     * be done before this call and a {@link ByteBuffer#compact compact}
+     * afterwards.
+     * <p/>
+     * The number of events is taken to be the length of the indices array.
+     *
+     * @param buffer  the ByteBuffer containg the events.
+     * @param indices the 'position' of each event inside the buffer.
+     * @throws DispatchFullException if the event can not currently be
+     *                               accepted.
+     * @throws DispatchException     is there is a problem in the Dispatch system.
+     */
+    public void dispatchEvents(ByteBuffer buffer, int[] indices) throws DispatchFullException, DispatchException {
+        throw new UnsupportedOperationException("this method is not supported for this version");
+    }
+
+    /**
+     * Copies the events in the buffer into this object. The buffer should be
+     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
+     * be done before this call and a {@link ByteBuffer#compact compact}
+     * afterwards.
+     *
+     * @param buffer  the ByteBuffer containg the events.
+     * @param indices the 'position' of each event inside the buffer.
+     * @param count   the number of events, this must be less that the length of
+     *                the indices array.
+     * @throws DispatchFullException if the event can not currently be
+     *                               accepted.
+     * @throws DispatchException     is there is a problem in the Dispatch system.
+     */
+    public void dispatchEvents(ByteBuffer buffer, int[] indices, int count) throws DispatchFullException, DispatchException {
+        throw new UnsupportedOperationException("this method is not supported for this version");
+    }
+
+    public void setFileName(String fileName){
+        this.fileName = fileName;
+    }
+}

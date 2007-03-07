@@ -1,0 +1,236 @@
+/*
+ * class: EventBuilderNetworkTestInputEngineTest
+ *
+ * Version $Id: EventBuilderNetworkTestInputEngineTest.java,v 1.1 2005/06/23 01:34:41 mcp Exp $
+ *
+ * Date: June 20 2005
+ *
+ * (c) 2005 IceCube Collaboration
+ */
+
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.eventBuilder.EventBuilderNetworkTestInputEngine;
+import icecube.daq.common.DAQComponentProcessManager;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import junit.textui.TestRunner;
+
+/**
+ * This class defines the tests that any EventBuilderNetworkTestInputEngine object should pass.
+ *
+ * @author mcp
+ * @version $Id: EventBuilderNetworkTestInputEngineTest.java,v 1.1 2005/06/23 01:34:41 mcp Exp $
+ */
+public class EventBuilderNetworkTestInputEngineTest
+        extends TestCase implements DAQComponentProcessManager
+{
+
+    // public static final member data
+
+    // protected static final member data
+
+    // static final member data
+
+    // private static final member data
+
+    // private static member data
+
+    // private instance member data
+    private static final int INPUT_LOOP_CNT = 125;
+    private static final int OUTPUT_LOOP_CNT = INPUT_LOOP_CNT / 16;
+    private static final int NUM_BUFFERS = 100;
+    private static final int BUFFER_BLEN = 5000;
+    private static final String SINK_NOTIFICATION_ID = "SinkID";
+    private static final String SINK_ERROR_NOTIFICATION_ID = "SinkErrorID";
+    private static final String SOURCE_NOTIFICATION_ID = "SourceID";
+    private static final String SOURCE_ERROR_NOTIFICATION_ID = "SourceErrorID";
+    // private instance member data
+    private boolean sinkStopNotificationCalled = false;
+    private boolean sinkErrorNotificationCalled = false;
+    private boolean sinkStopNotificationStatus = false;
+    private String receivedStopNotificationID = "";
+    private String receivedErrorNotificationID = "";
+    private boolean sourceStopNotificationCalled = false;
+    private boolean sourceErrorNotificationCalled = false;
+    private boolean sourceStopNotificationStatus = false;
+    /**
+     * The object being tested.
+     */
+    private EventBuilderNetworkTestInputEngine testObject;
+
+    // constructors
+
+    /**
+     * Constructs and instance of this test.
+     *
+     * @param name the name of the test.
+     */
+    public EventBuilderNetworkTestInputEngineTest(String name)
+    {
+        super(name);
+    }
+
+    // instance member method (alphabetic)
+
+    /**
+     * Sets up the fixture, for example, open a network connection. This method
+     * is called before a test is executed.
+     *
+     * @throws Exception if super class setUp fails.
+     */
+//    protected void setUp()
+//            throws Exception
+//    {
+//        super.setUp();
+//    }
+
+    /**
+     * Tears down the fixture, for example, close a network connection. This
+     * method is called after a test is executed.
+     *
+     * @throws Exception if super class tearDown fails.
+     */
+    protected void tearDown()
+            throws Exception
+    {
+        testObject = null;
+        super.tearDown();
+    }
+
+    /**
+     * Explanation of test.
+     */
+    public void testStartStop() {
+            sinkStopNotificationCalled = false;
+            testObject = new EventBuilderNetworkTestInputEngine(null, 
+                    "componentName",
+                    0,
+                    "test");
+            try {
+                testObject.start();
+            } catch (Exception e) {
+                fail("Unable to start input engine.");
+            }
+            testObject.registerStopNotificationCallback(this, SINK_NOTIFICATION_ID);
+            if (!testObject.isStopped()) {
+                fail("SystemTestPayloadInputEngine not in Idle state after creation");
+            }
+            try {
+                testObject.startProcessing();
+            } catch (Exception e) {
+                fail("SystemTestPayloadInputEngine cannot start engine: " + e);
+            }
+
+            if (!testObject.isRunning()) {
+                fail("SystemTestPayloadInputEngine not in Running state after StartSig");
+            }
+            testObject.forcedStopProcessing();
+            try {
+                Thread.sleep(100);
+            } catch (Exception e) {
+                // nothing to do here
+            }
+            if (!testObject.isStopped()) {
+                fail("SystemTestPayloadInputEngine not in Idle state after StopSig");
+            }
+            // try it a second time
+            try {
+                testObject.startProcessing();
+            } catch (Exception e) {
+                fail("SystemTestPayloadInputEngine cannot start engine: " + e);
+            }
+
+            if (!testObject.isRunning()) {
+                fail("SystemTestPayloadInputEngine not in Running state after StartSig");
+            }
+            testObject.forcedStopProcessing();
+            try {
+                Thread.sleep(100);
+            } catch (Exception e) {
+                // nothing to do here
+            }
+            if (!testObject.isStopped()) {
+                fail("SystemTestPayloadInputEngine not in Idle state after StopSig");
+            }
+
+            try {
+                testObject.destroyProcessor();
+            } catch (Exception e) {
+                fail("SystemTestPayloadInputEngine cannot kill engine: " + e);
+            }
+
+            if (testObject.isStopped()) {
+                fail("SystemTestPayloadInputEngine did not die after kill request");
+            }
+            boolean restartFailed = false;
+            try {
+                testObject.startProcessing();
+            } catch (Exception e) {
+                restartFailed = true;
+            }
+            if (!restartFailed) {
+                fail("SystemTestPayloadInputEngine restart after kill succeeded");
+            }
+
+        }
+
+        public synchronized void DAQComponentProcessStopNotification(String notificationID,
+                                                                     boolean status) {
+            receivedStopNotificationID = notificationID;
+            if (notificationID.compareTo(SOURCE_NOTIFICATION_ID) == 0) {
+                sourceStopNotificationCalled = true;
+                sourceStopNotificationStatus = status;
+            }
+            if (notificationID.compareTo(SINK_NOTIFICATION_ID) == 0) {
+                sinkStopNotificationCalled = true;
+                sinkStopNotificationStatus = status;
+            }
+
+            //System.out.println("Stop notification.");
+        }
+
+        public synchronized void DAQComponentProcessErrorNotification(String notificationID,
+                                                                      String info,
+                                                                      Exception e) {
+            receivedErrorNotificationID = notificationID;
+            if (notificationID.compareTo(SOURCE_ERROR_NOTIFICATION_ID) == 0) {
+                sourceErrorNotificationCalled = true;
+            }
+            if (notificationID.compareTo(SINK_ERROR_NOTIFICATION_ID) == 0) {
+                sinkErrorNotificationCalled = true;
+            }
+
+            //System.out.println("Error notification.");
+        }
+
+        public void DAQConfigurationNotification(String info, boolean status) {
+
+        }
+
+    // static member methods (alphabetic)
+
+    /**
+     * Create test suite for this class.
+     *
+     * @return the suite of tests declared in this class.
+     */
+    public static Test suite()
+    {
+        return new TestSuite(EventBuilderNetworkTestInputEngineTest.class);
+    }
+
+    // Description of this object.
+    // public String toString() {}
+
+    /**
+     * Main routine which runs text test in standalone mode.
+     *
+     * @param args the arguments with which to execute this method.
+     */
+    public static void main(String[] args)
+    {
+        TestRunner.run(suite());
+    }
+}

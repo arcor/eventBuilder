@@ -1,0 +1,206 @@
+digraph 
+EventBuilder {
+
+    node
+        [shape=record];
+
+    subgraph cluster_EventBuilderSM {
+
+        label="EventBuilderSM";
+
+        //-------------------------------------------------------
+        // States (Nodes)
+        //
+
+        "EventBuilderSM::Deployed"
+            [label="\N"];
+
+        "EventBuilderSM::Offline"
+            [label="\N"];
+
+        "EventBuilderSM::Idle"
+            [label="\N"];
+
+        "EventBuilderSM::Configuring"
+            [label="\N"];
+
+        "EventBuilderSM::ConfigureRunDown"
+            [label="\N"];
+
+        "EventBuilderSM::Ready"
+            [label="\N"];
+
+        "EventBuilderSM::Running"
+            [label="\N"];
+
+        "EventBuilderSM::Error"
+            [label="\N"];
+
+        "EventBuilderSM::Stopping"
+            [label="\N"];
+
+        "EventBuilderSM::Stopped"
+            [label="\N"];
+
+        "EventBuilderSM::Disposing"
+            [label="\N"];
+
+        //-------------------------------------------------------
+        // Transitions (Edges)
+        //
+
+        "EventBuilderSM::Deployed" -> "EventBuilderSM::Deployed"
+            [label="Default"];
+
+        "EventBuilderSM::Deployed" -> "EventBuilderSM::Deployed"
+            [label="DeploySig"];
+
+        "EventBuilderSM::Deployed" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Deployed" -> "EventBuilderSM::Deployed"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Deployed" -> "EventBuilderSM::Offline"
+            [label="OfflineSig"];
+
+        "EventBuilderSM::Offline" -> "EventBuilderSM::Offline"
+            [label="Default"];
+
+        "EventBuilderSM::Offline" -> "EventBuilderSM::Offline"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Offline" -> "EventBuilderSM::Idle"
+            [label="OnlineSig"];
+
+        "EventBuilderSM::Idle" -> "EventBuilderSM::Configuring"
+            [label="ConfigSig"];
+
+        "EventBuilderSM::Idle" -> "EventBuilderSM::Idle"
+            [label="Default"];
+
+        "EventBuilderSM::Idle" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Idle" -> "EventBuilderSM::Idle"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Idle" -> "EventBuilderSM::Offline"
+            [label="OfflineSig"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::Configuring"
+            [label="Default"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::ConfigureRunDown"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::Configuring"
+            [label="Int_ConfigAbandonSig"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::Ready"
+            [label="Int_ConfigDoneSig"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::ConfigureRunDown"
+            [label="Int_ConfigFailSig"];
+
+        "EventBuilderSM::Configuring" -> "EventBuilderSM::Configuring"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::ConfigureRunDown" -> "EventBuilderSM::ConfigureRunDown"
+            [label="Default"];
+
+        "EventBuilderSM::ConfigureRunDown" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::ConfigureRunDown" -> "EventBuilderSM::Idle"
+            [label="Int_ConfigRunDownCompleteSig"];
+
+        "EventBuilderSM::ConfigureRunDown" -> "EventBuilderSM::ConfigureRunDown"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Ready" -> "EventBuilderSM::Ready"
+            [label="Default"];
+
+        "EventBuilderSM::Ready" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Ready" -> "EventBuilderSM::Ready"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Ready" -> "EventBuilderSM::Running"
+            [label="StartSig"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Running"
+            [label="Default"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Error"
+            [label="ErrorSig"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Running"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Stopping"
+            [label="Int_StopSig"];
+
+        "EventBuilderSM::Running" -> "EventBuilderSM::Stopping"
+            [label="StopSig"];
+
+        "EventBuilderSM::Error" -> "EventBuilderSM::Error"
+            [label="Default"];
+
+        "EventBuilderSM::Error" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Error" -> "EventBuilderSM::Error"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Stopping" -> "EventBuilderSM::Stopping"
+            [label="Default"];
+
+        "EventBuilderSM::Stopping" -> "EventBuilderSM::Stopped"
+            [label="ForcedStopSig"];
+
+        "EventBuilderSM::Stopping" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Stopping" -> "EventBuilderSM::Stopping"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Stopping" -> "EventBuilderSM::Stopped"
+            [label="Int_StopRunDownCompleteSig"];
+
+        "EventBuilderSM::Stopped" -> "EventBuilderSM::Stopped"
+            [label="Default"];
+
+        "EventBuilderSM::Stopped" -> "EventBuilderSM::Disposing"
+            [label="DisposeSig"];
+
+        "EventBuilderSM::Stopped" -> "EventBuilderSM::Stopped"
+            [label="ForcedStopSig"];
+
+        "EventBuilderSM::Stopped" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Stopped" -> "EventBuilderSM::Stopped"
+            [label="Int_Exception"];
+
+        "EventBuilderSM::Disposing" -> "EventBuilderSM::Disposing"
+            [label="Default"];
+
+        "EventBuilderSM::Disposing" -> "EventBuilderSM::Error"
+            [label="ErrorSig"];
+
+        "EventBuilderSM::Disposing" -> "EventBuilderSM::Idle"
+            [label="InitializeSig"];
+
+        "EventBuilderSM::Disposing" -> "EventBuilderSM::Ready"
+            [label="Int_DisposeCompleteSig"];
+
+        "EventBuilderSM::Disposing" -> "EventBuilderSM::Disposing"
+            [label="Int_Exception"];
+    }
+
+}

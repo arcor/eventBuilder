@@ -1,8 +1,7 @@
 /*
- * class: EventBuilderSPreqPayloadOutputEngine
+ * class: SystemTestPayloadOutputEngine
  *
- * Version $Id: EventBuilderSPreqPayloadOutputEngine.java
- *     3433 2008-08-31 16:19:12Z dglo $
+ * Version $Id: EventBuilderSPreqPayloadOutputEngine.java,v 1.10 2005/11/18 20:42:54 dglo Exp $
  *
  * Date: May 23 2005
  *
@@ -11,22 +10,22 @@
 
 package icecube.daq.eventBuilder;
 
-import icecube.daq.eventBuilder.io.SimpleDestinationOutputEngine;
+import icecube.daq.io.PayloadDestinationOutputEngine;
 
 /**
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: EventBuilderSPreqPayloadOutputEngine.java
- *     3433 2008-08-31 16:19:12Z dglo $
+ * @version $Id: EventBuilderSPreqPayloadOutputEngine.java,v 1.10 2005/11/18 20:42:54 dglo Exp $
  */
 public class EventBuilderSPreqPayloadOutputEngine
-    extends SimpleDestinationOutputEngine
+    extends PayloadDestinationOutputEngine
     implements RequestPayloadOutputEngine
 {
     /**
      * Create string processor request output engine.
      *
+     * @param server MBean server
      * @param type engine type
      * @param id engine ID
      * @param fcn engine function

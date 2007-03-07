@@ -1,0 +1,96 @@
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.payload.IPayloadDestination;
+import icecube.daq.payload.IPayloadDestinationCollection;
+import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.IPayloadDestinationCollectionController;
+
+import icecube.daq.payload.splicer.Payload;
+
+import java.io.IOException;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+class MockPayloadDestinationCollection
+    implements IPayloadDestinationCollection
+{
+    private ArrayList srcIdList;
+
+    MockPayloadDestinationCollection()
+    {
+    }
+
+    public void addPayloadDestination(ISourceID srcId,
+                                      IPayloadDestination payloadDest)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public IPayloadDestination getPayloadDestination(ISourceID srcId)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public Collection getAllPayloadDestinations()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public Collection getAllSourceIDs()
+    {
+        return srcIdList;
+    }
+
+    public int writePayload(ISourceID srcId, Payload payload)
+       throws IOException
+    {
+        // pretend it wrote a byte
+        return 1;
+    }
+
+    public int writePayload(Payload payload)
+       throws IOException
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void closePayloadDestination(ISourceID srcId)
+       throws IOException
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void closeAllPayloadDestinations()
+       throws IOException
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void registerController(IPayloadDestinationCollectionController ctl)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void setSourceIDs(Collection coll)
+    {
+        srcIdList = new ArrayList(coll);
+    }
+
+    /**
+     * Stop all PayloadDestinations.
+     * @throws IOException
+     */
+    public void stopAllPayloadDestinations() throws IOException {
+        throw new Error("Unimplemented");
+    }
+
+    /**
+     * Stop a PayloadDestination that maps this sourceID.
+     * @param sourceId SourceId of destination to stop
+     * @throws IOException
+     */
+    public void stopPayloadDestination(ISourceID sourceId) throws IOException{
+        throw new Error("Unimplemented");
+    }
+}

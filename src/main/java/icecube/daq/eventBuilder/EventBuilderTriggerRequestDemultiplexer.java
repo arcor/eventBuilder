@@ -1,19 +1,23 @@
 package icecube.daq.eventBuilder;
 
-import icecube.daq.eventBuilder.io.IPayloadDestinationCollection;
-import icecube.daq.payload.IReadoutRequest;
-import icecube.daq.payload.IReadoutRequestElement;
-import icecube.daq.payload.ITriggerRequestPayload;
+import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.IPayload;
+import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.payload.impl.ReadoutRequestFactory;
+
+import icecube.daq.payload.splicer.Payload;
+
+import icecube.daq.trigger.IReadoutRequest;
+import icecube.daq.trigger.IReadoutRequestElement;
+import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * User: nehar
@@ -27,8 +31,8 @@ import org.apache.log4j.Logger;
  */
 public class EventBuilderTriggerRequestDemultiplexer
 {
-    private static final Logger LOG =
-        Logger.getLogger(EventBuilderTriggerRequestDemultiplexer.class);
+    private static final Log LOG =
+        LogFactory.getLog(EventBuilderTriggerRequestDemultiplexer.class);
 
     /**
      *  The Generator object used to get a vector of readout requests
@@ -39,18 +43,38 @@ public class EventBuilderTriggerRequestDemultiplexer
     /** <tt>true</tt> if generator has been initialized */
     private boolean generatorInitialized;
 
-    /** The output engine used to send Readout Requests to StringHubs. */
+    /*
+     * The unique ID for the Event generated in response
+     * to the Trigger Request that invoked this object.
+     * This is gotted from the ITriggerRequestPayload.
+     */
+    private int eventId;
+
+    /* Vector of all readout reqeust elements associated with
+     * this event. Obtained by calling getReadoutRequest()
+     * on mt_rrq.
+     */
+    private Vector readoutElements;
+
+    /**
+     * Every Payload has to have a time stamp. This field is used to
+     * generate the time stamps on the ReadoutRequestPayload's sent out
+     * to the SP/IDH's. comes from the TriggerRequestPaylaod with which
+     * we got invoked.
+     */
+    private IUTCTime utcTime;
+
+    // The output engine used to send Readout Requests to String procs.
     private RequestPayloadOutputEngine payloadDest;
 
     /**
      * Constructor
      *
-     * @param factory master payload factory
+     * @param master master payload factory
      */
-    public EventBuilderTriggerRequestDemultiplexer
-        (ReadoutRequestFactory factory)
+    public EventBuilderTriggerRequestDemultiplexer(MasterPayloadFactory master)
     {
-        readoutGenerator = new EventBuilderReadoutRequestGenerator(factory);
+        readoutGenerator = new EventBuilderReadoutRequestGenerator(master);
     }
 
     /**
@@ -65,46 +89,65 @@ public class EventBuilderTriggerRequestDemultiplexer
     public boolean demux(ITriggerRequestPayload inputTriggerRequest)
     {
         if (payloadDest == null) {
-            LOG.error("Destination has not been set");
+            if (LOG.isErrorEnabled()) {
+                LOG.error("StringProcRequestOutputEngine is null.");
+            }
+
+            return false;
+        }
+
+        if (inputTriggerRequest.getPayloadType() !=
+            PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST)
+        {
+            //Something sucks - Global Trigger sent a weird payload. Bailout.
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Not a triggerRequestPayload.");
+            }
+
+            return false;
+        }
+
+        final int inSrcId = inputTriggerRequest.getSourceID().getSourceID();
+        if (inSrcId != SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID) {
+            // ...ditto
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Source#" + inSrcId + " is not GlobaTrigger.");
+            }
+
+            return false;
+        }
+
+        // looks like a valid trigger request payload judging by the type.
+        eventId = inputTriggerRequest.getUID();
+
+        // We need to get the Payload time stamp to put in the readout
+        // requests.
+        utcTime = inputTriggerRequest.getPayloadTimeUTC();
+
+        final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
+        readoutElements =
+            tmpReq.getReadoutRequestElements();
+
+        if (!generatorInitialized) {
+            IPayloadDestinationCollection coll =
+                payloadDest.getPayloadDestinationCollection();
+            readoutGenerator.setDestinations(coll.getAllSourceIDs());
+            generatorInitialized = true;
+        }
+
+        // Get readout Request payloads to send from the Generator object.
+        Collection readouts =
+            readoutGenerator.generator(readoutElements, eventId, utcTime);
+        if (readouts == null) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Generator gave back a null vector");
+            }
 
             return false;
         }
 
         IPayloadDestinationCollection dests =
             payloadDest.getPayloadDestinationCollection();
-
-        if (!generatorInitialized) {
-            readoutGenerator.setDestinations(dests.getAllSourceIDs());
-            generatorInitialized = true;
-        }
-
-        final int inSrcId = inputTriggerRequest.getSourceID().getSourceID();
-        if (inSrcId != SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID) {
-            // ...ditto
-            LOG.error("Source#" + inSrcId + " is not GlobaTrigger.");
-            return false;
-        }
-
-        // looks like a valid trigger request payload judging by the type.
-        int eventId = inputTriggerRequest.getUID();
-
-        // We need to get the Payload time stamp to put in the readout
-        // requests.
-        IUTCTime utcTime = inputTriggerRequest.getFirstTimeUTC();
-
-        final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
-        List readoutElements = tmpReq.getReadoutRequestElements();
-
-        // Get readout Request payloads to send from the Generator object.
-        Collection readouts =
-            readoutGenerator.generator(readoutElements, eventId, utcTime);
-        if (readouts == null) {
-            LOG.error("Generator gave back a null list");
-            return false;
-        } else if (readouts.size() == 0) {
-            LOG.error("Generator gave back an empty list");
-            return false;
-        }
 
         // Let's dump these readouts to logs and to the output destination.
         Iterator iter = readouts.iterator();
@@ -116,25 +159,27 @@ public class EventBuilderTriggerRequestDemultiplexer
             // payloadDest payload output engine.
             //  We try to demux the readouts to different files.
 
-            List elemVec = tmpRRQ.getReadoutRequestElements();
+            Vector elemVec = tmpRRQ.getReadoutRequestElements();
 
-            if (elemVec.size() != 1) {
+            if (LOG.isErrorEnabled() && elemVec.size() != 1) {
                 LOG.error("Expected one element in readout request #" +
                           tmpRRQ.getUID() + ", not " +  elemVec.size());
             }
 
             //this works coz there's only one element in each readoutRequest
             IReadoutRequestElement tmpReadout =
-                (IReadoutRequestElement) elemVec.get(0);
+                (IReadoutRequestElement) elemVec.elementAt(0);
 
             //DO the actual demuxing...
             try {
-                IPayload reqPay = (IPayload) tmpRRQ;
+                Payload reqPay = (Payload) tmpRRQ;
                 dests.writePayload(tmpReadout.getSourceID(), reqPay);
                 reqPay.recycle();
             } catch (Exception e) {
-                LOG.error("Problem while writing readout request to source #" +
-                          tmpReadout.getSourceID(), e);
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Problem while writing readout request" +
+                              " to source #" + tmpReadout.getSourceID(), e);
+                }
             }
         }
 
@@ -149,7 +194,10 @@ public class EventBuilderTriggerRequestDemultiplexer
     public void registerOutputEngine(RequestPayloadOutputEngine oe)
     {
         if (oe == null) {
-            LOG.error("Null payload output engine.");
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Null payload output engine.");
+            }
+
             return;
         }
 

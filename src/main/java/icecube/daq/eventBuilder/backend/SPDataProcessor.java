@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder.backend;
 
-import java.io.IOException;
+import icecube.daq.io.DispatchException;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -14,16 +15,41 @@ public interface SPDataProcessor
      *
      * @param newData list of new data
      * @param offset number of previously-seen data at front of list
-     *
-     * @throws IOException if the processing thread is stopped
      */
-    void addData(List newData, int offset)
-        throws IOException;
+    void addData(List newData, int offset);
 
     /**
      * Increment the count of splicer.execute() calls.
      */
     void addExecuteCall();
+
+    /**
+     * Add data received while splicer is stopping.
+     *
+     * @param coll collection of final data payloads
+     */
+    void addFinalData(Collection coll);
+
+    /**
+     * Increment the count of splicer.truncate() calls.
+     */
+    void addTruncateCall();
+
+    /**
+     * Mark data boundary between runs.
+     *
+     * @param message run message
+     *
+     * @throws DispatchException if there is a problem changing the run
+     */
+    void dataBoundary(String message) throws DispatchException;
+
+    /**
+     * Recycle all payloads in the list.
+     *
+     * @param payloadList list of payloads
+     */
+    void recycleAll(Collection payloadList);
 
     /**
      * Record the length of the list passed to splicedAnalysis.execute().
@@ -36,9 +62,4 @@ public interface SPDataProcessor
      * Inform processor that the splicer has stopped.
      */
     void splicerStopped();
-
-    /**
-     * Inform the dispatcher that a new run is starting.
-     */
-    void startDispatcher();
 }

@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StateMachineDescription>
+   <InitialState Name="EventBuilderSM::Deployed" />
+
+   <Class Name="EventBuilder" />
+
+   <Package Name="icecube.daq.eventBuilder" />
+
+   <StateMachineMap Name="EventBuilderSM">
+
+      <State Name="Deployed">
+          <Entry>
+              <Action Cmd="enterDeployed()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitDeployed()"></Action>
+          </Exit>
+          <Transition Name="InitializeSig">
+              <NextState Name="Idle">
+              </NextState>
+          </Transition>
+          <Transition Name="OfflineSig">
+              <NextState Name="Offline">
+              </NextState>
+          </Transition>
+          <Transition Name="DeploySig">
+              <NextState Name="Deployed">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+          <Transition Name="Default">
+              <NextState Name="nil">
+                  <Action Cmd="illegalTransition()"/>
+              </NextState>
+          </Transition>
+      </State>
+
+      <State Name="Offline">
+          <Entry>
+              <Action Cmd="enterOffline()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitOffline()"></Action>
+          </Exit>
+          <Transition Name="OnlineSig">
+              <NextState Name="Idle">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+          <Transition Name="Default">
+              <NextState Name="nil">
+                  <Action Cmd="illegalTransition()"/>
+              </NextState>
+          </Transition>
+      </State>
+
+      <State Name="Idle">
+          <Entry>
+              <Action Cmd="enterIdle()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitIdle()"></Action>
+          </Exit>
+          <Transition Name="OfflineSig">
+              <NextState Name="Offline">
+              </NextState>
+          </Transition>
+          <Transition Name="ConfigSig">
+              <NextState Name="Configuring">
+              </NextState>
+          </Transition>
+          <Transition Name="InitializeSig">
+              <NextState Name="Idle">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+          <Transition Name="Default">
+              <NextState Name="nil">
+                  <Action Cmd="illegalTransition()"/>
+              </NextState>
+          </Transition>
+      </State>
+
+      <State Name="Configuring">
+          <Entry>
+              <Action Cmd="enterConfiguring()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitConfiguring()"></Action>
+          </Exit>
+         <Transition Name="Int_ConfigDoneSig">
+            <NextState Name="Ready">
+            </NextState>
+         </Transition>
+         <Transition Name="Int_ConfigFailSig">
+            <NextState Name="ConfigureRunDown">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_ConfigAbandonSig">
+              <NextState Name="nil">
+                  <Action Cmd="abandonConfigure()"/>
+              </NextState>
+          </Transition>
+          <Transition Name="InitializeSig">
+              <NextState Name="ConfigureRunDown">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+          <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+            </NextState>
+         </Transition>
+      </State>
+
+      <State Name="ConfigureRunDown">
+          <Entry>
+              <Action Cmd="enterConfigureRunDown()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitConfigureRunDown()"></Action>
+          </Exit>
+         <Transition Name="Int_ConfigRunDownCompleteSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+          <Transition Name="InitializeSig">
+              <NextState Name="Idle">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+            </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Ready">
+          <Entry>
+              <Action Cmd="enterReady()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitReady()"></Action>
+          </Exit>
+         <Transition Name="StartSig">
+            <NextState Name="Running">
+            </NextState>
+         </Transition>
+         <Transition Name="InitializeSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+             </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Running">
+          <Entry>
+              <Action Cmd="enterRunning()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitRunning()"></Action>
+          </Exit>
+         <Transition Name="ErrorSig">
+            <NextState Name="Error">
+            </NextState>
+         </Transition>
+         <Transition Name="StopSig">
+            <NextState Name="Stopping">
+                <Action Cmd="stopSigTransition()"/>
+            </NextState>
+         </Transition>
+         <Transition Name="Int_StopSig">
+            <NextState Name="Stopping">
+            </NextState>
+         </Transition>
+          <Transition Name="InitializeSig">
+              <NextState Name="Idle">
+              </NextState>
+          </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+             </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Error">
+          <Entry>
+              <Action Cmd="enterError()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitError()"></Action>
+          </Exit>
+         <Transition Name="InitializeSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+            </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Stopping">
+          <Entry>
+              <Action Cmd="enterStopping()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitStopping()"></Action>
+          </Exit>
+          <Transition Name="Int_StopRunDownCompleteSig">
+            <NextState Name="Stopped">
+            </NextState>
+         </Transition>
+          <Transition Name="ForcedStopSig">
+            <NextState Name="Stopped">
+                <Action Cmd="forcedStopTransition()"/>
+            </NextState>
+         </Transition>
+         <Transition Name="InitializeSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+             </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Stopped">
+          <Entry>
+              <Action Cmd="enterStopped()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitStopped()"></Action>
+          </Exit>
+          <Transition Name="DisposeSig">
+            <NextState Name="Disposing">
+            </NextState>
+         </Transition>
+         <Transition Name="InitializeSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+         <Transition Name="ForcedStopSig">
+            <NextState Name="nil">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+             </NextState>
+         </Transition>
+      </State>
+
+      <State Name="Disposing">
+          <Entry>
+              <Action Cmd="enterDisposing()"></Action>
+          </Entry>
+          <Exit>
+              <Action Cmd="exitDisposing()"></Action>
+          </Exit>
+          <Transition Name="Int_DisposeCompleteSig">
+            <NextState Name="Ready">
+            </NextState>
+         </Transition>
+          <Transition Name="ErrorSig">
+            <NextState Name="Error">
+            </NextState>
+         </Transition>
+         <Transition Name="InitializeSig">
+            <NextState Name="Idle">
+            </NextState>
+         </Transition>
+          <Transition Name="Int_Exception(name : String, e : Exception)">
+            <NextState Name="nil">
+                <Action Cmd="handleException(name, e)"/>
+             </NextState>
+          </Transition>
+         <Transition Name="Default">
+            <NextState Name="nil">
+                <Action Cmd="illegalTransition()"/>
+             </NextState>
+         </Transition>
+      </State>
+
+   </StateMachineMap>
+</StateMachineDescription>
+

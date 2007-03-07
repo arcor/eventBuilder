@@ -1,41 +1,50 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.EventVersion;
-import icecube.daq.eventBuilder.SPDataAnalysis;
-import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
-import icecube.daq.eventBuilder.exceptions.EventBuilderException;
+
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
-import icecube.daq.io.StreamMetaData;
-import icecube.daq.payload.impl.EventFactory;
+
+import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
+import icecube.daq.eventBuilder.SPDataAnalysis;
+
+import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
+
+import icecube.daq.eventbuilder.IReadoutDataPayload;
+
+import icecube.daq.eventbuilder.impl.EventPayload_v2;
+import icecube.daq.eventbuilder.impl.EventPayload_v2Factory;
+
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IEventHitRecord;
-import icecube.daq.payload.IEventPayload;
-import icecube.daq.payload.IHitRecordList;
+import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
-import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadChecker;
-import icecube.daq.payload.PayloadException;
+import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.payload.impl.EventFactory;
+
+import icecube.daq.payload.splicer.Payload;
+
 import icecube.daq.reqFiller.RequestFiller;
+
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
-import icecube.daq.util.IDOMRegistry;
+
+import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
+
+import java.nio.ByteBuffer;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Pull trigger requests from the front-end queue and readout data
@@ -46,332 +55,126 @@ public class EventBuilderBackEnd
     extends RequestFiller
     implements BackEndMonitor, SPDataProcessor
 {
-    /**
-     * Subrun event counts.
-     */
-    class SubrunEventCount
-        implements Comparable
-    {
-        /** subrun number */
-        private int num;
-        /** number of events in subrun */
-        private long count;
-
-        /**
-         * Create a subrun event count
-         *
-         * @param num subrun number
-         * @param count number of events
-         */
-        SubrunEventCount(int num, long count)
-        {
-            this.num = num;
-            this.count = count;
-        }
-
-        /**
-         * Compare this object to another.
-         *
-         * @param obj compared cobject
-         *
-         * @return the usual comparison results
-         */
-        @Override
-        public int compareTo(Object obj)
-        {
-            if (obj == null) {
-                return -1;
-            }
-
-            if (!(obj instanceof SubrunEventCount)) {
-                return getClass().getName().compareTo(obj.getClass().getName());
-            }
-
-            SubrunEventCount sd = (SubrunEventCount) obj;
-
-            if (num == sd.num) {
-                return 0;
-            }
-
-            if (num == -sd.num) {
-                if (num < 0) {
-                    return -1;
-                }
-
-                return 1;
-            }
-
-            int absNum = (num < 0 ? -num : num);
-            int absSDNum = (sd.num < 0 ? -sd.num : sd.num);
-            return absNum - absSDNum;
-        }
-
-        /**
-         * Is this object equal to another object?
-         *
-         * @param obj compared object
-         *
-         * @return <tt>true</tt> if the compared object is equal to this object
-         */
-        @Override
-        public boolean equals(Object obj)
-        {
-            return compareTo(obj) == 0;
-        }
-
-        /**
-         * Get the number of events in this subrun
-         *
-         * @return number of events
-         */
-        long getCount()
-        {
-            return count;
-        }
-
-        /**
-         * Get the hash code for this object
-         *
-         * @return subrun number
-         */
-        @Override
-        public int hashCode()
-        {
-            return num;
-        }
-    }
-
-    /**
-     * Event totals for a run.
-     */
-    class EventRunData
-    {
-        private long numEvents;
-        private long firstEventTime;
-        private long lastEventTime;
-        private long firstGoodTime;
-        private long lastGoodTime;
-
-        /**
-         * Create an object holding the event totals for a run.
-         *
-         * @param numEvents - number of physics events dispatched
-         * @param firstEventTime - starting time of first event
-         * @param lastEventTime - ending time of last event
-         * @param firstGoodTime - starting time of first good event
-         * @param lastGoodTime - ending time of last good event
-         */
-        EventRunData(long numEvents, long firstEventTime, long lastEventTime,
-                     long firstGoodTime, long lastGoodTime)
-        {
-            this.numEvents = numEvents;
-            this.firstEventTime = firstEventTime;
-            this.lastEventTime = lastEventTime;
-            this.firstGoodTime = firstGoodTime;
-            this.lastGoodTime = lastGoodTime;
-        }
-
-        public void setLastGoodTime(int runNumber, long time)
-        {
-            if (lastGoodTime > 0 && lastGoodTime != time) {
-                LOG.error("Overwriting " + runNumber + " last good time " +
-                          lastGoodTime + " with new value " + time);
-            }
-
-            lastGoodTime = time;
-        }
-
-        /**
-         * Return run data as an array of <tt>long</tt> values.
-         *
-         * @return array of <tt>long</tt> values
-         */
-        public long[] toArray()
-        {
-            return new long[] { numEvents, firstEventTime, lastEventTime,
-                                firstGoodTime, lastGoodTime };
-        }
-
-        /**
-         * Return string representation of run data.
-         *
-         * @return string
-         */
-        @Override
-        public String toString()
-        {
-            return "EventRunData[evts " + numEvents + ", first " +
-                firstEventTime + ", last " + lastEventTime + ", firstGood " +
-                firstGoodTime + ", lastGood " + lastGoodTime + "]";
-        }
-    }
-
     /** Message logger. */
-    private static final Logger LOG =
-        Logger.getLogger(EventBuilderBackEnd.class);
+    private static final Log LOG =
+        LogFactory.getLog(EventBuilderBackEnd.class);
 
     /** Event builder source ID. */
     private static final ISourceID ME =
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
-    /** If <tt>true</tt>, drop events outside firstGoodTime and lastGoodTime */
-    private static final boolean DROP_NOT_GOOD = true;
+    private IByteBufferCache cacheManager;
 
     private Splicer splicer;
+    private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
 
+    private EventBuilderSPcachePayloadOutputEngine cacheOutputEngine;
+
     // Factory to make EventPayloads.
-    private EventFactory eventFactory;
+    private EventPayload_v2Factory eventFactory;
+
+    /** list of payloads to be deleted after back end has stopped */
+    private ArrayList finalData;
+
+    // The starting and ending times for the current request
+    private long reqStartTime;
+    private long reqEndTime;
 
     // per-run monitoring counters
+    private long cumDispTime;
+    private long curDispTime;
     private int execListLen;
-    private long numBadEvents;
-    private long prevFirstTime;
-    private long prevLastTime;
+    private int execListMax;
+    private long maxDispSize;
+    private long maxDispTime;
+    private long numDispTimes;
+    private int numExecuteCalls;
+    private long numRecycled;
+    private int numTruncateCalls;
 
     // lifetime monitoring counters
     private long prevRunTotalEvents;
-    private long totalEventsSent;
+    private long totStopsSent;
 
     /** Current run number. */
     private int runNumber;
-    /** Previous run number. */
-    private int prevRunNumber;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
-
-    /** Current subrun number. */
-    private int subrunNumber;
-    /** Current subrun start time. */
-    private long subrunStart;
-    /** Number of events in current subrun. */
-    private long subrunEventCount;
-    /** If we have a new subrunStart value which has not yet been
-     * reached (commitSubrun() has been called but not yet acted upon) */
-    private boolean newSubrunStartTime;
-    /** List of all subrun event counts. */
-    private HashMap<SubrunEventCount, SubrunEventCount> subrunEventCountMap =
-        new HashMap<SubrunEventCount, SubrunEventCount>();
-    /** Last dispatched subrun number. */
-    private int lastDispSubrunNumber;
-    /** An object for synchronizing subrun data changes on */
-    private Object subrunLock = new Object();
-
     /** Has the back end been reset? */
     private boolean isReset;
-    /** should events be validated? */
-    private boolean validateEvents;
-
-    /** Current year. */
-    private short year;
-    private long prevYearTime;
-
-    /** Output queue  -- ACCESS MUST BE SYNCHRONIZED. */
-    private List<IPayload> outputQueue = new LinkedList<IPayload>();
-    /** Output thread. */
-    private OutputThread outputThread;
-
-    /** New run number to be used when switching runs mid-stream */
-    private int switchNumber;
-
-    /** Track last event end to be used as the last good time when switching */
-    private long prevEndTime;
-
-    /** Map used to track start/stop/count data for each run */
-    private HashMap<Integer, EventRunData> runData =
-        new HashMap<Integer, EventRunData>();
-
-    /** An object for synchronizing good time changes */
-    private Object goodTimeLock = new Object();
-    /** First time when all hubs have sent a hit */
-    private long firstGoodTime;
-    /** Last time when all hubs have sent a hit */
-    private long lastGoodTime;
-    /** Count the number of events sent before firstGoodTime was set */
-    private long numUnknownBeforeFirst;
-    /** Count the number of events dropped once firstGoodTime was set */
-    private long numDroppedBeforeFirst;
-    /** Count the number of events sent before lastGoodTime was set */
-    private long numUnknownBeforeLast;
-    /** Count the number of valid events seen once lastGoodTime was set */
-    private long numKnownBeforeLast;
-    /** Count the number of events dropped once lastGoodTime was set */
-    private long numDroppedAfterLast;
-    /** Count the total possible events */
-    private long totalPossible;
 
     /**
      * Constructor
      *
-     * @param eventCache event buffer cache manager
+     * @param master master payload factory
+     * @param cacheManager buffer cache manager
      * @param splicer data splicer
      * @param analysis data splicer analysis
      * @param dispatcher DAQ dispatch
      */
-    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
-                               SPDataAnalysis analysis, Dispatcher dispatcher)
-    {
-        this(eventCache, splicer, analysis, dispatcher, false);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param eventCache event buffer cache manager
-     * @param splicer data splicer
-     * @param analysis data splicer analysis
-     * @param dispatcher DAQ dispatch
-     * @param validateEvents <tt>true</tt> if created events should be
-     *                       checked for validity
-     */
-    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
-                               SPDataAnalysis analysis, Dispatcher dispatcher,
-                               boolean validateEvents)
+    public EventBuilderBackEnd(MasterPayloadFactory master,
+                               IByteBufferCache cacheManager,
+                               Splicer splicer,
+                               SPDataAnalysis analysis,
+                               Dispatcher dispatcher)
     {
         super("EventBuilderBackEnd", true);
 
+        if (dispatcher == null) {
+            if (LOG.isFatalEnabled()) {
+                try {
+                    throw new NullPointerException("Dispatcher");
+                } catch (NullPointerException ex) {
+                    LOG.fatal("Constructor called with null dispatcher", ex);
+                }
+            }
+            System.exit(1);
+        }
+
         this.dispatcher = dispatcher;
         this.splicer = splicer;
-        this.validateEvents = validateEvents;
+        this.analysis = analysis;
+        this.cacheManager = cacheManager;
 
         // register this object with splicer analysis
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        try {
-            eventFactory = new EventFactory(eventCache, EventVersion.VERSION);
-        } catch (PayloadException pe) {
-            throw new Error("Cannot create factory for Event V" +
-                            EventVersion.VERSION);
-        }
+        eventFactory = new EventPayload_v2Factory();
     }
 
     /**
      * Increment the count of splicer.execute() calls.
      */
-    @Override
     public void addExecuteCall()
     {
-        // XXX do nothing
+        numExecuteCalls++;
     }
 
     /**
-     * Extract hit records from separate HitRecordPayloads into a single list.
-     * @param dataList list of HitRecordPayloads
-     * @return unified list
+     * Add data received while splicer is stopping.
+     *
+     * @param coll collection of final data payloads
      */
-    private static List<IEventHitRecord> buildHitRecordList(List dataList)
+    public void addFinalData(Collection coll)
     {
-        List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
-        for (Object obj : dataList) {
-            IHitRecordList list = (IHitRecordList) obj;
-
-            for (IEventHitRecord rec : list) {
-                hitRecList.add(rec);
-            }
+        if (finalData == null) {
+            finalData = new ArrayList();
+        } else if (LOG.isWarnEnabled()) {
+            LOG.warn("Found existing list of final data");
         }
-        return hitRecList;
+
+        finalData.addAll(coll);
+    }
+
+    /**
+     * Increment the count of splicer.truncate() calls.
+     */
+    public void addTruncateCall()
+    {
+        numTruncateCalls++;
     }
 
     /**
@@ -384,37 +187,38 @@ public class EventBuilderBackEnd
      *         <tt>0</tt> if data is "within" request
      *         <tt>1</tt> if data is "later than" request
      */
-    @Override
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
+        IReadoutDataPayload data = (IReadoutDataPayload) dataPayload;
 
-        final long reqFirst, reqLast;
-        if (req == null) {
-            reqFirst = Integer.MAX_VALUE;
-            reqLast = Integer.MAX_VALUE;
+        final int uid;
+        if (data == null) {
+            uid = Integer.MAX_VALUE;
         } else {
-            reqFirst = req.getFirstTimeUTC().longValue();
-            reqLast = req.getLastTimeUTC().longValue();
+            uid = data.getRequestUID();
         }
 
-        final long time;
-        if (dataPayload == null) {
-            time = Long.MIN_VALUE;
+        if (uid < req.getUID()) {
+            return -1;
+        } else if (uid == req.getUID()) {
+            return 0;
         } else {
-            time = ((IPayload) dataPayload).getUTCTime();
+            return 1;
         }
+    }
 
-        int rtnval;
-        if (time < reqFirst) {
-            rtnval = -1;
-        } else if (time > reqLast) {
-            rtnval = 1;
-        } else {
-            rtnval = 0;
-        }
-
-        return rtnval;
+    /**
+     * Mark data boundary between runs.
+     *
+     * @param message run message
+     *
+     * @throws DispatchException if there is a problem changing the run
+     */
+    public void dataBoundary(String message)
+        throws DispatchException
+    {
+        dispatcher.dataBoundary(message);
     }
 
     /**
@@ -422,10 +226,9 @@ public class EventBuilderBackEnd
      *
      * @param data payload
      */
-    @Override
-    public void disposeData(IPayload data)
+    public void disposeData(ILoadablePayload data)
     {
-        data.recycle();
+        splicer.truncate((Spliceable) data);
     }
 
     /**
@@ -433,47 +236,76 @@ public class EventBuilderBackEnd
      *
      * @param dataList list of data payload
      */
-    @Override
     public void disposeDataList(List dataList)
     {
-        for (Object obj : dataList) {
-            disposeData((IPayload) obj);
-        }
+        // if we truncate the final data payload,
+        // all the others will also be removed
+        Object obj = dataList.get(dataList.size() - 1);
+        splicer.truncate((Spliceable) obj);
     }
 
     /**
      * Finish any tasks to be done just before the thread exits.
      */
-    @Override
     public void finishThreadCleanup()
     {
-        if (runNumber < 0) {
-            if (!reportedBadRunNumber) {
-                LOG.error("Run number has not been set");
-                reportedBadRunNumber = true;
-            }
-            return;
+        analysis.stopDispatcher();
+        cacheOutputEngine.sendLastAndStop();
+        totStopsSent++;
+    }
+
+    /**
+     * Get average millisecond time to dispatch event for this run.
+     *
+     * @return average dispatch time
+     */
+    public long getAverageDispatchTime()
+    {
+        if (numDispTimes == 0) {
+            return 0;
         }
 
-        String message = Dispatcher.STOP_PREFIX + runNumber;
-        try {
-            dispatcher.dataBoundary(message);
-        } catch (DispatchException de) {
-            LOG.error("Couldn't stop dispatcher (" + message + ")", de);
-        }
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Stopped dispatcher");
-        }
+        return cumDispTime / numDispTimes;
+    }
 
-        // save run data for later retrieval
-        saveRunData();
+    /**
+     * Get average number of readouts per event.
+     *
+     * @return readouts/event
+     */
+    public long getAverageReadoutsPerEvent()
+    {
+        return getAverageOutputDataPayloads();
+    }
 
-        LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
-                  "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
-                  "  UnknownBeforeLast: " + numUnknownBeforeLast +
-                  "  KnownBeforeLast: " + numKnownBeforeLast +
-                  "  DroppedAfterLast: " + numDroppedAfterLast +
-                  "  TotalPossible: " + totalPossible);
+    /**
+     * Get most recent millisecond time to dispatch event for this run.
+     *
+     * @return most recent dispatch time
+     */
+    public long getCurrentDispatchTime()
+    {
+        return curDispTime;
+    }
+
+    /**
+     * Get ending time for event being built.
+     *
+     * @return end time
+     */
+    public long getCurrentEventEndTime()
+    {
+        return reqEndTime;
+    }
+
+    /**
+     * Get start time for event being built.
+     *
+     * @return start time
+     */
+    public long getCurrentEventStartTime()
+    {
+        return reqStartTime;
     }
 
     /**
@@ -481,20 +313,18 @@ public class EventBuilderBackEnd
      *
      * @return most recent splicer.execute() list length
      */
-    @Override
     public long getCurrentExecuteListLength()
     {
         return execListLen;
     }
 
     /**
-     * Returns the number of units still available in the disk (measured
-     * in MB).  If it fails to check the disk space, then it returns -1.
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
      *
      * @return the number of units still available in the disk.
      */
-    @Override
-    public long getDiskAvailable()
+    public int getDiskAvailable()
     {
         return dispatcher.getDiskAvailable();
     }
@@ -505,84 +335,89 @@ public class EventBuilderBackEnd
      *
      * @return the total number of units in the disk.
      */
-    @Override
-    public long getDiskSize()
+    public int getDiskSize()
     {
         return dispatcher.getDiskSize();
     }
 
     /**
-     * Return the number of events and the last event time as a list.
+     * Get current rate of events per second.
      *
-     * @return event data
+     * @return events/second
      */
-    @Override
-    public long[] getEventData()
+    public double getEventsPerSecond()
     {
-        StreamMetaData metadata = getMetaData();
-        return new long[] {
-            runNumber, metadata.getCount(), metadata.getTicks()
-        };
+        return getOutputsPerSecond();
     }
 
     /**
-     * Return the first event time.
+     * Get maximum millisecond time to dispatch event for this run.
      *
-     * @return first event time
+     * @return maximum dispatch time
      */
-    @Override
-    public long getFirstEventTime()
+    public long getMaximumDispatchTime()
     {
-        return getFirstOutputTime();
+        return maxDispTime;
     }
 
     /**
-     * Compute the subrun number which should follow the specified number.
+     * Get maximum splicer.execute() list length for this run.
      *
-     * @param num current subrun number
-     *
-     * @return next subrun number
+     * @return maximum splicer.execute() list length
      */
-    private static int getNextSubrunNumber(int num)
+    public long getMaximumExecuteListLength()
     {
-        if (num < 0) {
-            return -num;
-        }
-
-        return -num - 1;
+        return execListMax;
     }
 
     /**
-     * Get number of bad events for this run.
+     * Get number of readouts which could not be loaded.
      *
-     * @return number of bad events
+     * @return number of bad readouts received
      */
-    @Override
-    public long getNumBadEvents()
+    public long getNumBadReadouts()
     {
-        return numBadEvents;
+        return getNumBadDataPayloads();
     }
 
     /**
-     * Returns the number of bytes written to disk by the event builder
+     * Number of trigger requests which could not be loaded.
      *
-     * @return the number of bytes written to disk by the event builder
+     * @return number of bad trigger requests
      */
-    @Override
-    public long getNumBytesWritten()
+    public long getNumBadTriggerRequests()
     {
-        return dispatcher.getNumBytesWritten();
+        return getNumBadRequests();
     }
 
     /**
-     * Get number of events written by the dispatcher.
+     * Get the number of dispatch times accumulated for this run.
      *
-     * @return number of events written to file
+     * @return number of dispatch times
      */
-    @Override
-    public long getNumEventsDispatched()
+    public long getNumDispatchTimes()
     {
-        return dispatcher.getNumDispatchedEvents();
+        return numDispTimes;
+    }
+
+    /**
+     * Get number of events which could not be sent.
+     *
+     * @return number of failed events
+     */
+    public long getNumEventsFailed()
+    {
+        return getNumOutputsFailed();
+    }
+
+    /**
+     * Get number of empty events which were ignored.
+     *
+     * @return number of ignored events
+     */
+    public long getNumEventsIgnored()
+    {
+        return getNumOutputsIgnored();
     }
 
     /**
@@ -590,21 +425,19 @@ public class EventBuilderBackEnd
      *
      * @return number of events sent
      */
-    @Override
     public long getNumEventsSent()
     {
         return getNumOutputsSent();
     }
 
     /**
-     * Get number of events queued for output.
+     * Get number of calls to SPDataAnalysis.execute().
      *
-     * @return number of events queued
+     * @return number of execute() calls
      */
-    @Override
-    public int getNumOutputsQueued()
+    public int getNumExecuteCalls()
     {
-        return outputQueue.size();
+        return numExecuteCalls;
     }
 
     /**
@@ -612,10 +445,19 @@ public class EventBuilderBackEnd
      *
      * @return number of cached readouts
      */
-    @Override
     public int getNumReadoutsCached()
     {
         return getNumDataPayloadsCached();
+    }
+
+    /**
+     * Get number of readouts thrown away.
+     *
+     * @return number of readouts thrown away
+     */
+    public long getNumReadoutsDiscarded()
+    {
+        return getNumDataPayloadsDiscarded();
     }
 
     /**
@@ -623,7 +465,6 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts queued
      */
-    @Override
     public int getNumReadoutsQueued()
     {
         return getNumDataPayloadsQueued();
@@ -634,10 +475,49 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts received
      */
-    @Override
     public long getNumReadoutsReceived()
     {
         return getNumDataPayloadsReceived();
+    }
+
+    /**
+     * Get number of events which could not be created.
+     *
+     * @return number of null events
+     */
+    public long getNumNullEvents()
+    {
+        return getNumNullOutputs();
+    }
+
+    /**
+     * Get number of null readouts received.
+     *
+     * @return number of null readouts received
+     */
+    public long getNumNullReadouts()
+    {
+        return getNumNullDataPayloads();
+    }
+
+    /**
+     * Get number of recycled payloads.
+     *
+     * @return number of recycled payloads
+     */
+    public long getNumRecycled()
+    {
+        return numRecycled;
+    }
+
+    /**
+     * Number of trigger requests dropped while stopping.
+     *
+     * @return number of trigger requests dropped
+     */
+    public long getNumTriggerRequestsDropped()
+    {
+        return getNumRequestsDropped();
     }
 
     /**
@@ -645,9 +525,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
-    @Override
-    public int getNumTriggerRequestsQueued()
-    {
+    public int getNumTriggerRequestsQueued() {
         return getNumRequestsQueued();
     }
 
@@ -657,10 +535,28 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
-    @Override
-    public long getNumTriggerRequestsReceived()
-    {
+    public long getNumTriggerRequestsReceived() {
         return getNumRequestsReceived();
+    }
+
+    /**
+     * Get number of calls to SPDataAnalysis.truncate().
+     *
+     * @return number of truncate() calls
+     */
+    public int getNumTruncateCalls()
+    {
+        return numTruncateCalls;
+    }
+
+    /**
+     * Get number of readouts not used for an event.
+     *
+     * @return number of unused readouts
+     */
+    public long getNumUnusedReadouts()
+    {
+        return getNumUnusedDataPayloads();
     }
 
     /**
@@ -668,90 +564,99 @@ public class EventBuilderBackEnd
      *
      * @return total number of events sent during the previous run
      */
-    @Override
     public long getPreviousRunTotalEvents()
     {
         return prevRunTotalEvents;
     }
 
     /**
-     * Get the run data for the specified run.
+     * Get current rate of readouts per second.
      *
-     * @param runNum run number
-     * @param forcedSave if <tt>true</tt>, use current data
-     *
-     * @return array of <tt>long</tt> values:<ol>
-     *    <li>number of events
-     *    <li>starting time of first event in run
-     *    <li>ending time of last event in run
-     *    </ol>
-     *
-     * @throws EventBuilderException if no data is found for the run
+     * @return readouts/second
      */
-    public long[] getRunData(int runNum, boolean forcedSave)
-        throws EventBuilderException
+    public double getReadoutsPerSecond()
     {
-        EventRunData evtData;
-        if (runData.containsKey(runNum)) {
-            evtData = runData.get(runNum);
-        } else if (forcedSave) {
-            evtData = saveRunData();
-        } else {
-            LOG.error("No data found for run " + runNum);
-            throw new EventBuilderException("No data found for run " + runNum);
-        }
-
-        LOG.error("Run " + runNum + " EB data is " + evtData);
-        return evtData.toArray();
+        return getDataPayloadsPerSecond();
     }
 
     /**
-     * Get the current run number.
+     * Get size of event at maximum millisecond time for this run.
+     *
+     * @return size of event at maximum dispatch time
      */
-    public int getRunNumber()
+    public long getSizeOfMaximumDispatchTime()
     {
-        return runNumber;
+        return maxDispSize;
     }
 
     /**
-     * Get the current subrun number.
+     * Get current rate of trigger requests per second.
      *
-     * @return current subrun number
+     * @return trigger requests/second
      */
-    @Override
-    public int getSubrunNumber()
+    public double getTriggerRequestsPerSecond()
     {
-        return subrunNumber;
+        return getRequestsPerSecond();
     }
 
     /**
-     * Get the total number of events for the specified subrun.
+     * Get total number of readouts which could not be loaded since last reset.
      *
-     * @param subrun subrun number
-     *
-     * @return total number of events sent during the specified subrun
+     * @return total number of bad readouts since last reset
      */
-    public long getSubrunTotalEvents(int subrun)
+    public long getTotalBadReadouts()
     {
+        return getTotalBadDataPayloads();
+    }
 
-        // return count from current subrun
-        synchronized (subrunLock) {
-            if (subrun == subrunNumber) {
-                return subrunEventCount;
-            }
-        }
+    /**
+     * Get the total dispatch time accumulated for this run.
+     *
+     * @return total dispatch time
+     */
+    public long getTotalDispatchTime()
+    {
+        return cumDispTime;
+    }
 
-        SubrunEventCount question = new SubrunEventCount(subrun, 0L);
-        SubrunEventCount answer;
-        synchronized (subrunLock) {
-            answer = subrunEventCountMap.get(question);
-        }
+    /**
+     * Total number of events since last reset which could not be sent.
+     *
+     * @return total number of failed events
+     */
+    public long getTotalEventsFailed()
+    {
+        return getTotalOutputsFailed();
+    }
 
-        if (answer == null) {
-            throw new RuntimeException("Illegal subrun " + subrun);
-        }
+    /**
+     * Total number of empty events which were ignored since last reset.
+     *
+     * @return total number of ignored events
+     */
+    public long getTotalEventsIgnored()
+    {
+        return getTotalOutputsIgnored();
+    }
 
-        return answer.getCount();
+    /**
+     * Total number of events sent since last reset.
+     *
+     * @return total number of events sent since last reset.
+     */
+    public long getTotalEventsSent()
+    {
+        return getTotalOutputsSent();
+    }
+
+    /**
+     * Total number of readouts thrown away since last reset.
+     *
+     * @return total number of readouts thrown away since last reset
+     */
+    public long getTotalReadoutsDiscarded()
+    {
+        return getTotalDataPayloadsDiscarded();
     }
 
     /**
@@ -759,10 +664,49 @@ public class EventBuilderBackEnd
      *
      * @return total number of readouts received since last reset
      */
-    @Override
     public long getTotalReadoutsReceived()
     {
         return getTotalDataPayloadsReceived();
+    }
+
+    /**
+     * Total number of stop messages received from the splicer.
+     *
+     * @return total number of received stop messages
+     */
+    public long getTotalSplicerStopsReceived()
+    {
+        return getTotalDataStopsReceived();
+    }
+
+    /**
+     * Get total number of trigger requests received from the global trigger
+     * since the program began executing.
+     *
+     * @return total number of trigger requests received
+     */
+    public long getTotalTriggerRequestsReceived() {
+        return getTotalRequestsReceived();
+    }
+
+    /**
+     * Total number of stop messages received from the global trigger.
+     *
+     * @return total number of received stop messages
+     */
+    public long getTotalTriggerStopsReceived()
+    {
+        return getTotalRequestStopsReceived();
+    }
+
+    /**
+     * Total number of stop messages sent to the string processors
+     *
+     * @return total number of sent stop messages
+     */
+    public long getTotalStopsSent()
+    {
+        return totStopsSent;
     }
 
     /**
@@ -774,7 +718,6 @@ public class EventBuilderBackEnd
      * @return <tt>true</tt> if the data payload is part of the
      *         current request
      */
-    @Override
     public boolean isRequested(IPayload reqPayload, IPayload dataPayload)
     {
         return true;
@@ -789,8 +732,8 @@ public class EventBuilderBackEnd
      *
      * @return The EventPayload created for the current TriggerRequest.
      */
-    @Override
-    public IPayload makeDataPayload(IPayload reqPayload, List dataList)
+    public ILoadablePayload makeDataPayload(IPayload reqPayload,
+                                            List dataList)
     {
         // remember that we need to be reset
         isReset = false;
@@ -813,187 +756,102 @@ public class EventBuilderBackEnd
 
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
-        final int uid = req.getUID();
-        final IUTCTime startUTC = req.getFirstTimeUTC();
-        final IUTCTime endUTC = req.getLastTimeUTC();
+        IUTCTime startTime = req.getFirstTimeUTC();
+        IUTCTime endTime = req.getLastTimeUTC();
 
-        if (startUTC == null || endUTC == null) {
+        if (startTime == null || endTime == null) {
             LOG.error("Request may have been recycled; cannot send data");
             return null;
         }
 
-        final long startTime = startUTC.longValue();
-
-        long tmpFirstGood;
-        long tmpLastGood;
-        synchronized (goodTimeLock) {
-            tmpFirstGood = firstGoodTime;
-            tmpLastGood = lastGoodTime;
-        }
-
-        totalPossible++;
-        if (tmpFirstGood == 0) {
-            numUnknownBeforeFirst++;
-        } else if (startTime < tmpFirstGood) {
-            numDroppedBeforeFirst++;
-            if (DROP_NOT_GOOD) {
-                return DROPPED_PAYLOAD;
-            }
-        } else if (tmpLastGood == 0) {
-            numUnknownBeforeLast++;
-        } else if (endUTC.longValue() <= tmpLastGood) {
-            numKnownBeforeLast++;
-        } else {
-            numDroppedAfterLast++;
-            if (DROP_NOT_GOOD) {
-                return DROPPED_PAYLOAD;
-            }
-        }
-
-        // if this is the first event and we're supposed to switch to a
-        // new run number, save the run data (but don't switch yet)
-        if (uid == 1 && switchNumber > 0) {
-            long[] tmpData = resetOutputData();
-            runData.put(runNumber,
-                        new EventRunData(tmpData[0], tmpData[1], tmpData[2],
-                                         firstGoodTime, prevEndTime));
-
-            prevRunNumber = runNumber;
-            runNumber = switchNumber;
-            switchNumber = 0;
-            firstGoodTime = startTime;
-            lastGoodTime = 0;
-        }
-
-        // remember this startTime in case we switch runs at the next event
-        prevEndTime = startTime;
-
-        // set the year if we haven't yet or if the time has wrapped
-        if (year == 0 || startTime < prevYearTime) {
-            final short oldYear = year;
-            setCurrentYear();
-            if (oldYear != 0) {
-                LOG.error("Changed year from " + oldYear + " to " + year);
-            }
-            prevYearTime = startTime;
-        }
-
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + uid + " [" + startUTC + " - " +
-                      endUTC + "]");
+            LOG.debug("Closing Event " + startTime.getUTCTimeAsLong() +
+                      " - " + endTime.getUTCTimeAsLong());
         }
-        if (LOG.isInfoEnabled() && dataList.size() == 0) {
-            LOG.info("Sending empty event " + uid + " window [" + startUTC +
-                     " - " + endUTC + "]");
-        }
-
-        int subnum;
-        synchronized (subrunLock) {
-            if (newSubrunStartTime && startTime >= subrunStart) {
-                // commitSubrun was called & that subrun is here
-                subrunNumber = getNextSubrunNumber(subrunNumber);
-                newSubrunStartTime = false;
-            }
-            subnum = subrunNumber;
+        if (LOG.isWarnEnabled() && dataList.size() == 0) {
+            LOG.warn("Sending empty event for window [" +
+                     startTime.getUTCTimeAsLong() + " - " +
+                     endTime.getUTCTimeAsLong() + "]");
         }
 
-        IPayload evt;
-        if (EventVersion.VERSION < 5) {
-            evt = eventFactory.createPayload(uid, ME, startUTC, endUTC, year,
-                                             runNumber, subnum, req, dataList);
-        } else {
-            try {
-                evt = eventFactory.createPayload(uid, startUTC, endUTC,
-                                                 year, runNumber, subnum, req,
-                                                 buildHitRecordList(dataList));
-            } catch (PayloadException pe) {
-                LOG.error("Cannot create event #" + uid, pe);
-                evt = null;
-            }
-        }
+        final int eventType = req.getTriggerType();
+        final int configId = req.getTriggerConfigID();
 
-        return evt;
+        Payload event =
+            eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
+                                       eventType, configId, runNumber, req,
+                                       new Vector(dataList));
+
+        return event;
+    }
+
+    /**
+     * Recycle all payloads in the list.
+     *
+     * @param payloadList list of payloads
+     */
+    public void recycleAll(Collection payloadList)
+    {
+        Iterator iter = payloadList.iterator();
+        while (iter.hasNext()) {
+            Payload payload = (Payload) iter.next();
+            payload.recycle();
+            numRecycled++;
+        }
+    }
+
+    /**
+     * Recycle payloads left after the final event.
+     */
+    public void recycleFinalData()
+    {
+        if (finalData != null) {
+            recycleAll(finalData);
+
+            // delete list once everything's been recycled
+            finalData = null;
+        }
+    }
+
+    /**
+     * Register the string processor cache-flush output engine.
+     *
+     * @param oe output engine
+     */
+    public void registerStringProcCacheOutputEngine
+        (EventBuilderSPcachePayloadOutputEngine oe)
+    {
+        cacheOutputEngine = oe;
     }
 
     /**
      * Reset the back end after it has been stopped.
      */
-    @Override
     public void reset()
     {
         if (!isReset) {
             prevRunTotalEvents = getNumOutputsSent();
 
+            recycleFinalData();
+
+            cumDispTime = 0;
+            curDispTime = 0;
             execListLen = 0;
-            numBadEvents = 0;
-            prevFirstTime = 0L;
-            prevLastTime = 0L;
+            execListMax = 0;
+            maxDispSize = 0;
+            maxDispTime = 0;
+            numDispTimes = 0;
+            numExecuteCalls = 0;
+            numRecycled = 0;
+            numTruncateCalls = 0;
 
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
-
-            switchNumber = 0;
-
-            firstGoodTime = 0;
-            lastGoodTime = 0;
-            numUnknownBeforeFirst = 0;
-            numDroppedBeforeFirst = 0;
-            numUnknownBeforeLast = 0;
-            numKnownBeforeLast = 0;
-            numDroppedAfterLast = 0;
-            totalPossible = 0;
-
-            // clear the current year so it's set by the first event
-            year = 0;
-
-            if (outputQueue.size() > 0) {
-                LOG.error("Unwritten events queued at reset");
-
-                synchronized (outputQueue) {
-                    outputQueue.clear();
-                }
-            }
-
-            if (outputThread == null) {
-                outputThread = new OutputThread("EventWriter");
-                outputThread.start();
-            }
 
             isReset = true;
         }
 
         super.reset();
-    }
-
-    /**
-     * Reset the back end during startup.
-     */
-    public void resetAtStart()
-    {
-        synchronized (subrunLock) {
-            subrunNumber = 0;
-            subrunStart = 0L;
-            subrunEventCount = 0L;
-            subrunEventCountMap.clear();
-            newSubrunStartTime = false;
-            lastDispSubrunNumber = 0;
-        }
-        reset();
-    }
-
-    /**
-     * Save the important data regarding this run.
-     *
-     * @return saved event count/time data
-     */
-    private EventRunData saveRunData()
-    {
-        StreamMetaData meta = getMetaData();
-        EventRunData evtData =
-            new EventRunData(meta.getCount(), getFirstOutputTime(),
-                             meta.getTicks(), firstGoodTime, lastGoodTime);
-        runData.put(runNumber, evtData);
-        return evtData;
     }
 
     /**
@@ -1003,56 +861,96 @@ public class EventBuilderBackEnd
      *
      * @return <tt>true</tt> if event was sent
      */
-    @Override
-    public boolean sendOutput(IPayload output)
+    public boolean sendOutput(ILoadablePayload output)
     {
-        if (outputThread == null) {
-            throw new Error("Output thread is not running");
-        } else if (outputThread.hasFailed()) {
-            String errmsg;
-            if (outputThread.hasMaxConsecutiveErrors()) {
-                errmsg = "Output thread has failed after " +
-                    outputThread.getNumConsecutiveErrors() +
-                    " consecutive payload errors";
-            } else if (outputThread.hasMaxTotalErrors()) {
-                errmsg = "Output thread has failed after " +
-                    outputThread.getNumTotalErrors() +
-                    " total payload errors";
-            } else {
-                errmsg = "Output thread has failed";
+        boolean sent = sendToDaqDispatch(output);
+
+        // XXX not sending flush msg to string processors
+
+        return sent;
+    }
+
+    /**
+     * Send an event to DAQ Dispatch.
+     *
+     * @param event event being sent
+     *
+     * @return <tt>true</tt> if event was sent
+     */
+    private boolean sendToDaqDispatch(ILoadablePayload event)
+    {
+        EventPayload_v2 tmpEvent = (EventPayload_v2) event;
+
+        final int payloadLen = tmpEvent.getPayloadLength();
+
+        boolean sendPayload = false;
+        boolean eventSent = false;
+
+        ByteBuffer buffer = cacheManager.acquireBuffer(payloadLen);
+        if (buffer == null) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Cannot get buffer");
             }
+        } else {
+            buffer.limit(payloadLen);
+
             try {
-                throw new Error(errmsg);
-            } catch (Error err) {
-                LOG.error("Stack Trace", err);
+                tmpEvent.writePayload(0, buffer);
+                sendPayload = true;
+            } catch (IOException ioe) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not write event to buffer", ioe);
+                }
             }
-            return false;
         }
 
-        synchronized (outputQueue) {
-            outputQueue.add(output);
-            outputQueue.notify();
+        if (sendPayload) {
+            final long startTime = System.currentTimeMillis();
+
+            buffer.position(0);
+            try {
+                dispatcher.dispatchEvent(buffer);
+
+                if (LOG.isDebugEnabled()) {
+                    IUTCTime utc;
+
+                    utc = tmpEvent.getFirstTimeUTC();
+                    long firstTime = (utc == null ? Long.MIN_VALUE :
+                                      utc.getUTCTimeAsLong());
+
+                    utc = tmpEvent.getLastTimeUTC();
+                    long lastTime = (utc == null ? Long.MAX_VALUE :
+                                     utc.getUTCTimeAsLong());
+
+                    LOG.debug("Event " + firstTime + "-" + lastTime +
+                              " written to daq-dispatch");
+                }
+
+                eventSent = true;
+            } catch (DispatchException ex) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not dispatch event", ex);
+                }
+            }
+
+            curDispTime = System.currentTimeMillis() - startTime;
+
+            numDispTimes++;
+            cumDispTime += curDispTime;
+
+            if (curDispTime > maxDispTime) {
+                maxDispTime = curDispTime;
+                maxDispSize = buffer.limit();
+            }
         }
 
-        return true;
-    }
+        if (buffer != null) {
+            cacheManager.returnBuffer(buffer);
+        }
 
-    /**
-     * Set the current year.
-     */
-    public void setCurrentYear()
-    {
-        GregorianCalendar cal = new GregorianCalendar();
-        year = (short) cal.get(GregorianCalendar.YEAR);
-    }
+        tmpEvent.recycle();
 
-    /**
-     * Set the DOM registry used to translate hit DOM IDs to channel IDs
-     * @param domRegistry DOM registry
-     */
-    public void setDOMRegistry(IDOMRegistry domRegistry)
-    {
-        eventFactory.setDOMRegistry(domRegistry);
+        return eventSent;
     }
 
     /**
@@ -1060,38 +958,11 @@ public class EventBuilderBackEnd
      *
      * @param execListLen list length
      */
-    @Override
     public void setExecuteListLength(int execListLen)
     {
         this.execListLen = execListLen;
-    }
-
-    /**
-     * Set the first time when all hubs have sent a hit.
-     *
-     * @param firstTime time of first good hit in run
-     */
-    public void setFirstGoodTime(long firstTime)
-    {
-        synchronized (goodTimeLock) {
-            firstGoodTime = firstTime;
-        }
-    }
-
-    /**
-     * Set the last time when all hubs have sent a hit.
-     *
-     * @param lastTime time of last good hit in run
-     */
-    public void setLastGoodTime(long lastTime)
-    {
-        synchronized (goodTimeLock) {
-            lastGoodTime = lastTime;
-        }
-
-        if (runData.containsKey(runNumber)) {
-            LOG.error("Last good time was set after the run finished!");
-            runData.get(runNumber).setLastGoodTime(runNumber, lastTime);
+        if (execListLen > execListMax) {
+            execListMax = execListLen;
         }
     }
 
@@ -1100,10 +971,20 @@ public class EventBuilderBackEnd
      *
      * @param payload request payload
      */
-    @Override
     public void setRequestTimes(IPayload payload)
     {
-        // do nothing (required by RequestFiller)
+        final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
+
+        reqStartTime =
+            req.getFirstTimeUTC().getUTCTimeAsLong();
+        reqEndTime =
+            req.getLastTimeUTC().getUTCTimeAsLong();
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Filling trigger#" + req.getUID() +
+                      " [" + reqStartTime + "-" +
+                      reqEndTime + "]");
+        }
     }
 
     /**
@@ -1117,426 +998,10 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Should events be validated by PayloadChecker?
-     * NOTE: This should not be enabled on SPS!!!
-     * @param val <tt>true</tt> to enable event validation
-     */
-    public void setValidateEvents(boolean val)
-    {
-        validateEvents = val;
-    }
-
-    /**
-     * Inform the dispatcher that a new run is starting.
-     */
-    @Override
-    public void startDispatcher()
-    {
-        if (runNumber < 0) {
-            if (!reportedBadRunNumber) {
-                LOG.error("Run number has not been set");
-                reportedBadRunNumber = true;
-            }
-            return;
-        }
-
-        LOG.info("Splicer entered STARTING state");
-        String message = Dispatcher.START_PREFIX + runNumber;
-        try {
-            dispatcher.dataBoundary(message);
-        } catch (DispatchException de) {
-            LOG.error("Couldn't start dispatcher (" + message + ")", de);
-        }
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Started dispatcher");
-        }
-    }
-
-    /**
-     * Switch to new file for events in switched run.
-     */
-    private void switchFile(int oldRun, int newRun)
-    {
-        LOG.error("Switching from run " + oldRun + " to " + newRun);
-
-        try {
-            dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + oldRun);
-        } catch (DispatchException de) {
-            LOG.error("Could not inform dispatcher of run stop (switch" +
-                      " from " + oldRun + " to " + newRun + ")", de);
-        }
-
-        try {
-            dispatcher.dataBoundary(Dispatcher.START_PREFIX + newRun);
-        } catch (DispatchException de) {
-            LOG.error("Could not inform dispatcher of run start (switch" +
-                      " from " + oldRun + " to " + newRun + ")", de);
-        }
-    }
-
-    /**
-     * Prepare for a new subrun starting soon.  This will cause
-     * subsequent events to be marked with a new subrun number, which
-     * will be the negative of the number provided here - until the
-     * commitSubrun method is called and the timestamp provided there
-     * (identifying the begining of the new subrun) has passed.
-     *
-     * Note that this method will log a warning if the subrun number
-     * provided does not follow the current subrun number but will
-     * accept that as the new subrun number and unset any pending
-     * commitSubrun timestamp.
-     *
-     * @param subrunNumber the subrun number which will be starting
-     */
-    public void prepareSubrun(int subrunNumber)
-    {
-        subrunNumber = -subrunNumber;
-        synchronized (subrunLock) {
-            int tmpNum = getNextSubrunNumber(this.subrunNumber);
-            if (subrunNumber != tmpNum) {
-                LOG.warn("Preparing for subrun " + subrunNumber +
-                         ", though current subrun is " + this.subrunNumber +
-                         ". (Expected next subrun to be " + tmpNum + ")");
-            }
-            this.subrunNumber = subrunNumber;
-            newSubrunStartTime = false;
-        }
-    }
-
-    /**
-     * Mark the begining timestamp for when the indicated subrun has
-     * started.  This method is used in conjunction with the
-     * prepareSubrun() method in that this identifies when events
-     * should no longer be marked with the negative of the subrun
-     * number.
-     *
-     * Note that this method will throw a RuntimeException if either
-     * the subrun number provided does not follow the current subrun
-     * number, or if it appears to have been called without a previous
-     * call to prepareSubrun.
-     *
-     * @param subrunNumber the subrun number
-     * @param startTime time of first good hit in subrun
-     */
-    public void commitSubrun(int subrunNumber, long startTime)
-    {
-        synchronized (subrunLock) {
-            int tmpNum = getNextSubrunNumber(this.subrunNumber);
-            if (subrunNumber != tmpNum) {
-                throw new RuntimeException("Provided subrun # " +
-                    subrunNumber + " does not follow subrun: " +
-                        this.subrunNumber);
-            }
-            if (newSubrunStartTime) {
-                throw new RuntimeException(
-                    "subrun already has start time set.");
-            }
-            newSubrunStartTime = true;
-            this.subrunStart = startTime;
-        }
-    }
-
-    /**
-     * Close out the current subrun by sending a subrun databoundary
-     * to the dispatcher and storing the count for this ending subrun
-     * in the subrunEventCountMap.
-     *
-     * @param oldSubrunNumber the subrun number of the ending subrun
-     * @param newSubrunNumber the subrun number of the new subrun
-     */
-    private void rollSubRun(int oldSubrunNumber, int newSubrunNumber)
-    {
-        synchronized (subrunLock) {
-            // save event count from ending subrun
-            SubrunEventCount newData =
-                new SubrunEventCount(oldSubrunNumber, subrunEventCount);
-            if (subrunEventCountMap.containsKey(newData)) {
-                LOG.error("Found multiple counts for subrun number " +
-                          oldSubrunNumber);
-            } else {
-                subrunEventCountMap.put(newData, newData);
-            }
-            subrunEventCount = 0;
-
-            String message = Dispatcher.SUBRUN_START_PREFIX + newSubrunNumber;
-            if (LOG.isInfoEnabled()) {
-                LOG.info("calling dataBoundary for subrun with the message: " +
-                         message);
-            }
-
-            try {
-                dispatcher.dataBoundary(message);
-            } catch (DispatchException de) {
-                LOG.error("Could not inform dispatcher of subrun change" +
-                          " (" + oldSubrunNumber + " to " +
-                          newSubrunNumber + ")", de);
-            }
-        }
-    }
-
-    /**
-     * Set the event dispatcher.
-     *
-     * @param dispatcher event dispatcher
-     */
-    public void setDispatcher(Dispatcher dispatcher)
-    {
-        if (dispatcher == null) {
-            LOG.error("Cannot set null dispatcher");
-        } else {
-            this.dispatcher = dispatcher;
-        }
-    }
-
-    /**
-     * Set the run number to be used when we start receiving
-     * reset trigger UIDs.
-     *
-     * @param num run number for next run
-     */
-    public void setSwitchRunNumber(int num)
-    {
-        if (num < 0) {
-            LOG.error("Ignoring invalid switch run number " + num);
-            return;
-        }
-
-        if (switchNumber > 0) {
-            LOG.error("Overriding previous switch run " + switchNumber +
-                      " with new value " + num);
-        }
-
-        switchNumber = num;
-    }
-
-    /**
      * Inform back-end processor that the splicer has stopped.
      */
-    @Override
     public void splicerStopped()
     {
-        if (isRunning()) {
-            try {
-                addDataStop();
-            } catch (IOException ioe) {
-                LOG.error("Cannot send final data stop" +
-                          " after splicer stopped", ioe);
-            }
-        }
-    }
-
-    /**
-     * If the thread is running, stop it.
-     */
-    @Override
-    public void stopThread()
-        throws IOException
-    {
-        // run parent method first so any added data is processed
-        super.stopThread();
-
-        if (outputThread != null) {
-            outputThread = null;
-
-            synchronized (outputQueue) {
-                outputQueue.notify();
-            }
-        }
-    }
-
-    /**
-     * Class which writes events to file(s).
-     */
-    class OutputThread
-        implements Runnable
-    {
-        /** consecutive number of dispatch errors to allow */
-        private static final int MAX_CONSECUTIVE_ERRORS = 5;
-        /** total number of dispatch errors to allow */
-        private static final int MAX_TOTAL_ERRORS = 20;
-
-        private Thread thread;
-        private int dispatchErrs;
-        private int totalDispatchErrs;
-        private boolean failed;
-
-        /**
-         * Create and start output thread.
-         *
-         * @param name thread name
-         */
-        OutputThread(String name)
-        {
-            thread = new Thread(this);
-            thread.setName(name);
-        }
-
-        /**
-         * Get the number of consecutive payload errors
-         *
-         * @return number of errors
-         */
-        int getNumConsecutiveErrors()
-        {
-            return dispatchErrs;
-        }
-
-        /**
-         * Get the total number of payload errors
-         *
-         * @return number of errors
-         */
-        int getNumTotalErrors()
-        {
-            return totalDispatchErrs;
-        }
-
-        /**
-         * Has the output thread failed?
-         *
-         * @return true if the output thread died due to internal problems
-         */
-        boolean hasFailed()
-        {
-            return failed;
-        }
-
-        /**
-         * Have we reached the maximum number of consecutive payload errors?
-         *
-         * @return <tt>true</tt> if we've seen the maximum number of errors
-         */
-        boolean hasMaxConsecutiveErrors()
-        {
-            return dispatchErrs == MAX_CONSECUTIVE_ERRORS;
-        }
-
-        /**
-         * Have we reached the maximum number of payload errors?
-         *
-         * @return <tt>true</tt> if we've seen the maximum number of errors
-         */
-        boolean hasMaxTotalErrors()
-        {
-            return totalDispatchErrs == MAX_TOTAL_ERRORS;
-        }
-
-        /**
-         * Main event dispatching loop.
-         */
-        @Override
-        public void run()
-        {
-            IPayload event;
-            while (outputThread != null) {
-                synchronized (outputQueue) {
-                    if (outputQueue.size() == 0) {
-                        try {
-                            outputQueue.wait();
-                        } catch (InterruptedException ie) {
-                            LOG.error("Interrupt while waiting for output" +
-                                      " queue", ie);
-                        }
-                    }
-
-                    if (outputQueue.size() == 0) {
-                        event = null;
-                    } else {
-                        event = outputQueue.remove(0);
-                    }
-                }
-
-                if (event != null) {
-                    sendToDaqDispatch(event);
-                }
-            }
-        }
-
-        /**
-         * Send an event to DAQ Dispatch.
-         *
-         * @param event event being sent
-         *
-         * @return <tt>true</tt> if event was sent
-         */
-        private boolean sendToDaqDispatch(IPayload event)
-        {
-            IEventPayload tmpEvent = (IEventPayload) event;
-
-            int eventSubrunNumber = tmpEvent.getSubrunNumber();
-            if (eventSubrunNumber != lastDispSubrunNumber) {
-                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
-                lastDispSubrunNumber = eventSubrunNumber;
-            }
-
-            if (validateEvents) {
-                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
-                    numBadEvents++;
-                } else if (prevLastTime >
-                           tmpEvent.getFirstTimeUTC().longValue())
-                {
-                    LOG.error("Previous event time interval [" +
-                              prevFirstTime + "-" + prevLastTime +
-                              "] overlaps current event interval [" +
-                              tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() + "]");
-                    numBadEvents++;
-                }
-
-                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
-                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
-            }
-
-            if (tmpEvent.getUID() == 1 && totalEventsSent > 0) {
-                switchFile(prevRunNumber, runNumber);
-            }
-
-            boolean eventSent = false;
-            try {
-                dispatcher.dispatchEvent(tmpEvent);
-                dispatchErrs = 0;
-                totalEventsSent++;
-                eventSent = true;
-            } catch (DispatchException de) {
-                Throwable cause = de.getCause();
-                if (cause != null &&
-                    cause instanceof IOException &&
-                    cause.getMessage() != null &&
-                    cause.getMessage().equals("Read-only file system"))
-                {
-                    failed = true;
-                    throw new Error("Read-only filesystem for " + tmpEvent);
-                }
-
-                dispatchErrs++;
-                totalDispatchErrs++;
-
-                if (hasMaxConsecutiveErrors() || hasMaxTotalErrors()) {
-                    failed = true;
-                } else {
-                    LOG.error("Could not dispatch event", de);
-                }
-            }
-
-            if (eventSent && LOG.isDebugEnabled()) {
-                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                          tmpEvent.getLastTimeUTC() +
-                          " written to daq-dispatch");
-            }
-
-            subrunEventCount++;
-
-            tmpEvent.recycle();
-
-            return eventSent;
-        }
-
-        /**
-         * Start the thread.
-         */
-        public void start()
-        {
-            thread.start();
-        }
+        addDataStop();
     }
 }
