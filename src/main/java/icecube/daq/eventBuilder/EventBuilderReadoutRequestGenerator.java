@@ -80,6 +80,10 @@ public class EventBuilderReadoutRequestGenerator
      */
     public EventBuilderReadoutRequestGenerator(MasterPayloadFactory master)
     {
+        if (master == null) {
+            throw new Error("Master payload factory is null");
+        }
+
         final int reqType = PayloadRegistry.PAYLOAD_ID_READOUT_REQUEST;
         readoutFactory =
             (ReadoutRequestPayloadFactory) master.getPayloadFactory(reqType);
