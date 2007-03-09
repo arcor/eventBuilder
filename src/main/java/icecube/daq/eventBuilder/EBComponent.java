@@ -81,7 +81,7 @@ public class EBComponent
             new ByteBufferCache(256, 100000000L, 75000000L, "EBgeneric");
         addCache(genMgr);
 
-        addMBean("memory", new MemoryStatistics());
+        addMBean("jvm", new MemoryStatistics());
         addMBean("system", new SystemStatistics());
 
         MonitoringData monData = new MonitoringData();
