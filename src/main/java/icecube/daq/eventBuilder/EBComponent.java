@@ -19,6 +19,7 @@ import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
 
 import icecube.daq.juggler.mbean.MemoryStatistics;
+import icecube.daq.juggler.mbean.SystemStatistics;
 
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
@@ -81,6 +82,7 @@ public class EBComponent
         addCache(genMgr);
 
         addMBean("memory", new MemoryStatistics());
+        addMBean("system", new SystemStatistics());
 
         MonitoringData monData = new MonitoringData();
         addMBean("backEnd", monData);
