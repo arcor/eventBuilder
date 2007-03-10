@@ -66,7 +66,7 @@ public class EBComponent
         final int compId = 0;
 
         IByteBufferCache rdoutDataMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EBrdout");
+            new ByteBufferCache(256, 300000000L, 250000000L, "EBrdout");
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
