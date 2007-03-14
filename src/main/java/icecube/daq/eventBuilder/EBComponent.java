@@ -45,8 +45,8 @@ public class EBComponent
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
-    private EventBuilderGlobalTrigPayloadInputEngine gtInputProcess;
-    private EventBuilderSPdataPayloadInputEngine rdoutDataInputProcess;
+    private GlobalTriggerReader gtInputProcess;
+    private ReadoutDataReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
     private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
@@ -98,11 +98,13 @@ public class EBComponent
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
                                     dispatcher);
 
-         gtInputProcess =
-            new EventBuilderGlobalTrigPayloadInputEngine(COMPONENT_NAME, compId,
-                                                         "globalTrigInput",
-                                                         backEnd, trigBufMgr,
-                                                         trigFactory);
+        try {
+            gtInputProcess =
+                new GlobalTriggerReader(COMPONENT_NAME, backEnd, trigFactory,
+                                        trigBufMgr);
+        } catch (IOException ioe) {
+            throw new Error("Couldn't create GlobalTriggerReader", ioe);
+        }
         addMonitoredEngine(DAQConnector.TYPE_GLOBAL_TRIGGER, gtInputProcess);
 
         spReqOutputProcess =
@@ -111,12 +113,13 @@ public class EBComponent
         addMonitoredEngine(DAQConnector.TYPE_READOUT_REQUEST,
                            spReqOutputProcess, true);
 
-        rdoutDataInputProcess =
-            new EventBuilderSPdataPayloadInputEngine(COMPONENT_NAME, compId,
-                                                     "spDataInput",
-                                                     rdoutDataMgr,
-                                                     rdoutDataFactory,
-                                                     splicer);
+        try {
+            rdoutDataInputProcess =
+                new ReadoutDataReader(COMPONENT_NAME, splicer, rdoutDataFactory,
+                                      rdoutDataMgr);
+        } catch (IOException ioe) {
+            throw new Error("Couldn't create ReadoutDataReader", ioe);
+        }
         addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA,
                            rdoutDataInputProcess);
 
