@@ -19,6 +19,7 @@ import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
 
 import icecube.daq.juggler.mbean.MemoryStatistics;
+import icecube.daq.juggler.mbean.SystemStatistics;
 
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
@@ -44,11 +45,8 @@ public class EBComponent
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
-    /** master payload factory. */
-    private MasterPayloadFactory masterFactory;
-
-    private EventBuilderGlobalTrigPayloadInputEngine gtInputProcess;
-    private EventBuilderSPdataPayloadInputEngine spDataInputProcess;
+    private GlobalTriggerReader gtInputProcess;
+    private ReadoutDataReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
     private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
@@ -67,18 +65,29 @@ public class EBComponent
 
         final int compId = 0;
 
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EventBuilder");
-        addCache(bufMgr);
+        IByteBufferCache rdoutDataMgr =
+            new ByteBufferCache(256, 300000000L, 250000000L, "EBrdout");
+        addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
+        MasterPayloadFactory rdoutDataFactory =
+            new MasterPayloadFactory(rdoutDataMgr);
 
-        addMBean("memory", new MemoryStatistics());
+        IByteBufferCache trigBufMgr =
+            new ByteBufferCache(256, 100000000L, 75000000L, "EBtrigger");
+        addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
+        MasterPayloadFactory trigFactory =
+            new MasterPayloadFactory(trigBufMgr);
 
-        masterFactory = new MasterPayloadFactory(bufMgr);
+        IByteBufferCache genMgr =
+            new ByteBufferCache(256, 100000000L, 75000000L, "EBgeneric");
+        addCache(genMgr);
+
+        addMBean("jvm", new MemoryStatistics());
+        addMBean("system", new SystemStatistics());
 
         MonitoringData monData = new MonitoringData();
         addMBean("backEnd", monData);
 
-        splicedAnalysis = new SPDataAnalysis(masterFactory);
+        splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
         Splicer splicer = new SplicerImpl(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
@@ -86,37 +95,53 @@ public class EBComponent
         dispatcher = new FileDispatcher("physics");
 
         backEnd =
-            new EventBuilderBackEnd(masterFactory, bufMgr, splicer,
-                                    splicedAnalysis, dispatcher);
+            new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
+                                    dispatcher);
 
-        gtInputProcess =
-            new EventBuilderGlobalTrigPayloadInputEngine(COMPONENT_NAME, compId,
-                                                         "globalTrigInput",
-                                                         backEnd, bufMgr,
-                                                         masterFactory);
+        try {
+            gtInputProcess =
+                new GlobalTriggerReader(COMPONENT_NAME, backEnd, trigFactory,
+                                        trigBufMgr);
+        } catch (IOException ioe) {
+            throw new Error("Couldn't create GlobalTriggerReader", ioe);
+        }
         addMonitoredEngine(DAQConnector.TYPE_GLOBAL_TRIGGER, gtInputProcess);
 
         spReqOutputProcess =
             new EventBuilderSPreqPayloadOutputEngine(COMPONENT_NAME, compId,
                                                      "spReqOutput");
-        addEngine(DAQConnector.TYPE_READOUT_REQUEST, spReqOutputProcess, true);
+        addMonitoredEngine(DAQConnector.TYPE_READOUT_REQUEST,
+                           spReqOutputProcess, true);
 
-        spDataInputProcess =
-            new EventBuilderSPdataPayloadInputEngine(COMPONENT_NAME, compId,
-                                                     "spDataInput", bufMgr,
-                                                     masterFactory, splicer);
-        addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA, spDataInputProcess);
+        try {
+            rdoutDataInputProcess =
+                new ReadoutDataReader(COMPONENT_NAME, splicer, rdoutDataFactory,
+                                      rdoutDataMgr);
+        } catch (IOException ioe) {
+            throw new Error("Couldn't create ReadoutDataReader", ioe);
+        }
+        addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA,
+                           rdoutDataInputProcess);
 
-        spFlushOutputProcess =
-            new EventBuilderSPcachePayloadOutputEngine(COMPONENT_NAME, compId,
-                                                       "spFlushOutput");
-        // TODO: don't add this output engine; it should go away
+        final boolean skipFlush = true;
+
+        if (!skipFlush) {
+            // TODO: don't add this output engine; it should go away
+            spFlushOutputProcess =
+                new EventBuilderSPcachePayloadOutputEngine(COMPONENT_NAME,
+                                                           compId,
+                                                           "spFlushOutput");
+        }
 
         // connect pieces together
         gtInputProcess.registerStringProcReqOutputEngine(spReqOutputProcess);
-        backEnd.registerStringProcCacheOutputEngine(spFlushOutputProcess);
-        spReqOutputProcess.registerBufferManager(bufMgr);
-        spFlushOutputProcess.registerBufferManager(bufMgr);
+        if (!skipFlush) {
+            backEnd.registerStringProcCacheOutputEngine(spFlushOutputProcess);
+        }
+        spReqOutputProcess.registerBufferManager(genMgr);
+        if (!skipFlush) {
+            spFlushOutputProcess.registerBufferManager(genMgr);
+        }
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);

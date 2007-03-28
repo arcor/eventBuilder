@@ -108,14 +108,12 @@ public class EventBuilderBackEnd
     /**
      * Constructor
      *
-     * @param master master payload factory
-     * @param cacheManager buffer cache manager
+     * @param eventCache event buffer cache manager
      * @param splicer data splicer
      * @param analysis data splicer analysis
      * @param dispatcher DAQ dispatch
      */
-    public EventBuilderBackEnd(MasterPayloadFactory master,
-                               IByteBufferCache cacheManager,
+    public EventBuilderBackEnd(IByteBufferCache eventCache,
                                Splicer splicer,
                                SPDataAnalysis analysis,
                                Dispatcher dispatcher)
@@ -136,13 +134,14 @@ public class EventBuilderBackEnd
         this.dispatcher = dispatcher;
         this.splicer = splicer;
         this.analysis = analysis;
-        this.cacheManager = cacheManager;
+        this.cacheManager = eventCache;
 
         // register this object with splicer analysis
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
         eventFactory = new EventPayload_v2Factory();
+        eventFactory.setByteBufferCache(eventCache);
     }
 
     /**
@@ -250,7 +249,9 @@ public class EventBuilderBackEnd
     public void finishThreadCleanup()
     {
         analysis.stopDispatcher();
-        cacheOutputEngine.sendLastAndStop();
+        if (cacheOutputEngine != null) {
+            cacheOutputEngine.sendLastAndStop();
+        }
         totStopsSent++;
     }
 
