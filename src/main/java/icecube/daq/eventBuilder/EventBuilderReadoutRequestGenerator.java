@@ -376,16 +376,21 @@ public class EventBuilderReadoutRequestGenerator
         Iterator iter = sourceIds.iterator();
         while (iter.hasNext()) {
             ISourceID srcId = (ISourceID) iter.next();
-            final String daqName =
-                SourceIdRegistry.getDAQNameFromISourceID(srcId);
-            if (daqName == DAQCmdInterface.DAQ_STRINGPROCESSOR) {
+
+            if (SourceIdRegistry.isIniceHubSourceID(srcId)) {
                 inIceSources.add(srcId);
-            } else if (daqName == DAQCmdInterface.DAQ_ICETOP_DATA_HANDLER) {
+            } else if (SourceIdRegistry.isIcetopHubSourceID(srcId)) {
                 iceTopSources.add(srcId);
             } else {
-                LOG.error("Unknown target #" + srcId.getSourceID() + " \"" +
-                          daqName + "\" is assumed to be an in-ice source");
-                inIceSources.add(srcId);
+                String typeStr;
+                if (SourceIdRegistry.isAnyHubSourceID(srcId)) {
+                    typeStr = "hub";
+                } else {
+                    typeStr = "non-hub";
+                }
+
+                LOG.error("Ignoring " + typeStr + " target #" +
+                          srcId.getSourceID());
             }
         }
     }
