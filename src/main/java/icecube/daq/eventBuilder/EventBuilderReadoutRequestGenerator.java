@@ -73,6 +73,9 @@ public class EventBuilderReadoutRequestGenerator
     // collection of Source id's of all IceTop IDHs
     private Collection iceTopSources;
 
+    // collection of Source id's of other hubs (only AMANDA, for now)
+    private Collection otherSources;
+
     /**
      * Create a readout request generator.
      *
@@ -168,6 +171,9 @@ public class EventBuilderReadoutRequestGenerator
                                     firstTime, lastTime, timeStamp);
         //all icetop
         generateStringGlobalRequest(requests, iceTopSources, eventId,
+                                    firstTime, lastTime, timeStamp);
+        //all other
+        generateStringGlobalRequest(requests, otherSources, eventId,
                                     firstTime, lastTime, timeStamp);
     }
 
@@ -361,6 +367,12 @@ public class EventBuilderReadoutRequestGenerator
             throw new Error("No source IDs specified");
         }
 
+        if (otherSources == null) {
+            otherSources = new ArrayList();
+        } else {
+            otherSources.clear();
+        }
+
         if (iceTopSources == null) {
             iceTopSources = new ArrayList();
         } else {
@@ -381,15 +393,10 @@ public class EventBuilderReadoutRequestGenerator
                 inIceSources.add(srcId);
             } else if (SourceIdRegistry.isIcetopHubSourceID(srcId)) {
                 iceTopSources.add(srcId);
+            } else if (SourceIdRegistry.isAnyHubSourceID(srcId)) {
+                otherSources.add(srcId);
             } else {
-                String typeStr;
-                if (SourceIdRegistry.isAnyHubSourceID(srcId)) {
-                    typeStr = "hub";
-                } else {
-                    typeStr = "non-hub";
-                }
-
-                LOG.error("Ignoring " + typeStr + " target #" +
+                LOG.error("Ignoring non-hub target #" +
                           srcId.getSourceID());
             }
         }
