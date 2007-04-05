@@ -19,19 +19,6 @@ public class MonitoringData
     }
 
     /**
-     * Get average millisecond time to dispatch event for this run.
-     *
-     * @return average dispatch time
-     */
-    public long getAverageDispatchTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-        return backEnd.getAverageDispatchTime();
-    }
-
-    /**
      * Get average number of readouts per event.
      *
      * @return average readouts per event
@@ -74,48 +61,6 @@ public class MonitoringData
     }
 
     /**
-     * Get most recent millisecond time to dispatch event for this run.
-     *
-     * @return current dispatch time
-     */
-    public long getCurrentDispatchTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getCurrentDispatchTime();
-    }
-
-    /**
-     * Get the end time for the event being built.
-     *
-     * @return current event end time
-     */
-    public long getCurrentEventEndTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getCurrentEventEndTime();
-    }
-
-    /**
-     * Get the start time for the event being built.
-     *
-     * @return current event start time
-     */
-    public long getCurrentEventStartTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getCurrentEventStartTime();
-    }
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return current execute list length
@@ -130,7 +75,7 @@ public class MonitoringData
     }
 
     /**
-     * Returns the number of units still available in the disk (measured in MB).
+     * Returns the number of units still available in the disk (measured in MB)
      * If it fails to check the disk space, then it returns -1.
      *
      * @return the number of units still available in the disk.
@@ -174,34 +119,6 @@ public class MonitoringData
     }
 
     /**
-     * Get maximum millisecond time to dispatch event for this run.
-     *
-     * @return maximum dispatch time
-     */
-    public long getMaximumDispatchTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getMaximumDispatchTime();
-    }
-
-    /**
-     * Get maximum splicer.execute() list length for this run.
-     *
-     * @return maximum execute list length
-     */
-    public long getMaximumExecuteListLength()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getMaximumExecuteListLength();
-    }
-
-    /**
      * Get number of readouts which could not be loaded.
      *
      * @return num bad readouts
@@ -227,20 +144,6 @@ public class MonitoringData
         }
 
         return backEnd.getNumBadTriggerRequests();
-    }
-
-    /**
-     * Get the number of dispatch times accumulated for this run.
-     *
-     * @return num dispatch times
-     */
-    public long getNumDispatchTimes()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumDispatchTimes();
     }
 
     /**
@@ -297,20 +200,6 @@ public class MonitoringData
         }
 
         return backEnd.getNumEventsSent();
-    }
-
-    /**
-     * Get number of calls to SPDataAnalysis.execute().
-     *
-     * @return num execute calls
-     */
-    public int getNumExecuteCalls()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumExecuteCalls();
     }
 
     /**
@@ -399,20 +288,6 @@ public class MonitoringData
     }
 
     /**
-     * Get number of recycled payloads.
-     *
-     * @return num recycled
-     */
-    public long getNumRecycled()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumRecycled();
-    }
-
-    /**
      * Number of trigger requests dropped while stopping.
      *
      * @return num trigger requests dropped
@@ -453,20 +328,6 @@ public class MonitoringData
         }
 
         return backEnd.getNumTriggerRequestsReceived();
-    }
-
-    /**
-     * Get number of calls to SPDataAnalysis.truncate().
-     *
-     * @return num truncate calls
-     */
-    public int getNumTruncateCalls()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumTruncateCalls();
     }
 
     /**
@@ -512,20 +373,6 @@ public class MonitoringData
     }
 
     /**
-     * Get size of event at maximum millisecond time for this run.
-     *
-     * @return size of maximum dispatch time
-     */
-    public long getSizeOfMaximumDispatchTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getSizeOfMaximumDispatchTime();
-    }
-
-    /**
      * Get total number of readouts which could not be loaded since last reset.
      *
      * @return total bad readouts
@@ -537,20 +384,6 @@ public class MonitoringData
         }
 
         return backEnd.getTotalBadReadouts();
-    }
-
-    /**
-     * Get the total dispatch time accumulated for this run.
-     *
-     * @return total dispatch time
-     */
-    public long getTotalDispatchTime()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getTotalDispatchTime();
     }
 
     /**
@@ -746,17 +579,10 @@ public class MonitoringData
         if (backEnd == null) {
             buf.append("\n  No backEnd monitoring data available");
         } else {
-            buf.append("\n  averageDispatchTime ").
-                append(getAverageDispatchTime());
             buf.append("\n  averageReadoutsPerEvt ").
                 append(getAverageReadoutsPerEvent());
             buf.append("\n  backEndState ").append(getBackEndState());
             buf.append("\n  backEndTiming ").append(getBackEndTiming());
-            buf.append("\n  curDispatchTime ").
-                append(getCurrentDispatchTime());
-            buf.append("\n  curEvtEndTime ").append(getCurrentEventEndTime());
-            buf.append("\n  curEvtStartTime ").
-                append(getCurrentEventStartTime());
             buf.append("\n  curExecuteListLength ").
                 append(getCurrentExecuteListLength());
             buf.append("\n  diskAvailable ").
@@ -764,18 +590,12 @@ public class MonitoringData
             buf.append("\n  diskSize ").
                 append(getDiskSize());
             buf.append("\n  evtsPerSecond ").append(getEventsPerSecond());
-            buf.append("\n  maxDispatchTime ").
-                append(getMaximumDispatchTime());
-            buf.append("\n  maxExecuteListLength ").
-                append(getMaximumExecuteListLength());
             buf.append("\n  numBadReadouts ").append(getNumBadReadouts());
             buf.append("\n  numBadTRs ").append(getNumBadTriggerRequests());
-            buf.append("\n  numDispatchTimes ").append(getNumDispatchTimes());
             buf.append("\n  numEmptyLoops ").append(getNumEmptyLoops());
             buf.append("\n  numEvtsFailed ").append(getNumEventsFailed());
             buf.append("\n  numEvtsIgnored ").append(getNumEventsIgnored());
             buf.append("\n  numEvtsSent ").append(getNumEventsSent());
-            buf.append("\n  numExecuteCalls ").append(getNumExecuteCalls());
             buf.append("\n  numNullEvts ").append(getNumNullEvents());
             buf.append("\n  numNullReadouts ").append(getNumNullReadouts());
             buf.append("\n  numReadoutsCached ").
@@ -786,24 +606,19 @@ public class MonitoringData
                 append(getNumReadoutsQueued());
             buf.append("\n  numReadoutsRcvd ").
                 append(getNumReadoutsReceived());
-            buf.append("\n  numRecycled ").append(getNumRecycled());
             buf.append("\n  numTRsDropped ").
                 append(getNumTriggerRequestsDropped());
             buf.append("\n  numTRsQueued ").
                 append(getNumTriggerRequestsQueued());
             buf.append("\n  numTRsRcvd ").
                 append(getNumTriggerRequestsReceived());
-            buf.append("\n  numTruncateCalls ").append(getNumTruncateCalls());
             buf.append("\n  numUnusedReadouts ").
                 append(getNumUnusedReadouts());
             buf.append("\n  previousRunTotalEvts ").
                 append(getPreviousRunTotalEvents());
             buf.append("\n  readoutsPerSecond ").
                 append(getReadoutsPerSecond());
-            buf.append("\n  sizeOfMaximumDispatchTime ").
-                append(getSizeOfMaximumDispatchTime());
             buf.append("\n  totBadReadouts ").append(getTotalBadReadouts());
-            buf.append("\n  totDispatchTime ").append(getTotalDispatchTime());
             buf.append("\n  totEvtsFailed ").append(getTotalEventsFailed());
             buf.append("\n  totEvtsIgnored ").append(getTotalEventsIgnored());
             buf.append("\n  totEvtsSent ").append(getTotalEventsSent());

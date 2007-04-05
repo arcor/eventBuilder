@@ -6,13 +6,6 @@ package icecube.daq.eventBuilder.monitoring;
 public interface BackEndMonitor
 {
     /**
-     * Get average millisecond time to dispatch event for this run.
-     *
-     * @return average dispatch time
-     */
-    long getAverageDispatchTime();
-
-    /**
      * Get average number of readouts per event.
      *
      * @return readouts/event
@@ -34,27 +27,6 @@ public interface BackEndMonitor
     String getBackEndTiming();
 
     /**
-     * Get most recent millisecond time to dispatch event for this run.
-     *
-     * @return most recent dispatch time
-     */
-    long getCurrentDispatchTime();
-
-    /**
-     * Get the end time for the event being built.
-     *
-     * @return end time for the event being built
-     */
-    long getCurrentEventEndTime();
-
-    /**
-     * Get the start time for the event being built.
-     *
-     * @return start time for the event being built
-     */
-    long getCurrentEventStartTime();
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return most recent splicer.execute() list length
@@ -62,26 +34,27 @@ public interface BackEndMonitor
     long getCurrentExecuteListLength();
 
     /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    int getDiskAvailable();
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    int getDiskSize();
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
      */
     double getEventsPerSecond();
-
-    /**
-     * Get maximum millisecond time to dispatch event for this run.
-     *
-     * @return maximum dispatch time
-     */
-    long getMaximumDispatchTime();
-
-    /**
-     * Get maximum splicer.execute() list length for this run.
-     *
-     * @return maximum splicer.execute() list length
-     */
-    long getMaximumExecuteListLength();
-
 
     /**
      * Get number of readouts which could not be loaded.
@@ -96,13 +69,6 @@ public interface BackEndMonitor
      * @return number of bad trigger requests since last reset
      */
     long getNumBadTriggerRequests();
-
-    /**
-     * Get the number of dispatch times accumulated for this run.
-     *
-     * @return number of dispatch times
-     */
-    long getNumDispatchTimes();
 
     /**
      * Get number of passes through the main loop without a trigger request.
@@ -131,13 +97,6 @@ public interface BackEndMonitor
      * @return number of events delivered to daq-dispatch for this run
      */
     long getNumEventsSent();
-
-    /**
-     * Get number of calls to SPDataAnalysis.execute().
-     *
-     * @return number of execute() calls
-     */
-    int getNumExecuteCalls();
 
     /**
      * Get the number of readouts to be included in the event being built.
@@ -184,13 +143,6 @@ public interface BackEndMonitor
     long getNumNullReadouts();
 
     /**
-     * Get number of recycled payloads.
-     *
-     * @return number of recycled payloads
-     */
-    long getNumRecycled();
-
-    /**
      * Number of trigger requests dropped while stopping.
      *
      * @return number of trigger requests dropped
@@ -211,13 +163,6 @@ public interface BackEndMonitor
      * @return number of trigger requests received for this run
      */
     long getNumTriggerRequestsReceived();
-
-    /**
-     * Get number of calls to SPDataAnalysis.truncate().
-     *
-     * @return number of truncate() calls
-     */
-    int getNumTruncateCalls();
 
     /**
      * Get number of readouts not used for an event since last reset.
@@ -241,25 +186,11 @@ public interface BackEndMonitor
     double getReadoutsPerSecond();
 
     /**
-     * Get size of event at maximum millisecond time for this run.
-     *
-     * @return size of event at maximum dispatch time
-     */
-    long getSizeOfMaximumDispatchTime();
-
-    /**
      * Get total number of readouts which could not be loaded since last reset.
      *
      * @return total number of bad readouts since last reset
      */
     long getTotalBadReadouts();
-
-    /**
-     * Get the total dispatch time accumulated for this run.
-     *
-     * @return total dispatch time
-     */
-    long getTotalDispatchTime();
 
     /**
      * Get the total number of events which could not be delivered
@@ -339,20 +270,4 @@ public interface BackEndMonitor
      * @return trigger requests/second
      */
     double getTriggerRequestsPerSecond();
-
-    /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the number of units still available in the disk.
-     */
-    int getDiskAvailable();
-
-    /**
-     * Returns the total number of units in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the total number of units in the disk.
-     */
-    int getDiskSize();
 }

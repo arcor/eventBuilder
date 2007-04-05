@@ -78,21 +78,8 @@ public class EventBuilderBackEnd
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
 
-    // The starting and ending times for the current request
-    private long reqStartTime;
-    private long reqEndTime;
-
     // per-run monitoring counters
-    private long cumDispTime;
-    private long curDispTime;
     private int execListLen;
-    private int execListMax;
-    private long maxDispSize;
-    private long maxDispTime;
-    private long numDispTimes;
-    private int numExecuteCalls;
-    private long numRecycled;
-    private int numTruncateCalls;
 
     // lifetime monitoring counters
     private long prevRunTotalEvents;
@@ -149,7 +136,7 @@ public class EventBuilderBackEnd
      */
     public void addExecuteCall()
     {
-        numExecuteCalls++;
+        // XXX do nothing
     }
 
     /**
@@ -173,7 +160,7 @@ public class EventBuilderBackEnd
      */
     public void addTruncateCall()
     {
-        numTruncateCalls++;
+        // XXX do nothing
     }
 
     /**
@@ -256,20 +243,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get average millisecond time to dispatch event for this run.
-     *
-     * @return average dispatch time
-     */
-    public long getAverageDispatchTime()
-    {
-        if (numDispTimes == 0) {
-            return 0;
-        }
-
-        return cumDispTime / numDispTimes;
-    }
-
-    /**
      * Get average number of readouts per event.
      *
      * @return readouts/event
@@ -277,36 +250,6 @@ public class EventBuilderBackEnd
     public long getAverageReadoutsPerEvent()
     {
         return getAverageOutputDataPayloads();
-    }
-
-    /**
-     * Get most recent millisecond time to dispatch event for this run.
-     *
-     * @return most recent dispatch time
-     */
-    public long getCurrentDispatchTime()
-    {
-        return curDispTime;
-    }
-
-    /**
-     * Get ending time for event being built.
-     *
-     * @return end time
-     */
-    public long getCurrentEventEndTime()
-    {
-        return reqEndTime;
-    }
-
-    /**
-     * Get start time for event being built.
-     *
-     * @return start time
-     */
-    public long getCurrentEventStartTime()
-    {
-        return reqStartTime;
     }
 
     /**
@@ -352,26 +295,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get maximum millisecond time to dispatch event for this run.
-     *
-     * @return maximum dispatch time
-     */
-    public long getMaximumDispatchTime()
-    {
-        return maxDispTime;
-    }
-
-    /**
-     * Get maximum splicer.execute() list length for this run.
-     *
-     * @return maximum splicer.execute() list length
-     */
-    public long getMaximumExecuteListLength()
-    {
-        return execListMax;
-    }
-
-    /**
      * Get number of readouts which could not be loaded.
      *
      * @return number of bad readouts received
@@ -389,16 +312,6 @@ public class EventBuilderBackEnd
     public long getNumBadTriggerRequests()
     {
         return getNumBadRequests();
-    }
-
-    /**
-     * Get the number of dispatch times accumulated for this run.
-     *
-     * @return number of dispatch times
-     */
-    public long getNumDispatchTimes()
-    {
-        return numDispTimes;
     }
 
     /**
@@ -429,16 +342,6 @@ public class EventBuilderBackEnd
     public long getNumEventsSent()
     {
         return getNumOutputsSent();
-    }
-
-    /**
-     * Get number of calls to SPDataAnalysis.execute().
-     *
-     * @return number of execute() calls
-     */
-    public int getNumExecuteCalls()
-    {
-        return numExecuteCalls;
     }
 
     /**
@@ -502,16 +405,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get number of recycled payloads.
-     *
-     * @return number of recycled payloads
-     */
-    public long getNumRecycled()
-    {
-        return numRecycled;
-    }
-
-    /**
      * Number of trigger requests dropped while stopping.
      *
      * @return number of trigger requests dropped
@@ -538,16 +431,6 @@ public class EventBuilderBackEnd
      */
     public long getNumTriggerRequestsReceived() {
         return getNumRequestsReceived();
-    }
-
-    /**
-     * Get number of calls to SPDataAnalysis.truncate().
-     *
-     * @return number of truncate() calls
-     */
-    public int getNumTruncateCalls()
-    {
-        return numTruncateCalls;
     }
 
     /**
@@ -581,16 +464,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get size of event at maximum millisecond time for this run.
-     *
-     * @return size of event at maximum dispatch time
-     */
-    public long getSizeOfMaximumDispatchTime()
-    {
-        return maxDispSize;
-    }
-
-    /**
      * Get current rate of trigger requests per second.
      *
      * @return trigger requests/second
@@ -608,16 +481,6 @@ public class EventBuilderBackEnd
     public long getTotalBadReadouts()
     {
         return getTotalBadDataPayloads();
-    }
-
-    /**
-     * Get the total dispatch time accumulated for this run.
-     *
-     * @return total dispatch time
-     */
-    public long getTotalDispatchTime()
-    {
-        return cumDispTime;
     }
 
     /**
@@ -797,7 +660,6 @@ public class EventBuilderBackEnd
         while (iter.hasNext()) {
             Payload payload = (Payload) iter.next();
             payload.recycle();
-            numRecycled++;
         }
     }
 
@@ -835,16 +697,7 @@ public class EventBuilderBackEnd
 
             recycleFinalData();
 
-            cumDispTime = 0;
-            curDispTime = 0;
             execListLen = 0;
-            execListMax = 0;
-            maxDispSize = 0;
-            maxDispTime = 0;
-            numDispTimes = 0;
-            numExecuteCalls = 0;
-            numRecycled = 0;
-            numTruncateCalls = 0;
 
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
@@ -933,16 +786,6 @@ public class EventBuilderBackEnd
                     LOG.error("Could not dispatch event", ex);
                 }
             }
-
-            curDispTime = System.currentTimeMillis() - startTime;
-
-            numDispTimes++;
-            cumDispTime += curDispTime;
-
-            if (curDispTime > maxDispTime) {
-                maxDispTime = curDispTime;
-                maxDispSize = buffer.limit();
-            }
         }
 
         if (buffer != null) {
@@ -962,9 +805,6 @@ public class EventBuilderBackEnd
     public void setExecuteListLength(int execListLen)
     {
         this.execListLen = execListLen;
-        if (execListLen > execListMax) {
-            execListMax = execListLen;
-        }
     }
 
     /**
@@ -974,17 +814,12 @@ public class EventBuilderBackEnd
      */
     public void setRequestTimes(IPayload payload)
     {
-        final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
-
-        reqStartTime =
-            req.getFirstTimeUTC().getUTCTimeAsLong();
-        reqEndTime =
-            req.getLastTimeUTC().getUTCTimeAsLong();
-
         if (LOG.isDebugEnabled()) {
+            final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
+
             LOG.debug("Filling trigger#" + req.getUID() +
-                      " [" + reqStartTime + "-" +
-                      reqEndTime + "]");
+                      " [" + req.getFirstTimeUTC().getUTCTimeAsLong() + "-" +
+                      req.getLastTimeUTC().getUTCTimeAsLong() + "]");
         }
     }
 
