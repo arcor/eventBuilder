@@ -21,9 +21,9 @@ import icecube.daq.juggler.component.DAQConnector;
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerImpl;
@@ -65,20 +65,17 @@ public class EBComponent
 
         final int compId = 0;
 
-        IByteBufferCache rdoutDataMgr =
-            new ByteBufferCache(256, 300000000L, 250000000L, "EBrdout");
+        IByteBufferCache rdoutDataMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
 
-        IByteBufferCache trigBufMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EBtrigger");
+        IByteBufferCache trigBufMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
 
-        IByteBufferCache genMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EBgeneric");
+        IByteBufferCache genMgr = new VitreousBufferCache();
         addCache(genMgr);
 
         addMBean("jvm", new MemoryStatistics());
