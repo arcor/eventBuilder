@@ -301,6 +301,10 @@ public class EventBuilderReadoutRequestGenerator
                 generateStringGlobalRequest(eventReadoutRequests,
                                             inIceSources, eventId,
                                             firstTime, lastTime, timeStamp);
+                // XXX temporary hack to include AMANDA in in-ice triggers
+                generateStringGlobalRequest(eventReadoutRequests,
+                                            otherSources, eventId,
+                                            firstTime, lastTime, timeStamp);
                 break;
 
                 //-----------------------------------------------------
