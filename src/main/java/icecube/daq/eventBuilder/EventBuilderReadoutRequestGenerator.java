@@ -44,7 +44,7 @@ public class EventBuilderReadoutRequestGenerator
 {
     //convenient mnemonics for the readout types
     private static final int GLOBAL =
-        IReadoutRequestElement.READOUT_TYPE_IIIT_GLOBAL;
+        IReadoutRequestElement.READOUT_TYPE_GLOBAL;
     private static final int INICE =
         IReadoutRequestElement.READOUT_TYPE_II_GLOBAL;
     private static final int ICETOP =
