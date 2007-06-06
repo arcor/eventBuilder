@@ -11,7 +11,6 @@ import icecube.daq.eventBuilder.monitoring.MonitoringData;
 
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
-import icecube.daq.io.PushPayloadInputEngine;
 
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
