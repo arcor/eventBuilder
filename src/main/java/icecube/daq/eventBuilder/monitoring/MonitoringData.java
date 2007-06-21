@@ -373,20 +373,6 @@ public class MonitoringData
     }
 
     /**
-     * Get the current subrun number.
-     *
-     * @return current subrun number
-     */
-    public int getSubrunNumber()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getSubrunNumber();
-    }
-
-    /**
      * Get total number of readouts which could not be loaded since last reset.
      *
      * @return total bad readouts

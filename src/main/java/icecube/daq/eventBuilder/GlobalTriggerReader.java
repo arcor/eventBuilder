@@ -143,6 +143,6 @@ ByteBuffer newBuf = buf;
     public void startProcessing()
     {
         super.startProcessing();
-        backEnd.resetAtStart();
+        backEnd.reset();
     }
 }

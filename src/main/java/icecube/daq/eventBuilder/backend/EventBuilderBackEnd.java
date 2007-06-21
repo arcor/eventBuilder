@@ -12,8 +12,8 @@ import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 
 import icecube.daq.eventbuilder.IReadoutDataPayload;
 
-import icecube.daq.eventbuilder.impl.EventPayload_v3;
-import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
+import icecube.daq.eventbuilder.impl.EventPayload_v2;
+import icecube.daq.eventbuilder.impl.EventPayload_v2Factory;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
@@ -39,7 +39,6 @@ import java.nio.ByteBuffer;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
@@ -56,98 +55,6 @@ public class EventBuilderBackEnd
     extends RequestFiller
     implements BackEndMonitor, SPDataProcessor
 {
-    /**
-     * Subrun event counts.
-     */
-    class SubrunEventCount
-        implements Comparable
-    {
-        /** subrun number */
-        private int num;
-        /** number of events in subrun */
-        private long count;
-
-        /**
-         * Create a subrun event count
-         *
-         * @param num subrun number
-         * @param count number of events
-         */
-        SubrunEventCount(int num, long count)
-        {
-            this.num = num;
-            this.count = count;
-        }
-
-        /**
-         * Compare this object to another.
-         *
-         * @param obj compared cobject
-         *
-         * @return the usual comparison results
-         */
-        public int compareTo(Object obj)
-        {
-            if (obj == null) {
-                return -1;
-            }
-
-            if (!(obj instanceof SubrunEventCount)) {
-                return getClass().getName().compareTo(obj.getClass().getName());
-            }
-
-            SubrunEventCount sd = (SubrunEventCount) obj;
-
-            if (num == sd.num) {
-                return 0;
-            }
-
-            if (num == -sd.num) {
-                if (num < 0) {
-                    return -1;
-                }
-
-                return 1;
-            }
-
-            int absNum = (num < 0 ? -num : num);
-            int absSDNum = (sd.num < 0 ? -sd.num : sd.num);
-            return absNum - absSDNum;
-        }
-
-        /**
-         * Is this object equal to another object?
-         *
-         * @param obj compared object
-         *
-         * @return <tt>true</tt> if the compared object is equal to this object
-         */
-        public boolean equals(Object obj)
-        {
-            return compareTo(obj) == 0;
-        }
-
-        /**
-         * Get the number of events in this subrun
-         *
-         * @return number of events
-         */
-        long getCount()
-        {
-            return count;
-        }
-
-        /**
-         * Get the hash code for this object
-         *
-         * @return subrun number
-         */
-        public int hashCode()
-        {
-            return num;
-        }
-    }
-
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -166,7 +73,7 @@ public class EventBuilderBackEnd
     private EventBuilderSPcachePayloadOutputEngine cacheOutputEngine;
 
     // Factory to make EventPayloads.
-    private EventPayload_v3Factory eventFactory;
+    private EventPayload_v2Factory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
@@ -182,17 +89,6 @@ public class EventBuilderBackEnd
     private int runNumber;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
-
-    /** Current subrun number. */
-    private int subrunNumber;
-    /** Current subrun start time. */
-    private long subrunStart;
-    /** Number of events in current subrun. */
-    private long subrunCount;
-    /** List of all subrun event counts. */
-    private HashMap<SubrunEventCount, SubrunEventCount> subrunCountMap =
-        new HashMap<SubrunEventCount, SubrunEventCount>();
-
     /** Has the back end been reset? */
     private boolean isReset;
 
@@ -231,7 +127,7 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v3Factory();
+        eventFactory = new EventPayload_v2Factory();
         eventFactory.setByteBufferCache(eventCache);
     }
 
@@ -396,22 +292,6 @@ public class EventBuilderBackEnd
     public double getEventsPerSecond()
     {
         return getOutputsPerSecond();
-    }
-
-    /**
-     * Compute the subrun number which should follow the specified number.
-     *
-     * @param num current subrun number
-     *
-     * @return next subrun number
-     */
-    private static int getNextSubrunNumber(int num)
-    {
-        if (num < 0) {
-            return -num;
-        }
-
-        return -num - 1;
     }
 
     /**
@@ -584,39 +464,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get the current subrun number.
-     *
-     * @return current subrun number
-     */
-    public int getSubrunNumber()
-    {
-        return subrunNumber;
-    }
-
-    /**
-     * Get the total number of events for the specified subrun.
-     *
-     * @param subrun subrun number
-     *
-     * @return total number of events sent during the specified subrun
-     */
-    public long getSubrunTotalEvents(int subrun)
-    {
-        // return count from current subrun
-        if (subrun == subrunNumber) {
-            return subrunCount;
-        }
-
-        SubrunEventCount data =
-            subrunCountMap.get(new SubrunEventCount(subrun, 0L));
-        if (data == null) {
-            throw new RuntimeException("Illegal subrun " + subrun);
-        }
-
-        return data.getCount();
-    }
-
-    /**
      * Get current rate of trigger requests per second.
      *
      * @return trigger requests/second
@@ -782,31 +629,21 @@ public class EventBuilderBackEnd
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + startTime + " - " + endTime);
+            LOG.debug("Closing Event " + startTime.getUTCTimeAsLong() +
+                      " - " + endTime.getUTCTimeAsLong());
         }
         if (LOG.isWarnEnabled() && dataList.size() == 0) {
-            LOG.warn("Sending empty event for window [" + startTime + " - " +
-                     endTime + "]");
+            LOG.warn("Sending empty event for window [" +
+                     startTime.getUTCTimeAsLong() + " - " +
+                     endTime.getUTCTimeAsLong() + "]");
         }
 
         final int eventType = req.getTriggerType();
-
-        int subnum;
-        synchronized (subrunCountMap) {
-            if (subrunNumber <= 0 || startTime.getUTCTimeAsLong() >=
-                subrunStart)
-            {
-                subnum = subrunNumber;
-            } else {
-                subnum = -subrunNumber;
-            }
-
-            subrunCount++;
-        }
+        final int configId = req.getTriggerConfigID();
 
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       eventType, runNumber, subnum, req,
+                                       eventType, configId, runNumber, req,
                                        new Vector(dataList));
 
         return event;
@@ -872,19 +709,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Reset the back end during startup.
-     */
-    public void resetAtStart()
-    {
-        subrunNumber = 0;
-        subrunStart = 0L;
-        subrunCount = 0L;
-        subrunCountMap.clear();
-
-        reset();
-    }
-
-    /**
      * Send an output payload.
      *
      * @param output payload being sent
@@ -909,7 +733,7 @@ public class EventBuilderBackEnd
      */
     private boolean sendToDaqDispatch(ILoadablePayload event)
     {
-        EventPayload_v3 tmpEvent = (EventPayload_v3) event;
+        EventPayload_v2 tmpEvent = (EventPayload_v2) event;
 
         final int payloadLen = tmpEvent.getPayloadLength();
 
@@ -942,8 +766,17 @@ public class EventBuilderBackEnd
                 dispatcher.dispatchEvent(buffer);
 
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() +
+                    IUTCTime utc;
+
+                    utc = tmpEvent.getFirstTimeUTC();
+                    long firstTime = (utc == null ? Long.MIN_VALUE :
+                                      utc.getUTCTimeAsLong());
+
+                    utc = tmpEvent.getLastTimeUTC();
+                    long lastTime = (utc == null ? Long.MAX_VALUE :
+                                     utc.getUTCTimeAsLong());
+
+                    LOG.debug("Event " + firstTime + "-" + lastTime +
                               " written to daq-dispatch");
                 }
 
@@ -984,8 +817,9 @@ public class EventBuilderBackEnd
         if (LOG.isDebugEnabled()) {
             final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
 
-            LOG.debug("Filling trigger#" + req.getUID() + " [" +
-                      req.getFirstTimeUTC() + "-" + req.getLastTimeUTC() + "]");
+            LOG.debug("Filling trigger#" + req.getUID() +
+                      " [" + req.getFirstTimeUTC().getUTCTimeAsLong() + "-" +
+                      req.getLastTimeUTC().getUTCTimeAsLong() + "]");
         }
     }
 
@@ -997,41 +831,6 @@ public class EventBuilderBackEnd
     public void setRunNumber(int runNumber)
     {
         this.runNumber = runNumber;
-    }
-
-    /**
-     * Set the current subrun number.
-     *
-     * This method whines about out-of-order or duplicate subrun numbers
-     * but doesn't try to fix any resulting breakage to the subrun event count.
-     *
-     * @param subrunNumber current subrun number
-     * @param subrunStart current subrun starting time
-     */
-    public void setSubrunNumber(int subrunNumber, long startTime)
-    {
-        int tmpNum = getNextSubrunNumber(this.subrunNumber);
-        if (subrunNumber != tmpNum) {
-            LOG.error("Expected subrun number " + this.subrunNumber +
-                      " to be followed by " + tmpNum + ", not " +
-                      subrunNumber);
-        }
-
-        synchronized (subrunCountMap) {
-            // save data from previous subrun
-            SubrunEventCount newData =
-                new SubrunEventCount(this.subrunNumber, subrunCount);
-            if (subrunCountMap.containsKey(newData)) {
-                LOG.error("Found multiple counts for subrun number " +
-                          this.subrunNumber);
-            } else {
-                subrunCountMap.put(newData, newData);
-            }
-
-            this.subrunNumber = subrunNumber;
-            this.subrunStart = startTime;
-            subrunCount = 0;
-        }
     }
 
     /**
