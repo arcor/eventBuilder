@@ -12,8 +12,8 @@ import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 
 import icecube.daq.eventbuilder.IReadoutDataPayload;
 
-import icecube.daq.eventbuilder.impl.EventPayload_v2;
-import icecube.daq.eventbuilder.impl.EventPayload_v2Factory;
+import icecube.daq.eventbuilder.impl.EventPayload_v3;
+import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
@@ -73,7 +73,7 @@ public class EventBuilderBackEnd
     private EventBuilderSPcachePayloadOutputEngine cacheOutputEngine;
 
     // Factory to make EventPayloads.
-    private EventPayload_v2Factory eventFactory;
+    private EventPayload_v3Factory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
@@ -87,6 +87,10 @@ public class EventBuilderBackEnd
 
     /** Current run number. */
     private int runNumber;
+    /** Current subrun number. */
+    private int subrunNumber;
+    /** Current subrun start time. */
+    private long subrunStart;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
     /** Has the back end been reset? */
@@ -127,7 +131,7 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v2Factory();
+        eventFactory = new EventPayload_v3Factory();
         eventFactory.setByteBufferCache(eventCache);
     }
 
@@ -639,11 +643,17 @@ public class EventBuilderBackEnd
         }
 
         final int eventType = req.getTriggerType();
-        final int configId = req.getTriggerConfigID();
+
+        int subnum;
+        if (subrunNumber <= 0 || startTime.getUTCTimeAsLong() >= subrunStart) {
+            subnum = subrunNumber;
+        } else {
+            subnum = -subrunNumber;
+        }
 
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       eventType, configId, runNumber, req,
+                                       eventType, runNumber, subnum, req,
                                        new Vector(dataList));
 
         return event;
@@ -733,7 +743,7 @@ public class EventBuilderBackEnd
      */
     private boolean sendToDaqDispatch(ILoadablePayload event)
     {
-        EventPayload_v2 tmpEvent = (EventPayload_v2) event;
+        EventPayload_v3 tmpEvent = (EventPayload_v3) event;
 
         final int payloadLen = tmpEvent.getPayloadLength();
 
@@ -831,6 +841,18 @@ public class EventBuilderBackEnd
     public void setRunNumber(int runNumber)
     {
         this.runNumber = runNumber;
+    }
+
+    /**
+     * Set the current subrun number.
+     *
+     * @param subrunNumber current subrun number
+     * @param subrunStart current subrun starting time
+     */
+    public void setSubrunNumber(int subrunNumber, long startTime)
+    {
+        this.subrunNumber = subrunNumber;
+        this.subrunStart = startTime;
     }
 
     /**

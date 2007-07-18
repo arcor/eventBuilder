@@ -144,15 +144,24 @@ public class EBComponent
     }
 
     /**
-     * Set the run number inside this component.
+     * Begin packaging events for the specified subrun.
      *
-     * @param runNumber run number
+     * @param subrunNumber subrun number
+     * @param startTime time of first good hit in subrun
      */
-    public void setRunNumber(int runNumber)
+    public void commitSubrun(int subrunNumber, long startTime)
     {
-        backEnd.reset();
-        backEnd.setRunNumber(runNumber);
-        splicedAnalysis.setRunNumber(runNumber);
+        backEnd.setSubrunNumber(subrunNumber, startTime);
+    }
+
+    /**
+     * Prepare for the subrun by marking events untrustworthy.
+     *
+     * @param subrunNumber subrun number
+     */
+    public void prepareSubrun(int subrunNumber)
+    {
+        backEnd.setSubrunNumber(-subrunNumber, Long.MIN_VALUE);
     }
 
     /**
@@ -171,6 +180,18 @@ public class EBComponent
      */
     public void setMaxFileSize(long maxFileSize) {
         dispatcher.setMaxFileSize(maxFileSize);
+    }
+
+    /**
+     * Set the run number inside this component.
+     *
+     * @param runNumber run number
+     */
+    public void setRunNumber(int runNumber)
+    {
+        backEnd.reset();
+        backEnd.setRunNumber(runNumber);
+        splicedAnalysis.setRunNumber(runNumber);
     }
 
     /**
