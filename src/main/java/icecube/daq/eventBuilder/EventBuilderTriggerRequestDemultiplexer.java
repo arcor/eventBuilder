@@ -2,11 +2,10 @@ package icecube.daq.eventBuilder;
 
 import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-
-import icecube.daq.payload.splicer.Payload;
 
 import icecube.daq.trigger.IReadoutRequest;
 import icecube.daq.trigger.IReadoutRequestElement;
@@ -172,7 +171,7 @@ public class EventBuilderTriggerRequestDemultiplexer
 
             //DO the actual demuxing...
             try {
-                Payload reqPay = (Payload) tmpRRQ;
+                IWriteablePayload reqPay = (IWriteablePayload) tmpRRQ;
                 dests.writePayload(tmpReadout.getSourceID(), reqPay);
                 reqPay.recycle();
             } catch (Exception e) {
