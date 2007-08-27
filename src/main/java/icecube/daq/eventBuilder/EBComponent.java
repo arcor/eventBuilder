@@ -4,13 +4,11 @@ import icecube.daq.common.DAQCmdInterface;
 
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
+import icecube.daq.io.SpliceablePayloadReader;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
-
-import icecube.daq.io.PayloadOutputEngine;
-import icecube.daq.io.PayloadTransmitChannel;
 
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
@@ -29,13 +27,8 @@ import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
-import java.nio.ByteBuffer;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-
 /**
- * Payload pass-through component.
+ * Event builder component.
  */
 public class EBComponent
     extends DAQComponent
@@ -45,7 +38,7 @@ public class EBComponent
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
     private GlobalTriggerReader gtInputProcess;
-    private ReadoutDataReader rdoutDataInputProcess;
+    private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
     private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
@@ -56,7 +49,7 @@ public class EBComponent
     private Dispatcher dispatcher;
 
     /**
-     * Create a hit generator.
+     * Create an event builder component.
      */
     public EBComponent()
     {
@@ -111,8 +104,8 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new ReadoutDataReader(COMPONENT_NAME, splicer, rdoutDataFactory,
-                                      rdoutDataMgr);
+                new SpliceablePayloadReader(COMPONENT_NAME, splicer,
+                                            rdoutDataFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
