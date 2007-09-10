@@ -27,6 +27,9 @@ import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * Event builder component.
  */
@@ -36,6 +39,9 @@ public class EBComponent
     /** Component name. */
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
+
+    /** Message logger. */
+    private static final Log LOG = LogFactory.getLog(EBComponent.class);
 
     private GlobalTriggerReader gtInputProcess;
     private SpliceablePayloadReader rdoutDataInputProcess;
@@ -144,7 +150,37 @@ public class EBComponent
      */
     public void commitSubrun(int subrunNumber, long startTime)
     {
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Committed subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
         backEnd.setSubrunNumber(subrunNumber, startTime);
+    }
+
+    /**
+     * Get the number of events for the given subrun.
+     * NOTE: This should only be implemented by the event builder component.
+     *
+     * @param subrun subrun number
+     *
+     * @return number of events for the subrun
+     *
+     * @throws DAQCompException if the subrun number is not valid
+     */
+    public long getEvents(int subrun)
+        throws DAQCompException
+    {
+        try {
+            return backEnd.getSubrunTotalEvents(subrun);
+        } catch (RuntimeException rte) {
+            throw new DAQCompException(rte.getMessage());
+        }
     }
 
     /**
@@ -154,6 +190,16 @@ public class EBComponent
      */
     public void prepareSubrun(int subrunNumber)
     {
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Preparatory subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
         backEnd.setSubrunNumber(-subrunNumber, Long.MIN_VALUE);
     }
 
