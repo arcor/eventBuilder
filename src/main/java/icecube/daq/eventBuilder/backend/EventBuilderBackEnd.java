@@ -782,13 +782,11 @@ public class EventBuilderBackEnd
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + startTime.getUTCTimeAsLong() +
-                      " - " + endTime.getUTCTimeAsLong());
+            LOG.debug("Closing Event " + startTime + " - " + endTime);
         }
         if (LOG.isWarnEnabled() && dataList.size() == 0) {
-            LOG.warn("Sending empty event for window [" +
-                     startTime.getUTCTimeAsLong() + " - " +
-                     endTime.getUTCTimeAsLong() + "]");
+            LOG.warn("Sending empty event for window [" + startTime + " - " +
+                     endTime + "]");
         }
 
         final int eventType = req.getTriggerType();
@@ -936,17 +934,8 @@ public class EventBuilderBackEnd
                 dispatcher.dispatchEvent(buffer);
 
                 if (LOG.isDebugEnabled()) {
-                    IUTCTime utc;
-
-                    utc = tmpEvent.getFirstTimeUTC();
-                    long firstTime = (utc == null ? Long.MIN_VALUE :
-                                      utc.getUTCTimeAsLong());
-
-                    utc = tmpEvent.getLastTimeUTC();
-                    long lastTime = (utc == null ? Long.MAX_VALUE :
-                                     utc.getUTCTimeAsLong());
-
-                    LOG.debug("Event " + firstTime + "-" + lastTime +
+                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() +
                               " written to daq-dispatch");
                 }
 
@@ -987,9 +976,8 @@ public class EventBuilderBackEnd
         if (LOG.isDebugEnabled()) {
             final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
 
-            LOG.debug("Filling trigger#" + req.getUID() +
-                      " [" + req.getFirstTimeUTC().getUTCTimeAsLong() + "-" +
-                      req.getLastTimeUTC().getUTCTimeAsLong() + "]");
+            LOG.debug("Filling trigger#" + req.getUID() + " [" +
+                      req.getFirstTimeUTC() + "-" + req.getLastTimeUTC() + "]");
         }
     }
 
