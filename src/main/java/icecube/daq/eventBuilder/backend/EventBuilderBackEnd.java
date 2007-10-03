@@ -865,15 +865,23 @@ public class EventBuilderBackEnd
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
 
-            subrunNumber = 0;
-            subrunStart = 0L;
-            subrunCount = 0L;
-            subrunCountMap.clear();
-
             isReset = true;
         }
 
         super.reset();
+    }
+
+    /**
+     * Reset the back end during startup.
+     */
+    public void resetAtStart()
+    {
+        subrunNumber = 0;
+        subrunStart = 0L;
+        subrunCount = 0L;
+        subrunCountMap.clear();
+
+        reset();
     }
 
     /**
