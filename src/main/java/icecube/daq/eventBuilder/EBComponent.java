@@ -27,6 +27,8 @@ import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
+import java.util.HashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -42,6 +44,14 @@ public class EBComponent
 
     /** Message logger. */
     private static final Log LOG = LogFactory.getLog(EBComponent.class);
+
+    /** svn version information */
+    private static final HashMap SVN_VER_INFO;
+    static {
+	SVN_VER_INFO = new HashMap(4);
+	SVN_VER_INFO.put("id",  "$Id: EBComponent.java 2146 2007-10-17 01:37:59Z ksb $");
+	SVN_VER_INFO.put("url", "$URL: http://code.icecube.wisc.edu/daq/projects/eventBuilder-prod/trunk/src/main/java/icecube/daq/eventBuilder/EBComponent.java $");
+    }
 
     private GlobalTriggerReader gtInputProcess;
     private SpliceablePayloadReader rdoutDataInputProcess;
@@ -232,6 +242,17 @@ public class EBComponent
         backEnd.setRunNumber(runNumber);
         splicedAnalysis.setRunNumber(runNumber);
     }
+
+    /**
+     * Return this component's svn version info as a HashMap.
+     *
+     * @return svn version info (id, url) as a HashMap
+     */
+    public HashMap getVersionInfo()
+    {
+	return SVN_VER_INFO;
+    }
+
 
     /**
      * Run a DAQ component server.
