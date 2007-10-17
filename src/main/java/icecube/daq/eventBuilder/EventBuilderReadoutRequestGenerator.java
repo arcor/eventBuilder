@@ -44,7 +44,7 @@ public class EventBuilderReadoutRequestGenerator
 {
     //convenient mnemonics for the readout types
     private static final int GLOBAL =
-        IReadoutRequestElement.READOUT_TYPE_IIIT_GLOBAL;
+        IReadoutRequestElement.READOUT_TYPE_GLOBAL;
     private static final int INICE =
         IReadoutRequestElement.READOUT_TYPE_II_GLOBAL;
     private static final int ICETOP =
@@ -300,6 +300,10 @@ public class EventBuilderReadoutRequestGenerator
 
                 generateStringGlobalRequest(eventReadoutRequests,
                                             inIceSources, eventId,
+                                            firstTime, lastTime, timeStamp);
+                // XXX temporary hack to include AMANDA in in-ice triggers
+                generateStringGlobalRequest(eventReadoutRequests,
+                                            otherSources, eventId,
                                             firstTime, lastTime, timeStamp);
                 break;
 

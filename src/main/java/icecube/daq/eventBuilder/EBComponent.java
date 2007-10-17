@@ -4,14 +4,11 @@ import icecube.daq.common.DAQCmdInterface;
 
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
+import icecube.daq.io.SpliceablePayloadReader;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
-
-import icecube.daq.io.PayloadOutputEngine;
-import icecube.daq.io.PayloadTransmitChannel;
-import icecube.daq.io.PushPayloadInputEngine;
 
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
@@ -21,22 +18,22 @@ import icecube.daq.juggler.component.DAQConnector;
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
-import java.nio.ByteBuffer;
+import java.util.HashMap;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
- * Payload pass-through component.
+ * Event builder component.
  */
 public class EBComponent
     extends DAQComponent
@@ -45,8 +42,19 @@ public class EBComponent
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
+    /** Message logger. */
+    private static final Log LOG = LogFactory.getLog(EBComponent.class);
+
+    /** svn version information */
+    private static final HashMap SVN_VER_INFO;
+    static {
+	SVN_VER_INFO = new HashMap(4);
+	SVN_VER_INFO.put("id",  "$Id: EBComponent.java 2146 2007-10-17 01:37:59Z ksb $");
+	SVN_VER_INFO.put("url", "$URL: http://code.icecube.wisc.edu/daq/projects/eventBuilder-prod/releases/Grange/src/main/java/icecube/daq/eventBuilder/EBComponent.java $");
+    }
+
     private GlobalTriggerReader gtInputProcess;
-    private ReadoutDataReader rdoutDataInputProcess;
+    private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
     private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
@@ -57,7 +65,7 @@ public class EBComponent
     private Dispatcher dispatcher;
 
     /**
-     * Create a hit generator.
+     * Create an event builder component.
      */
     public EBComponent()
     {
@@ -65,20 +73,17 @@ public class EBComponent
 
         final int compId = 0;
 
-        IByteBufferCache rdoutDataMgr =
-            new ByteBufferCache(256, 300000000L, 250000000L, "EBrdout");
+        IByteBufferCache rdoutDataMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
 
-        IByteBufferCache trigBufMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EBtrigger");
+        IByteBufferCache trigBufMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
 
-        IByteBufferCache genMgr =
-            new ByteBufferCache(256, 100000000L, 75000000L, "EBgeneric");
+        IByteBufferCache genMgr = new VitreousBufferCache();
         addCache(genMgr);
 
         addMBean("jvm", new MemoryStatistics());
@@ -115,8 +120,8 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new ReadoutDataReader(COMPONENT_NAME, splicer, rdoutDataFactory,
-                                      rdoutDataMgr);
+                new SpliceablePayloadReader(COMPONENT_NAME, splicer,
+                                            rdoutDataFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
@@ -148,15 +153,64 @@ public class EBComponent
     }
 
     /**
-     * Set the run number inside this component.
+     * Begin packaging events for the specified subrun.
      *
-     * @param runNumber run number
+     * @param subrunNumber subrun number
+     * @param startTime time of first good hit in subrun
      */
-    public void setRunNumber(int runNumber)
+    public void commitSubrun(int subrunNumber, long startTime)
     {
-        backEnd.reset();
-        backEnd.setRunNumber(runNumber);
-        splicedAnalysis.setRunNumber(runNumber);
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Committed subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
+        backEnd.setSubrunNumber(subrunNumber, startTime);
+    }
+
+    /**
+     * Get the number of events for the given subrun.
+     * NOTE: This should only be implemented by the event builder component.
+     *
+     * @param subrun subrun number
+     *
+     * @return number of events for the subrun
+     *
+     * @throws DAQCompException if the subrun number is not valid
+     */
+    public long getEvents(int subrun)
+        throws DAQCompException
+    {
+        try {
+            return backEnd.getSubrunTotalEvents(subrun);
+        } catch (RuntimeException rte) {
+            throw new DAQCompException(rte.getMessage());
+        }
+    }
+
+    /**
+     * Prepare for the subrun by marking events untrustworthy.
+     *
+     * @param subrunNumber subrun number
+     */
+    public void prepareSubrun(int subrunNumber)
+    {
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Preparatory subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
+        backEnd.setSubrunNumber(-subrunNumber, Long.MIN_VALUE);
     }
 
     /**
@@ -176,6 +230,29 @@ public class EBComponent
     public void setMaxFileSize(long maxFileSize) {
         dispatcher.setMaxFileSize(maxFileSize);
     }
+
+    /**
+     * Set the run number inside this component.
+     *
+     * @param runNumber run number
+     */
+    public void setRunNumber(int runNumber)
+    {
+        backEnd.reset();
+        backEnd.setRunNumber(runNumber);
+        splicedAnalysis.setRunNumber(runNumber);
+    }
+
+    /**
+     * Return this component's svn version info as a HashMap.
+     *
+     * @return svn version info (id, url) as a HashMap
+     */
+    public HashMap getVersionInfo()
+    {
+	return SVN_VER_INFO;
+    }
+
 
     /**
      * Run a DAQ component server.

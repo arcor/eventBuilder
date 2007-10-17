@@ -1,0 +1,107 @@
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.payload.IDOMID;
+import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.PayloadDestination;
+
+import icecube.daq.trigger.IHitPayload;
+
+import java.nio.ByteBuffer;
+
+import java.io.IOException;
+
+import java.util.zip.DataFormatException;
+
+public class MockHit
+    implements IHitPayload
+{
+    private static final int LENGTH = 13;
+
+    public MockHit()
+    {
+    }
+
+    public Object deepCopy()
+    {
+        return new MockHit();
+    }
+
+    public void dispose()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public IDOMID getDOMID()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public IUTCTime getHitTimeUTC()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public double getIntegratedCharge()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadInterfaceType()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadLength()
+    {
+        return LENGTH;
+    }
+
+    public IUTCTime getPayloadTimeUTC()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadType()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public ISourceID getSourceID()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getTriggerConfigID()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getTriggerType()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void loadPayload()
+        throws IOException, DataFormatException
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void recycle()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int writePayload(boolean b0, PayloadDestination x1)
+        throws IOException
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int writePayload(boolean b0, int i1, ByteBuffer x2)
+        throws IOException
+    {
+        throw new Error("Unimplemented");
+    }
+}
