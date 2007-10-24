@@ -59,6 +59,11 @@ public class MockTriggerRequest
         return endTime;
     }
 
+    public ByteBuffer getPayloadBacking()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int getPayloadInterfaceType()
     {
         throw new Error("Unimplemented");
