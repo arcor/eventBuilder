@@ -4,13 +4,11 @@ import icecube.daq.common.DAQCmdInterface;
 
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
+import icecube.daq.io.SpliceablePayloadReader;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
-
-import icecube.daq.io.PayloadOutputEngine;
-import icecube.daq.io.PayloadTransmitChannel;
 
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
@@ -29,13 +27,11 @@ import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
-import java.nio.ByteBuffer;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
- * Payload pass-through component.
+ * Event builder component.
  */
 public class EBComponent
     extends DAQComponent
@@ -44,8 +40,11 @@ public class EBComponent
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
+    /** Message logger. */
+    private static final Log LOG = LogFactory.getLog(EBComponent.class);
+
     private GlobalTriggerReader gtInputProcess;
-    private ReadoutDataReader rdoutDataInputProcess;
+    private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
     private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
@@ -56,7 +55,7 @@ public class EBComponent
     private Dispatcher dispatcher;
 
     /**
-     * Create a hit generator.
+     * Create an event builder component.
      */
     public EBComponent()
     {
@@ -111,8 +110,8 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new ReadoutDataReader(COMPONENT_NAME, splicer, rdoutDataFactory,
-                                      rdoutDataMgr);
+                new SpliceablePayloadReader(COMPONENT_NAME, splicer,
+                                            rdoutDataFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
@@ -151,7 +150,37 @@ public class EBComponent
      */
     public void commitSubrun(int subrunNumber, long startTime)
     {
-        backEnd.setSubrunNumber(subrunNumber, startTime);
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Committed subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
+        backEnd.commitSubrun(subrunNumber, startTime);
+    }
+
+    /**
+     * Get the number of events for the given subrun.
+     * NOTE: This should only be implemented by the event builder component.
+     *
+     * @param subrun subrun number
+     *
+     * @return number of events for the subrun
+     *
+     * @throws DAQCompException if the subrun number is not valid
+     */
+    public long getEvents(int subrun)
+        throws DAQCompException
+    {
+        try {
+            return backEnd.getSubrunTotalEvents(subrun);
+        } catch (RuntimeException rte) {
+            throw new DAQCompException(rte.getMessage());
+        }
     }
 
     /**
@@ -161,7 +190,17 @@ public class EBComponent
      */
     public void prepareSubrun(int subrunNumber)
     {
-        backEnd.setSubrunNumber(-subrunNumber, Long.MIN_VALUE);
+        if (subrunNumber == 0) {
+            throw new RuntimeException("Subrun number cannot be zero");
+        }
+
+        if (subrunNumber < 0) {
+            LOG.error("Preparatory subrun number " + subrunNumber +
+                      " should be not negative");
+            subrunNumber = -subrunNumber;
+        }
+
+        backEnd.prepareSubrun(subrunNumber);
     }
 
     /**
@@ -193,6 +232,17 @@ public class EBComponent
         backEnd.setRunNumber(runNumber);
         splicedAnalysis.setRunNumber(runNumber);
     }
+
+    /**
+     * Return this component's svn version id as a String.
+     *
+     * @return svn version id as a String
+     */
+    public String getVersionInfo()
+    {
+	return "$Id: EBComponent.java 2283 2007-11-16 03:14:19Z ksb $";
+    }
+
 
     /**
      * Run a DAQ component server.

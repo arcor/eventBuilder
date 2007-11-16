@@ -186,6 +186,13 @@ public interface BackEndMonitor
     double getReadoutsPerSecond();
 
     /**
+     * Get the current subrun number.
+     *
+     * @return current subrun number
+     */
+    int getSubrunNumber();
+
+    /**
      * Get total number of readouts which could not be loaded since last reset.
      *
      * @return total number of bad readouts since last reset

@@ -39,6 +39,7 @@ import java.nio.ByteBuffer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
@@ -55,6 +56,98 @@ public class EventBuilderBackEnd
     extends RequestFiller
     implements BackEndMonitor, SPDataProcessor
 {
+    /**
+     * Subrun event counts.
+     */
+    class SubrunEventCount
+        implements Comparable
+    {
+        /** subrun number */
+        private int num;
+        /** number of events in subrun */
+        private long count;
+
+        /**
+         * Create a subrun event count
+         *
+         * @param num subrun number
+         * @param count number of events
+         */
+        SubrunEventCount(int num, long count)
+        {
+            this.num = num;
+            this.count = count;
+        }
+
+        /**
+         * Compare this object to another.
+         *
+         * @param obj compared cobject
+         *
+         * @return the usual comparison results
+         */
+        public int compareTo(Object obj)
+        {
+            if (obj == null) {
+                return -1;
+            }
+
+            if (!(obj instanceof SubrunEventCount)) {
+                return getClass().getName().compareTo(obj.getClass().getName());
+            }
+
+            SubrunEventCount sd = (SubrunEventCount) obj;
+
+            if (num == sd.num) {
+                return 0;
+            }
+
+            if (num == -sd.num) {
+                if (num < 0) {
+                    return -1;
+                }
+
+                return 1;
+            }
+
+            int absNum = (num < 0 ? -num : num);
+            int absSDNum = (sd.num < 0 ? -sd.num : sd.num);
+            return absNum - absSDNum;
+        }
+
+        /**
+         * Is this object equal to another object?
+         *
+         * @param obj compared object
+         *
+         * @return <tt>true</tt> if the compared object is equal to this object
+         */
+        public boolean equals(Object obj)
+        {
+            return compareTo(obj) == 0;
+        }
+
+        /**
+         * Get the number of events in this subrun
+         *
+         * @return number of events
+         */
+        long getCount()
+        {
+            return count;
+        }
+
+        /**
+         * Get the hash code for this object
+         *
+         * @return subrun number
+         */
+        public int hashCode()
+        {
+            return num;
+        }
+    }
+
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -87,12 +180,27 @@ public class EventBuilderBackEnd
 
     /** Current run number. */
     private int runNumber;
-    /** Current subrun number. */
-    private int subrunNumber;
-    /** Current subrun start time. */
-    private long subrunStart;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
+
+    /** Current subrun number. */
+    private int subrunNumber;
+    /** The new subrun number as provided by commitSubrun() */
+    private int newSubrunNumber;
+    /** Current subrun start time. */
+    private long subrunStart;
+    /** Number of events in current subrun. */
+    private long subrunCount;
+    /** If we are transitioning into a new subrun (prepareSubrun() has
+     * been called and not yet acted upon) */
+    private boolean subrunTransition;
+    /** If we have a new subrunStart value which has not yet been
+     * reached (commitSubrun() has been called but not yet acted upon) */
+    private boolean newSubrunStartTime;
+    /** List of all subrun event counts. */
+    private HashMap<SubrunEventCount, SubrunEventCount> subrunCountMap =
+        new HashMap<SubrunEventCount, SubrunEventCount>();
+
     /** Has the back end been reset? */
     private boolean isReset;
 
@@ -299,6 +407,30 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Check the two given numbers if next is the next subrun number
+     * after curr.  Print to the error log if false is returned.
+     *
+     * @param curr The current run number to compare next to.
+     * @param next The next run number to compare current to.
+     *
+     * @return if next is indeed the next run number after curr
+     */
+    private static boolean checkNextSubrunNumber(int curr, int next)
+    {
+	boolean retVal = true;
+
+	if (curr < 0)
+	    retVal = (next == -curr);
+	else
+	    retVal = (next == -(curr + 1));
+
+	if(!retVal)
+	    LOG.error("Subrun number " + next + " does NOT follow subrun " + curr);
+
+        return retVal;
+    }
+
+    /**
      * Get number of readouts which could not be loaded.
      *
      * @return number of bad readouts received
@@ -468,6 +600,39 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Get the current subrun number.
+     *
+     * @return current subrun number
+     */
+    public int getSubrunNumber()
+    {
+        return subrunNumber;
+    }
+
+    /**
+     * Get the total number of events for the specified subrun.
+     *
+     * @param subrun subrun number
+     *
+     * @return total number of events sent during the specified subrun
+     */
+    public long getSubrunTotalEvents(int subrun)
+    {
+        // return count from current subrun
+        if (subrun == subrunNumber) {
+            return subrunCount;
+        }
+
+        SubrunEventCount data =
+            subrunCountMap.get(new SubrunEventCount(subrun, 0L));
+        if (data == null) {
+            throw new RuntimeException("Illegal subrun " + subrun);
+        }
+
+        return data.getCount();
+    }
+
+    /**
      * Get current rate of trigger requests per second.
      *
      * @return trigger requests/second
@@ -633,23 +798,42 @@ public class EventBuilderBackEnd
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + startTime.getUTCTimeAsLong() +
-                      " - " + endTime.getUTCTimeAsLong());
+            LOG.debug("Closing Event " + startTime + " - " + endTime);
         }
         if (LOG.isWarnEnabled() && dataList.size() == 0) {
-            LOG.warn("Sending empty event for window [" +
-                     startTime.getUTCTimeAsLong() + " - " +
-                     endTime.getUTCTimeAsLong() + "]");
+            LOG.warn("Sending empty event for window [" + startTime + " - " +
+                     endTime + "]");
         }
 
         final int eventType = req.getTriggerType();
 
         int subnum;
-        if (subrunNumber <= 0 || startTime.getUTCTimeAsLong() >= subrunStart) {
-            subnum = subrunNumber;
-        } else {
-            subnum = -subrunNumber;
+        synchronized (subrunCountMap) {
+	    if (subrunTransition) { // prepareSubrun has been called
+		closeSubRun();
+		subnum = subrunNumber = newSubrunNumber;
+		subrunTransition = false;
+		LOG.error("ksb-makeDataPayload(prepare): subrunNumber: " + subrunNumber +
+                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
+		 ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
+	    } else if (newSubrunStartTime && 
+		       startTime.getUTCTimeAsLong() >= subrunStart) {
+		// commitSubrun was called & that subrun is here
+		closeSubRun();
+		subnum = subrunNumber = newSubrunNumber;
+		newSubrunStartTime = false;
+		LOG.error("ksb-makeDataPayload(commit): subrunNumber: " + subrunNumber +
+                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
+		 ", subrunStart: " + subrunStart + ", startTime: " +  startTime.getUTCTimeAsLong());
+	    } else {
+		// Neither prepare nor commit called, middle of a subrun
+		subnum = subrunNumber;
+		LOG.error("ksb-makeDataPayload(else): subrunNumber: " + subrunNumber +
+                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
+		 ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
+	    }
         }
+	subrunCount++;
 
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
@@ -719,6 +903,22 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Reset the back end during startup.
+     */
+    public void resetAtStart()
+    {
+        subrunNumber = 0;
+        subrunStart = 0L;
+        subrunCount = 0L;
+        subrunCountMap.clear();
+	newSubrunNumber = 0;
+	subrunTransition = false;
+	newSubrunStartTime = false;
+
+        reset();
+    }
+
+    /**
      * Send an output payload.
      *
      * @param output payload being sent
@@ -776,17 +976,8 @@ public class EventBuilderBackEnd
                 dispatcher.dispatchEvent(buffer);
 
                 if (LOG.isDebugEnabled()) {
-                    IUTCTime utc;
-
-                    utc = tmpEvent.getFirstTimeUTC();
-                    long firstTime = (utc == null ? Long.MIN_VALUE :
-                                      utc.getUTCTimeAsLong());
-
-                    utc = tmpEvent.getLastTimeUTC();
-                    long lastTime = (utc == null ? Long.MAX_VALUE :
-                                     utc.getUTCTimeAsLong());
-
-                    LOG.debug("Event " + firstTime + "-" + lastTime +
+                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() +
                               " written to daq-dispatch");
                 }
 
@@ -827,9 +1018,8 @@ public class EventBuilderBackEnd
         if (LOG.isDebugEnabled()) {
             final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
 
-            LOG.debug("Filling trigger#" + req.getUID() +
-                      " [" + req.getFirstTimeUTC().getUTCTimeAsLong() + "-" +
-                      req.getLastTimeUTC().getUTCTimeAsLong() + "]");
+            LOG.debug("Filling trigger#" + req.getUID() + " [" +
+                      req.getFirstTimeUTC() + "-" + req.getLastTimeUTC() + "]");
         }
     }
 
@@ -844,15 +1034,67 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Set the current subrun number.
+     * Prepare for a new subrun starting soon.  This will cause all
+     * subsequent events to be marked with a new subrun number, which
+     * will be the negative of the number provided here until the
+     * commitSubrun method is called and the timestamp provided there
+     * (identifying the begining of the new subrun) has passed.  At
+     * which point this positive subrun number will be used.
      *
-     * @param subrunNumber current subrun number
-     * @param subrunStart current subrun starting time
+     * @param subrunNumber the subrun number which will be starting
      */
-    public void setSubrunNumber(int subrunNumber, long startTime)
+    public void prepareSubrun(int subrunNumber)
     {
-        this.subrunNumber = subrunNumber;
-        this.subrunStart = startTime;
+	LOG.error("ksb-prepareSubrun(" + subrunNumber + ")");
+	synchronized (subrunCountMap) {
+	    checkNextSubrunNumber(this.subrunNumber, -subrunNumber);
+	    subrunTransition = true;
+	    newSubrunNumber = -subrunNumber;
+	}
+    }
+
+    /**
+     * Mark the begining timestamp for when the indicated subrun has
+     * started.  This method is used in conjunction with the
+     * prepareSubrun() method in that this identifies when events
+     * should no longer be marked with the negative of the subrun
+     * number.
+     *
+     * @param subrunNumber the subrun number
+     * @param startTime time of first good hit in subrun
+     */
+    public void commitSubrun(int subrunNumber, long startTime)
+    {
+	LOG.error("ksb-commitSubrun(" + subrunNumber + ", " + startTime + ")");
+	synchronized (subrunCountMap) {
+	    checkNextSubrunNumber(this.subrunNumber, subrunNumber);
+	    newSubrunNumber = subrunNumber;
+	    newSubrunStartTime = true;
+	    this.subrunStart = startTime;
+	}
+    }
+
+    /**
+     * Close out the current subrun by sending a subrun databoundary
+     * to the dispatcher and storing the count for this ending subrun
+     * in the subrunCountMap
+     */
+    private void closeSubRun()
+    {
+	LOG.error("ksb-closeSubrun()");
+        synchronized (subrunCountMap) {
+	    // ToDo: dataBoundary();
+            // save data from previous subrun
+            SubrunEventCount newData =
+                new SubrunEventCount(this.subrunNumber, subrunCount);
+            if (subrunCountMap.containsKey(newData)) {
+                LOG.error("Found multiple counts for subrun number " +
+                          this.subrunNumber);
+            } else {
+                subrunCountMap.put(newData, newData);
+            }
+        }
+	subrunCount = 0;
     }
 
     /**
