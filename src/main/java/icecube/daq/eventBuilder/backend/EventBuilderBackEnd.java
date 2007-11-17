@@ -185,12 +185,10 @@ public class EventBuilderBackEnd
 
     /** Current subrun number. */
     private int subrunNumber;
-    /** The new subrun number as provided by commitSubrun() */
-    private int newSubrunNumber;
     /** Current subrun start time. */
     private long subrunStart;
     /** Number of events in current subrun. */
-    private long subrunCount;
+    private long subrunEventCount;
     /** If we are transitioning into a new subrun (prepareSubrun() has
      * been called and not yet acted upon) */
     private boolean subrunTransition;
@@ -198,7 +196,7 @@ public class EventBuilderBackEnd
      * reached (commitSubrun() has been called but not yet acted upon) */
     private boolean newSubrunStartTime;
     /** List of all subrun event counts. */
-    private HashMap<SubrunEventCount, SubrunEventCount> subrunCountMap =
+    private HashMap<SubrunEventCount, SubrunEventCount> subrunEventCountMap =
         new HashMap<SubrunEventCount, SubrunEventCount>();
 
     /** Has the back end been reset? */
@@ -407,27 +405,19 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Check the two given numbers if next is the next subrun number
-     * after curr.  Print to the error log if false is returned.
+     * Compute the subrun number which should follow the specified number.
      *
-     * @param curr The current run number to compare next to.
-     * @param next The next run number to compare current to.
+     * @param num current subrun number
      *
-     * @return if next is indeed the next run number after curr
+     * @return next subrun number
      */
-    private static boolean checkNextSubrunNumber(int curr, int next)
+    private static int getNextSubrunNumber(int num)
     {
-	boolean retVal = true;
+        if (num < 0) {
+            return -num;
+        }
 
-	if (curr < 0)
-	    retVal = (next == -curr);
-	else
-	    retVal = (next == -(curr + 1));
-
-	if(!retVal)
-	    LOG.error("Subrun number " + next + " does NOT follow subrun " + curr);
-
-        return retVal;
+        return -num - 1;
     }
 
     /**
@@ -620,11 +610,11 @@ public class EventBuilderBackEnd
     {
         // return count from current subrun
         if (subrun == subrunNumber) {
-            return subrunCount;
+            return subrunEventCount;
         }
 
         SubrunEventCount data =
-            subrunCountMap.get(new SubrunEventCount(subrun, 0L));
+            subrunEventCountMap.get(new SubrunEventCount(subrun, 0L));
         if (data == null) {
             throw new RuntimeException("Illegal subrun " + subrun);
         }
@@ -808,33 +798,24 @@ public class EventBuilderBackEnd
         final int eventType = req.getTriggerType();
 
         int subnum;
-        synchronized (subrunCountMap) {
+        synchronized (subrunEventCountMap) {
 	    if (subrunTransition) { // prepareSubrun has been called
 		closeSubRun();
-		subnum = subrunNumber = newSubrunNumber;
 		subrunTransition = false;
-		LOG.error("ksb-makeDataPayload(prepare): subrunNumber: " + subrunNumber +
-                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
-		 ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
-	    } else if (newSubrunStartTime && 
-		       startTime.getUTCTimeAsLong() >= subrunStart) {
+	    }
+	    if (newSubrunStartTime && startTime.getUTCTimeAsLong() >= subrunStart) {
 		// commitSubrun was called & that subrun is here
 		closeSubRun();
-		subnum = subrunNumber = newSubrunNumber;
+		subrunNumber = getNextSubrunNumber(subrunNumber);
 		newSubrunStartTime = false;
-		LOG.error("ksb-makeDataPayload(commit): subrunNumber: " + subrunNumber +
-                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
-		 ", subrunStart: " + subrunStart + ", startTime: " +  startTime.getUTCTimeAsLong());
-	    } else {
-		// Neither prepare nor commit called, middle of a subrun
-		subnum = subrunNumber;
-		LOG.error("ksb-makeDataPayload(else): subrunNumber: " + subrunNumber +
-                 ", subnum: " + subnum + ", subrunCount: " + subrunCount +
-		 ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
 	    }
+	    subnum = subrunNumber;
         }
-	subrunCount++;
+	subrunEventCount++;
 
+	LOG.error("ksb-makeDataPayload(): subrunNumber: " + subrunNumber +
+		  ", subrunEventCount: " + subrunEventCount +
+		  ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
                                        eventType, runNumber, subnum, req,
@@ -909,9 +890,8 @@ public class EventBuilderBackEnd
     {
         subrunNumber = 0;
         subrunStart = 0L;
-        subrunCount = 0L;
-        subrunCountMap.clear();
-	newSubrunNumber = 0;
+        subrunEventCount = 0L;
+        subrunEventCountMap.clear();
 	subrunTransition = false;
 	newSubrunStartTime = false;
 
@@ -1034,22 +1014,29 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Prepare for a new subrun starting soon.  This will cause all
+     * Prepare for a new subrun starting soon.  This will cause
      * subsequent events to be marked with a new subrun number, which
-     * will be the negative of the number provided here until the
+     * will be the negative of the number provided here - until the
      * commitSubrun method is called and the timestamp provided there
-     * (identifying the begining of the new subrun) has passed.  At
-     * which point this positive subrun number will be used.
+     * (identifying the begining of the new subrun) has passed.
      *
      * @param subrunNumber the subrun number which will be starting
      */
     public void prepareSubrun(int subrunNumber)
     {
 	LOG.error("ksb-prepareSubrun(" + subrunNumber + ")");
-	synchronized (subrunCountMap) {
-	    checkNextSubrunNumber(this.subrunNumber, -subrunNumber);
+
+	subrunNumber = -subrunNumber;
+	int tmpNum = getNextSubrunNumber(this.subrunNumber);
+	if (subrunNumber != tmpNum) {
+            LOG.error("prepareSubrun(): Expected subrun number " +
+		      this.subrunNumber + " to be followed by " +
+		      tmpNum + ", not " + subrunNumber);
+	}
+
+	synchronized (subrunEventCountMap) {
 	    subrunTransition = true;
-	    newSubrunNumber = -subrunNumber;
+	    this.subrunNumber = subrunNumber;
 	}
     }
 
@@ -1066,9 +1053,16 @@ public class EventBuilderBackEnd
     public void commitSubrun(int subrunNumber, long startTime)
     {
 	LOG.error("ksb-commitSubrun(" + subrunNumber + ", " + startTime + ")");
-	synchronized (subrunCountMap) {
-	    checkNextSubrunNumber(this.subrunNumber, subrunNumber);
-	    newSubrunNumber = subrunNumber;
+
+	int tmpNum = getNextSubrunNumber(this.subrunNumber);
+	if (subrunNumber != tmpNum) {
+            LOG.error("commitSubrun(): provided subrun number " +
+		      subrunNumber + " does not follow subrun " +
+		      this.subrunNumber + ". Subrun number " + tmpNum +
+		      " will be used instead.");
+	}
+
+	synchronized (subrunEventCountMap) {
 	    newSubrunStartTime = true;
 	    this.subrunStart = startTime;
 	}
@@ -1077,24 +1071,25 @@ public class EventBuilderBackEnd
     /**
      * Close out the current subrun by sending a subrun databoundary
      * to the dispatcher and storing the count for this ending subrun
-     * in the subrunCountMap
+     * in the subrunEventCountMap
      */
     private void closeSubRun()
     {
-	LOG.error("ksb-closeSubrun()");
-        synchronized (subrunCountMap) {
+	LOG.error("ksb-closeSubrun(): subrunNumber: " + subrunNumber +
+		  ", subrunEventCount: " + subrunEventCount);
+        synchronized (subrunEventCountMap) {
 	    // ToDo: dataBoundary();
             // save data from previous subrun
             SubrunEventCount newData =
-                new SubrunEventCount(this.subrunNumber, subrunCount);
-            if (subrunCountMap.containsKey(newData)) {
+                new SubrunEventCount(this.subrunNumber, subrunEventCount);
+            if (subrunEventCountMap.containsKey(newData)) {
                 LOG.error("Found multiple counts for subrun number " +
                           this.subrunNumber);
             } else {
-                subrunCountMap.put(newData, newData);
+                subrunEventCountMap.put(newData, newData);
             }
         }
-	subrunCount = 0;
+	subrunEventCount = 0;
     }
 
     /**
