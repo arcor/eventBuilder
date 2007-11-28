@@ -192,6 +192,8 @@ public class EventBuilderBackEnd
     /** List of all subrun event counts. */
     private HashMap<SubrunEventCount, SubrunEventCount> subrunCountMap =
         new HashMap<SubrunEventCount, SubrunEventCount>();
+    /** Last dispatched subrun number. */
+    private int lastDispSubrunNumber;
 
     /** Has the back end been reset? */
     private boolean isReset;
@@ -804,6 +806,13 @@ public class EventBuilderBackEnd
             subrunCount++;
         }
 
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("makeDataPayload(): subrunNumber: " + subrunNumber +
+                      ", subnum: " + subnum + ", subrunCount: " + subrunCount +
+                      ", subrunStart: " + subrunStart +
+                      ", startTime: " + startTime.getUTCTimeAsLong());
+        }
+
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
                                        eventType, runNumber, subnum, req,
@@ -880,6 +889,7 @@ public class EventBuilderBackEnd
         subrunStart = 0L;
         subrunCount = 0L;
         subrunCountMap.clear();
+        lastDispSubrunNumber = 0;
 
         reset();
     }
@@ -938,7 +948,19 @@ public class EventBuilderBackEnd
             final long startTime = System.currentTimeMillis();
 
             buffer.position(0);
+            int thisSubrunNumber = tmpEvent.getSubrunNumber();
             try {
+                if (thisSubrunNumber != lastDispSubrunNumber) {
+                    String message = 
+                        new String(DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
+                                   thisSubrunNumber);
+                    dispatcher.dataBoundary(message);
+                    lastDispSubrunNumber = thisSubrunNumber;
+                    if (LOG.isWarnEnabled()) {
+                        LOG.info("called dataBoundary for subrun with the message: " + message);
+                    }
+                }
+
                 dispatcher.dispatchEvent(buffer);
 
                 if (LOG.isDebugEnabled()) {
@@ -1010,6 +1032,10 @@ public class EventBuilderBackEnd
      */
     public void setSubrunNumber(int subrunNumber, long startTime)
     {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("setSubrunNumber(" + subrunNumber + ", " + startTime + ")");
+        }
+
         int tmpNum = getNextSubrunNumber(this.subrunNumber);
         if (subrunNumber != tmpNum) {
             LOG.error("Expected subrun number " + this.subrunNumber +
