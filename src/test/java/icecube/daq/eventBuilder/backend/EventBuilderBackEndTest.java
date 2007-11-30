@@ -32,15 +32,6 @@ public class EventBuilderBackEndTest
         super(name);
     }
 
-    private static int getNextSubrun(int subrun)
-    {
-        if (subrun < 0) {
-            return -subrun;
-        }
-
-        return subrun = -subrun - 1;
-    }
-
     protected void setUp()
         throws Exception
     {
@@ -94,13 +85,13 @@ public class EventBuilderBackEndTest
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
-        backEnd.setSubrunNumber(badNum, 123456L);
+        backEnd.prepareSubrun(badNum);
 
         assertEquals("Bad number of log messages",
                      1, appender.getNumberOfMessages());
 
         final String badMsg =
-            "Expected subrun number 0 to be followed by -1, not " + badNum;
+            "Expected subrun number 0 to be followed by -1, not " + -badNum;
         assertEquals("Bad log message", badMsg, appender.getMessage(0));
 
         appender.clear();
@@ -118,7 +109,7 @@ public class EventBuilderBackEndTest
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
-        backEnd.setSubrunNumber(-1, 123456L);
+        backEnd.prepareSubrun(1);
     }
 
     public void testMakeDataPayloadWithNullRequest()
@@ -203,6 +194,8 @@ public class EventBuilderBackEndTest
 
     public void testMakeDataPayloadSubruns()
     {
+        /* Test the proper subrun numbering when making data payloads */
+
         MockBufferCache bufCache = new MockBufferCache();
         MockFactory factory = new MockFactory();
 
@@ -220,18 +213,21 @@ public class EventBuilderBackEndTest
         int subrun = 0;
         for (int i = 0; i < 10; i++) {
             final long firstTime = (long) (i + 1) * timeStep;
-            if (i != 0) {
-                backEnd.setSubrunNumber(subrun, firstTime);
-            }
-
             final long substep = timeStep / (i + 1);
+            final long commitTime = firstTime + (i * substep)/2;
+
+            if (i != 0) {
+                backEnd.prepareSubrun(subrun);
+                backEnd.commitSubrun(subrun, commitTime);
+            }
 
             long lastTime = firstTime;
             for (int j = 0; j < i + 1; j++) {
                 long tmpTime = lastTime + substep;
+                long reqStartTime = lastTime;
 
                 MockTriggerRequest req =
-                    new MockTriggerRequest(lastTime, tmpTime, 999, 888 + i);
+                    new MockTriggerRequest(reqStartTime, tmpTime, 999, 888 + i);
 
                 lastTime = tmpTime;
 
@@ -240,19 +236,27 @@ public class EventBuilderBackEndTest
 
                 IEventPayload evt =
                     (IEventPayload) backEnd.makeDataPayload(req, hitList);
-                assertEquals("Bad subrun number",
-                             subrun, evt.getSubrunNumber());
+
+                if (reqStartTime >= commitTime)
+                    assertEquals("Bad subrun number", subrun, evt.getSubrunNumber());
+                else
+                    assertEquals("Bad subrun number", -subrun, evt.getSubrunNumber());
+
+                /* dispatching needs to wait for a better MockDispatcher
+                  assertTrue("Failure to dispatch event", backEnd.sendOutput(evt));
+                */
             }
 
-            subrun = getNextSubrun(subrun);
+            subrun++;
         }
 
+        /* checking event count, requires dispatching
         int nextSubrun = 0;
         for (int n = 1; nextSubrun != subrun; n++) {
             assertEquals("Bad number of events for subrun " + nextSubrun,
                          n, backEnd.getSubrunTotalEvents(nextSubrun));
-            nextSubrun = getNextSubrun(nextSubrun);
-        }
+            nextSubrun++;
+        } */
     }
 
     public static void main(String[] args)

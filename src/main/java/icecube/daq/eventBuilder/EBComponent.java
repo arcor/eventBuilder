@@ -160,7 +160,7 @@ public class EBComponent
             subrunNumber = -subrunNumber;
         }
 
-        backEnd.setSubrunNumber(subrunNumber, startTime);
+        backEnd.commitSubrun(subrunNumber, startTime);
     }
 
     /**
@@ -200,7 +200,7 @@ public class EBComponent
             subrunNumber = -subrunNumber;
         }
 
-        backEnd.setSubrunNumber(-subrunNumber, Long.MIN_VALUE);
+        backEnd.prepareSubrun(subrunNumber);
     }
 
     /**
@@ -240,7 +240,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2168 2007-10-20 01:15:02Z ksb $";
+	return "$Id: EBComponent.java 2348 2007-11-30 21:08:19Z ksb $";
     }
 
 
