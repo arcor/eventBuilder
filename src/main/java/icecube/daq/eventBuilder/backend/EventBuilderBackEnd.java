@@ -815,10 +815,6 @@ public class EventBuilderBackEnd
 	    subnum = subrunNumber;
         }
 
-        LOG.info("ksb-makeDataPayload(): subnum: " + subnum +
-                 ", subrunStart: " + subrunStart +
-                 ", startTime: " + startTime.getUTCTimeAsLong());
-
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
                                        eventType, runNumber, subnum, req,
@@ -973,8 +969,6 @@ public class EventBuilderBackEnd
 
                 subrunEventCount++;
                 eventSent = true;
-                LOG.info("ksb-sendToDaqDispatch(): eventSubrunNumber: " + eventSubrunNumber +
-                         ", subrunEventCount: " + subrunEventCount);
             } catch (DispatchException ex) {
                 if (LOG.isErrorEnabled()) {
                     LOG.error("Could not dispatch event", ex);
@@ -1041,8 +1035,6 @@ public class EventBuilderBackEnd
      */
     public void prepareSubrun(int subrunNumber)
     {
-	LOG.info("ksb-prepareSubrun(" + subrunNumber + ")");
-
 	subrunNumber = -subrunNumber;
 	synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
@@ -1071,8 +1063,6 @@ public class EventBuilderBackEnd
      */
     public void commitSubrun(int subrunNumber, long startTime)
     {
-        LOG.info("ksb-commitSubrunNumber(" + subrunNumber + ", " + startTime + ")");
-
 	synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
@@ -1098,10 +1088,6 @@ public class EventBuilderBackEnd
         throws DispatchException
     {
         synchronized (subrunLock) {
-            LOG.info("ksb-rollSubrun(" + oldSubrunNumber +
-                     ", " + newSubrunNumber +
-                     "): subrunEventCount: " + subrunEventCount);
-
             String message =
                 new String(DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
                            newSubrunNumber);
