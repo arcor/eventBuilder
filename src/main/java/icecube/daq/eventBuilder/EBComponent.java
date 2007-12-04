@@ -23,7 +23,7 @@ import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
-import icecube.daq.splicer.SplicerImpl;
+import icecube.daq.splicer.HKN1Splicer;
 
 import java.io.IOException;
 
@@ -83,7 +83,7 @@ public class EBComponent
         addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
-        Splicer splicer = new SplicerImpl(splicedAnalysis);
+        Splicer splicer = new HKN1Splicer(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
@@ -240,7 +240,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2348 2007-11-30 21:08:19Z ksb $";
+	return "$Id: EBComponent.java 2376 2007-12-04 23:02:14Z dglo $";
     }
 
 
