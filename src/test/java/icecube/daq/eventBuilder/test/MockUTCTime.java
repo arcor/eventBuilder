@@ -1,8 +1,7 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.util.Poolable;
-
 import icecube.daq.payload.IUTCTime;
+import icecube.util.Poolable;
 
 public class MockUTCTime
     extends Poolable

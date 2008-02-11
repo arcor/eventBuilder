@@ -4,13 +4,10 @@ import icecube.daq.payload.IDOMID;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadDestination;
-
 import icecube.daq.trigger.IHitPayload;
 
-import java.nio.ByteBuffer;
-
 import java.io.IOException;
-
+import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 
 public class MockHit

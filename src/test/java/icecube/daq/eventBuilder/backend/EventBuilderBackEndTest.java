@@ -1,9 +1,6 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.eventBuilder.SPDataAnalysis;
-
-import icecube.daq.eventbuilder.IEventPayload;
-
 import icecube.daq.eventBuilder.test.MockAppender;
 import icecube.daq.eventBuilder.test.MockBufferCache;
 import icecube.daq.eventBuilder.test.MockDispatcher;
@@ -11,13 +8,13 @@ import icecube.daq.eventBuilder.test.MockFactory;
 import icecube.daq.eventBuilder.test.MockHit;
 import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
+import icecube.daq.eventbuilder.IEventPayload;
 
 import java.util.ArrayList;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 import org.apache.log4j.BasicConfigurator;

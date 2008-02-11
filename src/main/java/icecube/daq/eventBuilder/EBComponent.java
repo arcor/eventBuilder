@@ -1,29 +1,22 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
-
+import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
 import icecube.daq.io.SpliceablePayloadReader;
-
-import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
-
-import icecube.daq.eventBuilder.monitoring.MonitoringData;
-
-import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
+import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
-
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.VitreousBufferCache;
-
-import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.HKN1Splicer;
+import icecube.daq.splicer.Splicer;
 
 import java.io.IOException;
 
@@ -240,7 +233,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2376 2007-12-04 23:02:14Z dglo $";
+	return "$Id: EBComponent.java 2629 2008-02-11 05:48:36Z dglo $";
     }
 
 

@@ -1,42 +1,28 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
-
-import icecube.daq.io.DispatchException;
-import icecube.daq.io.Dispatcher;
-
 import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
 import icecube.daq.eventBuilder.SPDataAnalysis;
-
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
-
 import icecube.daq.eventbuilder.IReadoutDataPayload;
-
 import icecube.daq.eventbuilder.impl.EventPayload_v3;
 import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
-
+import icecube.daq.io.DispatchException;
+import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-
 import icecube.daq.payload.splicer.Payload;
-
 import icecube.daq.reqFiller.RequestFiller;
-
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
-
 import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -949,8 +935,6 @@ public class EventBuilderBackEnd
         }
 
         if (sendPayload) {
-            final long startTime = System.currentTimeMillis();
-
             buffer.position(0);
             int eventSubrunNumber = tmpEvent.getSubrunNumber();
             try {
