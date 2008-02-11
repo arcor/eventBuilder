@@ -3,16 +3,12 @@ package icecube.daq.eventBuilder.test;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadDestination;
-
 import icecube.daq.trigger.IReadoutRequest;
 import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.util.Vector;
-
 import java.util.zip.DataFormatException;
 
 public class MockTriggerRequest

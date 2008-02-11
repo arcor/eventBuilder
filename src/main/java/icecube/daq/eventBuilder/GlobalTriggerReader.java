@@ -1,19 +1,14 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
-
 import icecube.daq.eventBuilder.monitoring.GlobalTriggerInputMonitor;
-
 import icecube.daq.io.PushPayloadReader;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.MasterPayloadFactory;
-
 import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
 
 import org.apache.commons.logging.Log;
