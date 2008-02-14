@@ -1,8 +1,8 @@
 package icecube.daq.eventBuilder.test;
 
+import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadDestination;
 import icecube.daq.trigger.IReadoutRequest;
 import icecube.daq.trigger.ITriggerRequestPayload;
 
@@ -122,7 +122,7 @@ public class MockTriggerRequest
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, PayloadDestination x1)
+    public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
         throw new Error("Unimplemented");

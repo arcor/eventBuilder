@@ -1,9 +1,9 @@
 package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IDOMID;
+import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadDestination;
 import icecube.daq.trigger.IHitPayload;
 
 import java.io.IOException;
@@ -95,7 +95,7 @@ public class MockHit
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, PayloadDestination x1)
+    public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
         throw new Error("Unimplemented");
