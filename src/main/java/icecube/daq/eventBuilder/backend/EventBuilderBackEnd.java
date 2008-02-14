@@ -1011,9 +1011,10 @@ public class EventBuilderBackEnd
      * commitSubrun method is called and the timestamp provided there
      * (identifying the begining of the new subrun) has passed.
      *
-     * Note that this method will log an error if the subrun number
+     * Note that this method will log a warning if the subrun number
      * provided does not follow the current subrun number but will
-     * accept that as the new subrun number.
+     * accept that as the new subrun number and unset any pending
+     * commitSubrun timestamp.
      *
      * @param subrunNumber the subrun number which will be starting
      */
@@ -1023,11 +1024,12 @@ public class EventBuilderBackEnd
 	synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
-                LOG.error("Expected subrun number " + this.subrunNumber +
-                          " to be followed by " + tmpNum +
-                          ", not " + subrunNumber);
+                LOG.warn("Preparing for subrun " + subrunNumber +
+                         ", though current subrun is " + this.subrunNumber +
+                         ". (Expected next subrun to be " + tmpNum + ")");
             }
 	    this.subrunNumber = subrunNumber;
+            newSubrunStartTime = false;
 	}
     }
 
@@ -1038,9 +1040,10 @@ public class EventBuilderBackEnd
      * should no longer be marked with the negative of the subrun
      * number.
      *
-     * Note that this method will log an error if the subrun number
-     * does not follow the current subrun number and will ignore that
-     * new subrun number but will accept the timestamp.
+     * Note that this method will throw a RuntimeException if either
+     * the subrun number provided does not follow the current subrun
+     * number, or if it appears to have been called without a previous
+     * call to prepareSubrun.
      *
      * @param subrunNumber the subrun number
      * @param startTime time of first good hit in subrun
@@ -1050,10 +1053,12 @@ public class EventBuilderBackEnd
 	synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
-                LOG.error("commitSubrun(): provided subrun number " +
-                          subrunNumber + " does not follow subrun " +
-                          this.subrunNumber + ". Subrun number " + tmpNum +
-                          " will be used instead.");
+                throw new RuntimeException("Provided subrun # " + subrunNumber +
+                                           " does not follow subrun: " +
+                                           this.subrunNumber);
+            }
+            if (newSubrunStartTime) {
+                throw new RuntimeException("subrun already has start time set.");
             }
 	    newSubrunStartTime = true;
 	    this.subrunStart = startTime;
