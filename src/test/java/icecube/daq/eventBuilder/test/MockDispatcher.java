@@ -2,7 +2,7 @@ package icecube.daq.eventBuilder.test;
 
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.IWriteablePayload;
 
 import java.nio.ByteBuffer;
 
@@ -25,25 +25,25 @@ public class MockDispatcher
         throw new Error("Unimplemented");
     }
 
-    public void dispatchEvent(ByteBuffer x0)
+    public void dispatchEvent(ByteBuffer buf)
         throws DispatchException
     {
         throw new Error("Unimplemented");
     }
 
-    public void dispatchEvent(Payload x0)
+    public void dispatchEvent(IWriteablePayload pay)
+        throws DispatchException
+    {
+        System.err.println("DISP " + pay);
+    }
+
+    public void dispatchEvents(ByteBuffer buf, int[] il1)
         throws DispatchException
     {
         throw new Error("Unimplemented");
     }
 
-    public void dispatchEvents(ByteBuffer x0, int[] il1)
-        throws DispatchException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void dispatchEvents(ByteBuffer x0, int[] il1, int i2)
+    public void dispatchEvents(ByteBuffer buf, int[] il1, int i2)
         throws DispatchException
     {
         throw new Error("Unimplemented");
@@ -51,17 +51,17 @@ public class MockDispatcher
 
     public int getDiskAvailable()
     {
-        throw new Error("Unimplemented");
+        return 0;
     }
 
     public int getDiskSize()
     {
-        throw new Error("Unimplemented");
+        return 0;
     }
 
     public long getTotalDispatchedEvents()
     {
-        throw new Error("Unimplemented");
+        return 0;
     }
 
     public void setDispatchDestStorage(String s0)
