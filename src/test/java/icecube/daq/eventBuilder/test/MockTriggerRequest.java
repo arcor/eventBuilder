@@ -31,8 +31,8 @@ public class MockTriggerRequest
 
     public Object deepCopy()
     {
-        return new MockTriggerRequest(startTime.getUTCTimeAsLong(),
-                                      endTime.getUTCTimeAsLong(), type, uid);
+        return new MockTriggerRequest(startTime.longValue(),
+                                      endTime.longValue(), type, uid);
     }
 
     public void dispose()

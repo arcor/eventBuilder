@@ -793,7 +793,7 @@ public class EventBuilderBackEnd
 
         int subnum;
         synchronized (subrunLock) {
-	    if (newSubrunStartTime && startTime.getUTCTimeAsLong() >= subrunStart) {
+	    if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
 		// commitSubrun was called & that subrun is here
 		subrunNumber = getNextSubrunNumber(subrunNumber);
 		newSubrunStartTime = false;

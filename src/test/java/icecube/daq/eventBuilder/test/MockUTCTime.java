@@ -22,7 +22,7 @@ public class MockUTCTime
             return getClass().getName().compareTo(obj.getClass().getName());
         }
 
-        final long val = ((IUTCTime) obj).getUTCTimeAsLong();
+        final long val = ((IUTCTime) obj).longValue();
         if (time < val) {
             return -1;
         } else if (time > val) {
@@ -67,7 +67,7 @@ public class MockUTCTime
         return new MockUTCTime(-1);
     }
 
-    public long getUTCTimeAsLong()
+    public long longValue()
     {
         return time;
     }
@@ -87,7 +87,7 @@ public class MockUTCTime
 
     public double timeDiff_ns(IUTCTime otherTime)
     {
-        return (double) (time - otherTime.getUTCTimeAsLong());
+        return (double) (time - otherTime.longValue());
     }
 
     public String toString()
