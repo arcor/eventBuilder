@@ -138,7 +138,13 @@ public class EventBuilderTriggerRequestDemultiplexer
             readoutGenerator.generator(readoutElements, eventId, utcTime);
         if (readouts == null) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Generator gave back a null vector");
+                LOG.error("Generator gave back a null list");
+            }
+
+            return false;
+        } else if (readouts.size() == 0) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Generator gave back an empty list");
             }
 
             return false;
