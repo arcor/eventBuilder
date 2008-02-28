@@ -66,6 +66,9 @@ public class EBComponent
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
 
+        IByteBufferCache evtDataMgr = new VitreousBufferCache();
+        addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
+
         IByteBufferCache genMgr = new VitreousBufferCache();
         addCache(genMgr);
 
@@ -80,7 +83,7 @@ public class EBComponent
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
-        dispatcher = new FileDispatcher("physics");
+        dispatcher = new FileDispatcher("physics", evtDataMgr);
 
         backEnd =
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
@@ -233,7 +236,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2629 2008-02-11 05:48:36Z dglo $";
+	return "$Id: EBComponent.java 2713 2008-02-28 23:01:59Z dglo $";
     }
 
 
