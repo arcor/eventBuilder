@@ -4,8 +4,8 @@ import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
+import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.eventbuilder.IReadoutDataPayload;
-import icecube.daq.eventbuilder.impl.EventPayload_v3;
 import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
@@ -909,59 +909,31 @@ public class EventBuilderBackEnd
      */
     private boolean sendToDaqDispatch(ILoadablePayload event)
     {
-        EventPayload_v3 tmpEvent = (EventPayload_v3) event;
+        IEventPayload tmpEvent = (IEventPayload) event;
 
-        final int payloadLen = tmpEvent.getPayloadLength();
-
-        boolean sendPayload = false;
         boolean eventSent = false;
 
-        ByteBuffer buffer = cacheManager.acquireBuffer(payloadLen);
-        if (buffer == null) {
+        int eventSubrunNumber = tmpEvent.getSubrunNumber();
+        try {
+            if (eventSubrunNumber != lastDispSubrunNumber) {
+                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
+                lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            dispatcher.dispatchEvent(tmpEvent);
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                          tmpEvent.getLastTimeUTC() +
+                          " written to daq-dispatch");
+            }
+
+            subrunEventCount++;
+            eventSent = true;
+        } catch (DispatchException ex) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Cannot get buffer");
+                LOG.error("Could not dispatch event", ex);
             }
-        } else {
-            buffer.limit(payloadLen);
-
-            try {
-                tmpEvent.writePayload(0, buffer);
-                sendPayload = true;
-            } catch (IOException ioe) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not write event to buffer", ioe);
-                }
-            }
-        }
-
-        if (sendPayload) {
-            buffer.position(0);
-            int eventSubrunNumber = tmpEvent.getSubrunNumber();
-            try {
-                if (eventSubrunNumber != lastDispSubrunNumber) {
-                    rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
-                    lastDispSubrunNumber = eventSubrunNumber;
-                }
-
-                dispatcher.dispatchEvent(buffer);
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() +
-                              " written to daq-dispatch");
-                }
-
-                subrunEventCount++;
-                eventSent = true;
-            } catch (DispatchException ex) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not dispatch event", ex);
-                }
-            }
-        }
-
-        if (buffer != null) {
-            cacheManager.returnBuffer(buffer);
         }
 
         tmpEvent.recycle();
