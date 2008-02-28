@@ -1,8 +1,10 @@
 package icecube.daq.eventBuilder.test;
 
+import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.PayloadChecker;
 
 import java.nio.ByteBuffer;
 
@@ -34,7 +36,7 @@ public class MockDispatcher
     public void dispatchEvent(IWriteablePayload pay)
         throws DispatchException
     {
-        System.err.println("DISP " + pay);
+        PayloadChecker.validateEvent((IEventPayload) pay, true);
     }
 
     public void dispatchEvents(ByteBuffer buf, int[] il1)
