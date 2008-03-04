@@ -315,19 +315,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Dispose of a list of data payloads which are no longer needed.
-     *
-     * @param dataList list of data payload
-     */
-    public void disposeDataList(List dataList)
-    {
-        // if we truncate the final data payload,
-        // all the others will also be removed
-        Object obj = dataList.get(dataList.size() - 1);
-        splicer.truncate((Spliceable) obj);
-    }
-
-    /**
      * Finish any tasks to be done just before the thread exits.
      */
     public void finishThreadCleanup()
