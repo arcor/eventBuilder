@@ -1,29 +1,22 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
-
+import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
 import icecube.daq.io.SpliceablePayloadReader;
-
-import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
-
-import icecube.daq.eventBuilder.monitoring.MonitoringData;
-
-import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQCompException;
+import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
-
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.VitreousBufferCache;
-
+import icecube.daq.splicer.HKN1Splicer;
 import icecube.daq.splicer.Splicer;
-import icecube.daq.splicer.SplicerImpl;
 
 import java.io.IOException;
 
@@ -73,6 +66,9 @@ public class EBComponent
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
 
+        IByteBufferCache evtDataMgr = new VitreousBufferCache();
+        addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
+
         IByteBufferCache genMgr = new VitreousBufferCache();
         addCache(genMgr);
 
@@ -83,11 +79,11 @@ public class EBComponent
         addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
-        Splicer splicer = new SplicerImpl(splicedAnalysis);
+        Splicer splicer = new HKN1Splicer(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
-        dispatcher = new FileDispatcher("physics");
+        dispatcher = new FileDispatcher("physics", evtDataMgr);
 
         backEnd =
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
@@ -240,7 +236,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2283 2007-11-16 03:14:19Z ksb $";
+	return "$Id: EBComponent.java 2713 2008-02-28 23:01:59Z dglo $";
     }
 
 

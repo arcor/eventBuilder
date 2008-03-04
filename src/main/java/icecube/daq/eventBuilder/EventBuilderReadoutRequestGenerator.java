@@ -1,17 +1,14 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
-
 import icecube.daq.payload.IDOMID;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-
 import icecube.daq.trigger.IReadoutRequest;
 import icecube.daq.trigger.IReadoutRequestElement;
-
 import icecube.daq.trigger.impl.DOMID8B;
 import icecube.daq.trigger.impl.ReadoutRequestPayload;
 import icecube.daq.trigger.impl.ReadoutRequestPayloadFactory;

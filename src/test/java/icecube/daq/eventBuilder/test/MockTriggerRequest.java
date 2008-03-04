@@ -1,18 +1,14 @@
 package icecube.daq.eventBuilder.test;
 
+import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadDestination;
-
 import icecube.daq.trigger.IReadoutRequest;
 import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.util.Vector;
-
 import java.util.zip.DataFormatException;
 
 public class MockTriggerRequest
@@ -35,8 +31,8 @@ public class MockTriggerRequest
 
     public Object deepCopy()
     {
-        return new MockTriggerRequest(startTime.getUTCTimeAsLong(),
-                                      endTime.getUTCTimeAsLong(), type, uid);
+        return new MockTriggerRequest(startTime.longValue(),
+                                      endTime.longValue(), type, uid);
     }
 
     public void dispose()
@@ -126,7 +122,7 @@ public class MockTriggerRequest
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, PayloadDestination x1)
+    public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
         throw new Error("Unimplemented");

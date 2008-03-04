@@ -1,42 +1,28 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
-
-import icecube.daq.io.DispatchException;
-import icecube.daq.io.Dispatcher;
-
 import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
 import icecube.daq.eventBuilder.SPDataAnalysis;
-
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
-
+import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.eventbuilder.IReadoutDataPayload;
-
-import icecube.daq.eventbuilder.impl.EventPayload_v3;
 import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
-
+import icecube.daq.io.DispatchException;
+import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-
 import icecube.daq.payload.splicer.Payload;
-
 import icecube.daq.reqFiller.RequestFiller;
-
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
-
 import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -189,15 +175,16 @@ public class EventBuilderBackEnd
     private long subrunStart;
     /** Number of events in current subrun. */
     private long subrunEventCount;
-    /** If we are transitioning into a new subrun (prepareSubrun() has
-     * been called and not yet acted upon) */
-    private boolean subrunTransition;
     /** If we have a new subrunStart value which has not yet been
      * reached (commitSubrun() has been called but not yet acted upon) */
     private boolean newSubrunStartTime;
     /** List of all subrun event counts. */
     private HashMap<SubrunEventCount, SubrunEventCount> subrunEventCountMap =
         new HashMap<SubrunEventCount, SubrunEventCount>();
+    /** Last dispatched subrun number. */
+    private int lastDispSubrunNumber;
+    /** An object for synchronizing subrun data changes on */
+    private Object subrunLock = new Object();
 
     /** Has the back end been reset? */
     private boolean isReset;
@@ -608,18 +595,25 @@ public class EventBuilderBackEnd
      */
     public long getSubrunTotalEvents(int subrun)
     {
+
         // return count from current subrun
-        if (subrun == subrunNumber) {
-            return subrunEventCount;
+        synchronized (subrunLock) {
+            if (subrun == subrunNumber) {
+                return subrunEventCount;
+            }
         }
 
-        SubrunEventCount data =
-            subrunEventCountMap.get(new SubrunEventCount(subrun, 0L));
-        if (data == null) {
+        SubrunEventCount question = new SubrunEventCount(subrun, 0L);
+        SubrunEventCount answer;
+        synchronized (subrunLock) {
+            answer = subrunEventCountMap.get(question);
+        }
+
+        if (answer == null) {
             throw new RuntimeException("Illegal subrun " + subrun);
         }
 
-        return data.getCount();
+        return answer.getCount();
     }
 
     /**
@@ -798,24 +792,15 @@ public class EventBuilderBackEnd
         final int eventType = req.getTriggerType();
 
         int subnum;
-        synchronized (subrunEventCountMap) {
-	    if (subrunTransition) { // prepareSubrun has been called
-		closeSubRun();
-		subrunTransition = false;
-	    }
-	    if (newSubrunStartTime && startTime.getUTCTimeAsLong() >= subrunStart) {
+        synchronized (subrunLock) {
+	    if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
 		// commitSubrun was called & that subrun is here
-		closeSubRun();
 		subrunNumber = getNextSubrunNumber(subrunNumber);
 		newSubrunStartTime = false;
 	    }
 	    subnum = subrunNumber;
         }
-	subrunEventCount++;
 
-	LOG.error("ksb-makeDataPayload(): subrunNumber: " + subrunNumber +
-		  ", subrunEventCount: " + subrunEventCount +
-		  ", subrunStart: " + subrunStart + ", startTime: " + startTime.getUTCTimeAsLong());
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
                                        eventType, runNumber, subnum, req,
@@ -888,13 +873,14 @@ public class EventBuilderBackEnd
      */
     public void resetAtStart()
     {
-        subrunNumber = 0;
-        subrunStart = 0L;
-        subrunEventCount = 0L;
-        subrunEventCountMap.clear();
-	subrunTransition = false;
-	newSubrunStartTime = false;
-
+        synchronized (subrunLock) {
+            subrunNumber = 0;
+            subrunStart = 0L;
+            subrunEventCount = 0L;
+            subrunEventCountMap.clear();
+            newSubrunStartTime = false;
+            lastDispSubrunNumber = 0;
+        }
         reset();
     }
 
@@ -923,54 +909,31 @@ public class EventBuilderBackEnd
      */
     private boolean sendToDaqDispatch(ILoadablePayload event)
     {
-        EventPayload_v3 tmpEvent = (EventPayload_v3) event;
+        IEventPayload tmpEvent = (IEventPayload) event;
 
-        final int payloadLen = tmpEvent.getPayloadLength();
-
-        boolean sendPayload = false;
         boolean eventSent = false;
 
-        ByteBuffer buffer = cacheManager.acquireBuffer(payloadLen);
-        if (buffer == null) {
+        int eventSubrunNumber = tmpEvent.getSubrunNumber();
+        try {
+            if (eventSubrunNumber != lastDispSubrunNumber) {
+                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
+                lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            dispatcher.dispatchEvent(tmpEvent);
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                          tmpEvent.getLastTimeUTC() +
+                          " written to daq-dispatch");
+            }
+
+            subrunEventCount++;
+            eventSent = true;
+        } catch (DispatchException ex) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Cannot get buffer");
+                LOG.error("Could not dispatch event", ex);
             }
-        } else {
-            buffer.limit(payloadLen);
-
-            try {
-                tmpEvent.writePayload(0, buffer);
-                sendPayload = true;
-            } catch (IOException ioe) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not write event to buffer", ioe);
-                }
-            }
-        }
-
-        if (sendPayload) {
-            final long startTime = System.currentTimeMillis();
-
-            buffer.position(0);
-            try {
-                dispatcher.dispatchEvent(buffer);
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() +
-                              " written to daq-dispatch");
-                }
-
-                eventSent = true;
-            } catch (DispatchException ex) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not dispatch event", ex);
-                }
-            }
-        }
-
-        if (buffer != null) {
-            cacheManager.returnBuffer(buffer);
         }
 
         tmpEvent.recycle();
@@ -1020,23 +983,25 @@ public class EventBuilderBackEnd
      * commitSubrun method is called and the timestamp provided there
      * (identifying the begining of the new subrun) has passed.
      *
+     * Note that this method will log a warning if the subrun number
+     * provided does not follow the current subrun number but will
+     * accept that as the new subrun number and unset any pending
+     * commitSubrun timestamp.
+     *
      * @param subrunNumber the subrun number which will be starting
      */
     public void prepareSubrun(int subrunNumber)
     {
-	LOG.error("ksb-prepareSubrun(" + subrunNumber + ")");
-
 	subrunNumber = -subrunNumber;
-	int tmpNum = getNextSubrunNumber(this.subrunNumber);
-	if (subrunNumber != tmpNum) {
-            LOG.error("prepareSubrun(): Expected subrun number " +
-		      this.subrunNumber + " to be followed by " +
-		      tmpNum + ", not " + subrunNumber);
-	}
-
-	synchronized (subrunEventCountMap) {
-	    subrunTransition = true;
+	synchronized (subrunLock) {
+            int tmpNum = getNextSubrunNumber(this.subrunNumber);
+            if (subrunNumber != tmpNum) {
+                LOG.warn("Preparing for subrun " + subrunNumber +
+                         ", though current subrun is " + this.subrunNumber +
+                         ". (Expected next subrun to be " + tmpNum + ")");
+            }
 	    this.subrunNumber = subrunNumber;
+            newSubrunStartTime = false;
 	}
     }
 
@@ -1047,22 +1012,26 @@ public class EventBuilderBackEnd
      * should no longer be marked with the negative of the subrun
      * number.
      *
+     * Note that this method will throw a RuntimeException if either
+     * the subrun number provided does not follow the current subrun
+     * number, or if it appears to have been called without a previous
+     * call to prepareSubrun.
+     *
      * @param subrunNumber the subrun number
      * @param startTime time of first good hit in subrun
      */
     public void commitSubrun(int subrunNumber, long startTime)
     {
-	LOG.error("ksb-commitSubrun(" + subrunNumber + ", " + startTime + ")");
-
-	int tmpNum = getNextSubrunNumber(this.subrunNumber);
-	if (subrunNumber != tmpNum) {
-            LOG.error("commitSubrun(): provided subrun number " +
-		      subrunNumber + " does not follow subrun " +
-		      this.subrunNumber + ". Subrun number " + tmpNum +
-		      " will be used instead.");
-	}
-
-	synchronized (subrunEventCountMap) {
+	synchronized (subrunLock) {
+            int tmpNum = getNextSubrunNumber(this.subrunNumber);
+            if (subrunNumber != tmpNum) {
+                throw new RuntimeException("Provided subrun # " + subrunNumber +
+                                           " does not follow subrun: " +
+                                           this.subrunNumber);
+            }
+            if (newSubrunStartTime) {
+                throw new RuntimeException("subrun already has start time set.");
+            }
 	    newSubrunStartTime = true;
 	    this.subrunStart = startTime;
 	}
@@ -1071,25 +1040,34 @@ public class EventBuilderBackEnd
     /**
      * Close out the current subrun by sending a subrun databoundary
      * to the dispatcher and storing the count for this ending subrun
-     * in the subrunEventCountMap
+     * in the subrunEventCountMap.
+     *
+     * @param oldSubrunNumber the subrun number of the ending subrun
+     * @param newSubrunNumber the subrun number of the new subrun
      */
-    private void closeSubRun()
+    private void rollSubRun(int oldSubrunNumber, int newSubrunNumber)
+        throws DispatchException
     {
-	LOG.error("ksb-closeSubrun(): subrunNumber: " + subrunNumber +
-		  ", subrunEventCount: " + subrunEventCount);
-        synchronized (subrunEventCountMap) {
-	    // ToDo: dataBoundary();
-            // save data from previous subrun
+        synchronized (subrunLock) {
+            String message =
+                new String(DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
+                           newSubrunNumber);
+            dispatcher.dataBoundary(message);
+            if (LOG.isInfoEnabled()) {
+                LOG.info("called dataBoundary for subrun with the message: " + message);
+            }
+
+            // save event count from ending subrun
             SubrunEventCount newData =
-                new SubrunEventCount(this.subrunNumber, subrunEventCount);
+                new SubrunEventCount(oldSubrunNumber, subrunEventCount);
             if (subrunEventCountMap.containsKey(newData)) {
                 LOG.error("Found multiple counts for subrun number " +
-                          this.subrunNumber);
+                          oldSubrunNumber);
             } else {
                 subrunEventCountMap.put(newData, newData);
             }
+            subrunEventCount = 0;
         }
-	subrunEventCount = 0;
     }
 
     /**

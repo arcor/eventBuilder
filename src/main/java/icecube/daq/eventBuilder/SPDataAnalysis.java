@@ -1,11 +1,8 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
-
-import icecube.daq.io.DispatchException;
-
 import icecube.daq.eventBuilder.backend.SPDataProcessor;
-
+import icecube.daq.io.DispatchException;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.SplicedAnalysis;
@@ -119,7 +116,7 @@ public class SPDataAnalysis
     {
         this.runNumber = runNumber;
     }
-    
+
     /**
      * Called when the {@link Splicer Splicer} enters the started state.
      *

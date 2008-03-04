@@ -9,9 +9,7 @@ import icecube.daq.splicer.SplicerListener;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.List;
 
 public class MockSplicer
