@@ -107,7 +107,7 @@ ByteBuffer newBuf = buf;
         demuxer.demux(pay);
 
         // add trigger request to back-end queue
-        backEnd.addRequest(pay);
+        backEnd.addRequest((ILoadablePayload) pay);
     }
 
     public void registerStringProcCacheOutputEngine(EventBuilderSPcachePayloadOutputEngine oe)
