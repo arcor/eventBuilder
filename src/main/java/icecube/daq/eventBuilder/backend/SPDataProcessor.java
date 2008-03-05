@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.io.DispatchException;
+import icecube.daq.payload.ILoadablePayload;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +17,7 @@ public interface SPDataProcessor
      * @param newData list of new data
      * @param offset number of previously-seen data at front of list
      */
-    void addData(List newData, int offset);
+    void addData(List<ILoadablePayload> newData, int offset);
 
     /**
      * Increment the count of splicer.execute() calls.
