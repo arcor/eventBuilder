@@ -110,13 +110,6 @@ ByteBuffer newBuf = buf;
         backEnd.addRequest(pay);
     }
 
-    public void registerStringProcCacheOutputEngine(EventBuilderSPcachePayloadOutputEngine oe)
-    {
-        if (oe != null) {
-            oe.registerBufferManager(bufMgr);
-        }
-    }
-
     public void registerStringProcReqOutputEngine(RequestPayloadOutputEngine oe)
     {
         oe.registerBufferManager(bufMgr);

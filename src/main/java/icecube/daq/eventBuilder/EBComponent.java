@@ -40,7 +40,6 @@ public class EBComponent
     private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
-    private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
 
     private EventBuilderBackEnd backEnd;
     private SPDataAnalysis splicedAnalysis;
@@ -114,25 +113,9 @@ public class EBComponent
         addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA,
                            rdoutDataInputProcess);
 
-        final boolean skipFlush = true;
-
-        if (!skipFlush) {
-            // TODO: don't add this output engine; it should go away
-            spFlushOutputProcess =
-                new EventBuilderSPcachePayloadOutputEngine(COMPONENT_NAME,
-                                                           compId,
-                                                           "spFlushOutput");
-        }
-
         // connect pieces together
         gtInputProcess.registerStringProcReqOutputEngine(spReqOutputProcess);
-        if (!skipFlush) {
-            backEnd.registerStringProcCacheOutputEngine(spFlushOutputProcess);
-        }
         spReqOutputProcess.registerBufferManager(genMgr);
-        if (!skipFlush) {
-            spFlushOutputProcess.registerBufferManager(genMgr);
-        }
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
@@ -236,7 +219,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2713 2008-02-28 23:01:59Z dglo $";
+	return "$Id: EBComponent.java 2853 2008-03-26 11:43:58Z dglo $";
     }
 
 

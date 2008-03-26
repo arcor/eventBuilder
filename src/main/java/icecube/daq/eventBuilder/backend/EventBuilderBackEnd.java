@@ -1,7 +1,6 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.eventbuilder.IEventPayload;
@@ -148,8 +147,6 @@ public class EventBuilderBackEnd
     private Splicer splicer;
     private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
-
-    private EventBuilderSPcachePayloadOutputEngine cacheOutputEngine;
 
     // Factory to make EventPayloads.
     private EventPayload_v3Factory eventFactory;
@@ -333,9 +330,6 @@ public class EventBuilderBackEnd
     public void finishThreadCleanup()
     {
         analysis.stopDispatcher();
-        if (cacheOutputEngine != null) {
-            cacheOutputEngine.sendLastAndStop();
-        }
         totStopsSent++;
     }
 
@@ -834,17 +828,6 @@ public class EventBuilderBackEnd
             // delete list once everything's been recycled
             finalData = null;
         }
-    }
-
-    /**
-     * Register the string processor cache-flush output engine.
-     *
-     * @param oe output engine
-     */
-    public void registerStringProcCacheOutputEngine
-        (EventBuilderSPcachePayloadOutputEngine oe)
-    {
-        cacheOutputEngine = oe;
     }
 
     /**
