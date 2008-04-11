@@ -12,7 +12,7 @@ import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,12 +47,6 @@ public class EventBuilderTriggerRequestDemultiplexer
      * This is gotted from the ITriggerRequestPayload.
      */
     private int eventId;
-
-    /* Vector of all readout reqeust elements associated with
-     * this event. Obtained by calling getReadoutRequest()
-     * on mt_rrq.
-     */
-    private Vector readoutElements;
 
     /**
      * Every Payload has to have a time stamp. This field is used to
@@ -130,8 +124,7 @@ public class EventBuilderTriggerRequestDemultiplexer
         utcTime = inputTriggerRequest.getPayloadTimeUTC();
 
         final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
-        readoutElements =
-            tmpReq.getReadoutRequestElements();
+        List readoutElements = tmpReq.getReadoutRequestElements();
 
         // Get readout Request payloads to send from the Generator object.
         Collection readouts =
@@ -163,7 +156,7 @@ public class EventBuilderTriggerRequestDemultiplexer
             // payloadDest payload output engine.
             //  We try to demux the readouts to different files.
 
-            Vector elemVec = tmpRRQ.getReadoutRequestElements();
+            List elemVec = tmpRRQ.getReadoutRequestElements();
 
             if (LOG.isErrorEnabled() && elemVec.size() != 1) {
                 LOG.error("Expected one element in readout request #" +
@@ -172,7 +165,7 @@ public class EventBuilderTriggerRequestDemultiplexer
 
             //this works coz there's only one element in each readoutRequest
             IReadoutRequestElement tmpReadout =
-                (IReadoutRequestElement) elemVec.elementAt(0);
+                (IReadoutRequestElement) elemVec.get(0);
 
             //DO the actual demuxing...
             try {
