@@ -115,6 +115,13 @@ public class EventBuilderTriggerRequestDemultiplexer
             return false;
         }
 
+        if (!generatorInitialized) {
+            IPayloadDestinationCollection coll =
+                payloadDest.getPayloadDestinationCollection();
+            readoutGenerator.setDestinations(coll.getAllSourceIDs());
+            generatorInitialized = true;
+        }
+
         // looks like a valid trigger request payload judging by the type.
         eventId = inputTriggerRequest.getUID();
 
@@ -125,13 +132,6 @@ public class EventBuilderTriggerRequestDemultiplexer
         final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
         readoutElements =
             tmpReq.getReadoutRequestElements();
-
-        if (!generatorInitialized) {
-            IPayloadDestinationCollection coll =
-                payloadDest.getPayloadDestinationCollection();
-            readoutGenerator.setDestinations(coll.getAllSourceIDs());
-            generatorInitialized = true;
-        }
 
         // Get readout Request payloads to send from the Generator object.
         Collection readouts =
