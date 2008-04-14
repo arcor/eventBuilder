@@ -1,7 +1,7 @@
 /*
  * class: SystemTestPayloadOutputEngine
  *
- * Version $Id: EventBuilderSPreqPayloadOutputEngine.java 2751 2008-03-05 01:47:18Z ksb $
+ * Version $Id: EventBuilderSPreqPayloadOutputEngine.java 2921 2008-04-14 21:23:54Z dglo $
  *
  * Date: May 23 2005
  *
@@ -10,16 +10,16 @@
 
 package icecube.daq.eventBuilder;
 
-import icecube.daq.io.MultiDestinationOutputEngine;
+import icecube.daq.io.SimpleDestinationOutputEngine;
 
 /**
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: EventBuilderSPreqPayloadOutputEngine.java 2751 2008-03-05 01:47:18Z ksb $
+ * @version $Id: EventBuilderSPreqPayloadOutputEngine.java 2921 2008-04-14 21:23:54Z dglo $
  */
 public class EventBuilderSPreqPayloadOutputEngine
-    extends MultiDestinationOutputEngine
+    extends SimpleDestinationOutputEngine
     implements RequestPayloadOutputEngine
 {
     /**
