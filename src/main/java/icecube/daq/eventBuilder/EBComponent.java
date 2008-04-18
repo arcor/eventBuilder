@@ -36,13 +36,19 @@ public class EBComponent
     /** Message logger. */
     private static final Log LOG = LogFactory.getLog(EBComponent.class);
 
+    private IByteBufferCache trigBufMgr;
     private GlobalTriggerReader gtInputProcess;
+
+    private IByteBufferCache rdoutDataMgr;
     private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
 
+    private MonitoringData monData;
+
     private EventBuilderBackEnd backEnd;
     private SPDataAnalysis splicedAnalysis;
+    private Splicer splicer;
 
     private Dispatcher dispatcher;
 
@@ -55,12 +61,12 @@ public class EBComponent
 
         final int compId = 0;
 
-        IByteBufferCache rdoutDataMgr = new VitreousBufferCache();
+        rdoutDataMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
 
-        IByteBufferCache trigBufMgr = new VitreousBufferCache();
+        trigBufMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
@@ -74,11 +80,11 @@ public class EBComponent
         addMBean("jvm", new MemoryStatistics());
         addMBean("system", new SystemStatistics());
 
-        MonitoringData monData = new MonitoringData();
+        monData = new MonitoringData();
         addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
-        Splicer splicer = new HKN1Splicer(splicedAnalysis);
+        splicer = new HKN1Splicer(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
@@ -142,6 +148,26 @@ public class EBComponent
         backEnd.commitSubrun(subrunNumber, startTime);
     }
 
+    public IByteBufferCache getDataCache()
+    {
+        return rdoutDataMgr;
+    }
+
+    public SpliceablePayloadReader getDataReader()
+    {
+        return rdoutDataInputProcess;
+    }
+
+    public Splicer getDataSplicer()
+    {
+        return splicer;
+    }
+
+    public Dispatcher getDispatcher()
+    {
+        return dispatcher;
+    }
+
     /**
      * Get the number of events for the given subrun.
      * NOTE: This should only be implemented by the event builder component.
@@ -160,6 +186,36 @@ public class EBComponent
         } catch (RuntimeException rte) {
             throw new DAQCompException(rte.getMessage());
         }
+    }
+
+    public MonitoringData getMonitoringData()
+    {
+        return monData;
+    }
+
+    public EventBuilderSPreqPayloadOutputEngine getRequestWriter()
+    {
+        return spReqOutputProcess;
+    }
+
+    public IByteBufferCache getTriggerCache()
+    {
+        return trigBufMgr;
+    }
+
+    public GlobalTriggerReader getTriggerReader()
+    {
+        return gtInputProcess;
+    }
+
+    /**
+     * Return this component's svn version id as a String.
+     *
+     * @return svn version id as a String
+     */
+    public String getVersionInfo()
+    {
+	return "$Id: EBComponent.java 2948 2008-04-18 19:49:49Z dglo $";
     }
 
     /**
@@ -191,6 +247,11 @@ public class EBComponent
         dispatcher.setDispatchDestStorage(dirName);
     }
 
+    public void setDispatcher(Dispatcher dispatcher)
+    {
+        backEnd.setDispatcher(dispatcher);
+    }
+
     /**
      * Set the maximum size of the dispatch file.
      *
@@ -211,17 +272,6 @@ public class EBComponent
         backEnd.setRunNumber(runNumber);
         splicedAnalysis.setRunNumber(runNumber);
     }
-
-    /**
-     * Return this component's svn version id as a String.
-     *
-     * @return svn version id as a String
-     */
-    public String getVersionInfo()
-    {
-	return "$Id: EBComponent.java 2853 2008-03-26 11:43:58Z dglo $";
-    }
-
 
     /**
      * Run a DAQ component server.

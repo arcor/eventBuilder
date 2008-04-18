@@ -201,17 +201,6 @@ public class EventBuilderBackEnd
     {
         super("EventBuilderBackEnd", true);
 
-        if (dispatcher == null) {
-            if (LOG.isFatalEnabled()) {
-                try {
-                    throw new NullPointerException("Dispatcher");
-                } catch (NullPointerException ex) {
-                    LOG.fatal("Constructor called with null dispatcher", ex);
-                }
-            }
-            System.exit(1);
-        }
-
         this.dispatcher = dispatcher;
         this.splicer = splicer;
         this.analysis = analysis;
@@ -1050,6 +1039,20 @@ public class EventBuilderBackEnd
                 subrunEventCountMap.put(newData, newData);
             }
             subrunEventCount = 0;
+        }
+    }
+
+    /**
+     * Set the event dispatcher.
+     *
+     * @param dispatcher event dispatcher
+     */
+    public void setDispatcher(Dispatcher dispatcher)
+    {
+        if (dispatcher == null) {
+            LOG.error("Cannot set null dispatcher");
+        } else {
+            this.dispatcher = dispatcher;
         }
     }
 
