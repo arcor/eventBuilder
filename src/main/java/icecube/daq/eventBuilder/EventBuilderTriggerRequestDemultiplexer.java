@@ -41,22 +41,7 @@ public class EventBuilderTriggerRequestDemultiplexer
     /** <tt>true</tt> if generator has been initialized */
     private boolean generatorInitialized;
 
-    /*
-     * The unique ID for the Event generated in response
-     * to the Trigger Request that invoked this object.
-     * This is gotted from the ITriggerRequestPayload.
-     */
-    private int eventId;
-
-    /**
-     * Every Payload has to have a time stamp. This field is used to
-     * generate the time stamps on the ReadoutRequestPayload's sent out
-     * to the SP/IDH's. comes from the TriggerRequestPaylaod with which
-     * we got invoked.
-     */
-    private IUTCTime utcTime;
-
-    // The output engine used to send Readout Requests to String procs.
+    /** The output engine used to send Readout Requests to StringHubs. */
     private RequestPayloadOutputEngine payloadDest;
 
     /**
@@ -88,6 +73,14 @@ public class EventBuilderTriggerRequestDemultiplexer
             return false;
         }
 
+        IPayloadDestinationCollection dests =
+            payloadDest.getPayloadDestinationCollection();
+
+        if (!generatorInitialized) {
+            readoutGenerator.setDestinations(dests.getAllSourceIDs());
+            generatorInitialized = true;
+        }
+
         if (inputTriggerRequest.getPayloadType() !=
             PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST)
         {
@@ -109,19 +102,12 @@ public class EventBuilderTriggerRequestDemultiplexer
             return false;
         }
 
-        if (!generatorInitialized) {
-            IPayloadDestinationCollection coll =
-                payloadDest.getPayloadDestinationCollection();
-            readoutGenerator.setDestinations(coll.getAllSourceIDs());
-            generatorInitialized = true;
-        }
-
         // looks like a valid trigger request payload judging by the type.
-        eventId = inputTriggerRequest.getUID();
+        int eventId = inputTriggerRequest.getUID();
 
         // We need to get the Payload time stamp to put in the readout
         // requests.
-        utcTime = inputTriggerRequest.getPayloadTimeUTC();
+        IUTCTime utcTime = inputTriggerRequest.getPayloadTimeUTC();
 
         final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
         List readoutElements = tmpReq.getReadoutRequestElements();
@@ -142,9 +128,6 @@ public class EventBuilderTriggerRequestDemultiplexer
 
             return false;
         }
-
-        IPayloadDestinationCollection dests =
-            payloadDest.getPayloadDestinationCollection();
 
         // Let's dump these readouts to logs and to the output destination.
         Iterator iter = readouts.iterator();
