@@ -4,8 +4,7 @@ import icecube.daq.payload.IUTCTime;
 import icecube.util.Poolable;
 
 public class MockUTCTime
-    extends Poolable
-    implements IUTCTime
+    implements IUTCTime, Poolable
 {
     private long time;
 
