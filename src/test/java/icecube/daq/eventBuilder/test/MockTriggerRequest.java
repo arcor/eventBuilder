@@ -8,7 +8,7 @@ import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Vector;
+import java.util.List;
 import java.util.zip.DataFormatException;
 
 public class MockTriggerRequest
@@ -45,7 +45,7 @@ public class MockTriggerRequest
         return startTime;
     }
 
-    public Vector getHitList()
+    public List getHitList()
     {
         throw new Error("Unimplemented");
     }
@@ -80,7 +80,7 @@ public class MockTriggerRequest
         throw new Error("Unimplemented");
     }
 
-    public Vector getPayloads()
+    public List getPayloads()
         throws IOException, DataFormatException
     {
         throw new Error("Unimplemented");
