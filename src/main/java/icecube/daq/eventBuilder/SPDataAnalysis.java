@@ -148,7 +148,7 @@ public class SPDataAnalysis
         try {
             dataProc.dataBoundary(message);
         } catch (DispatchException de) {
-            LOG.error("dataBoundary() threw exception on start -- ", de);
+            LOG.error("Couldn't start dispatcher (" + message + ")", de);
         }
         LOG.info("called dataBoundary on STARTING with the message: " +
                  message);
@@ -179,7 +179,7 @@ public class SPDataAnalysis
         try {
             dataProc.dataBoundary(message);
         } catch (DispatchException de) {
-            LOG.error("dataBoundary() threw exception on stop -- ", de);
+            LOG.error("Couldn't stop dispatcher (" + message + ")", de);
         }
         LOG.info("called dataBoundary on STOPPED with the message: " +
                  message);
