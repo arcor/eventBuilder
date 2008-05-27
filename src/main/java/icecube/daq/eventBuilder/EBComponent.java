@@ -94,6 +94,9 @@ public class EBComponent
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
                                     dispatcher);
 
+        EventBuilderTriggerRequestDemultiplexer demuxer =
+            new EventBuilderTriggerRequestDemultiplexer(trigFactory);
+
         try {
             gtInputProcess =
                 new GlobalTriggerReader(COMPONENT_NAME, backEnd, trigFactory,
@@ -120,7 +123,10 @@ public class EBComponent
                            rdoutDataInputProcess);
 
         // connect pieces together
-        gtInputProcess.registerStringProcReqOutputEngine(spReqOutputProcess);
+        gtInputProcess.registerDemultiplexer(demuxer);
+
+        demuxer.registerOutputEngine(spReqOutputProcess);
+
         spReqOutputProcess.registerBufferManager(genMgr);
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
@@ -184,7 +190,7 @@ public class EBComponent
         try {
             return backEnd.getSubrunTotalEvents(subrun);
         } catch (RuntimeException rte) {
-            throw new DAQCompException(rte.getMessage());
+            throw new DAQCompException(rte.getMessage(), rte);
         }
     }
 
@@ -215,7 +221,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 2948 2008-04-18 19:49:49Z dglo $";
+	return "$Id: EBComponent.java 3077 2008-05-27 20:53:04Z dglo $";
     }
 
     /**
