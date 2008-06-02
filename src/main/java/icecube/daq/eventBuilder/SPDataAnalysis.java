@@ -65,14 +65,17 @@ public class SPDataAnalysis
      */
     public void execute(List list, int decrement)
     {
+        final int listLen = list.size();
+
         dataProc.addExecuteCall();
-        dataProc.setExecuteListLength(list.size());
+        dataProc.setExecuteListLength(listLen);
 
-        if (list.size() > listOffset) {
-            dataProc.addData(list, listOffset);
-
-            listOffset = list.size();
+        int addIndex = listOffset - decrement;
+        if (listLen > addIndex) {
+            dataProc.addData(list, addIndex);
         }
+
+        listOffset = listLen;
     }
 
     /**
@@ -222,10 +225,8 @@ public class SPDataAnalysis
         if (spl == Splicer.LAST_POSSIBLE_SPLICEABLE) {
             // splicer is stopping; save these payloads until backend is done
             dataProc.addFinalData(event.getAllSpliceables());
-            listOffset = 0;
         } else {
             dataProc.recycleAll(event.getAllSpliceables());
-            listOffset -= event.getAllSpliceables().size();
         }
     }
 }
