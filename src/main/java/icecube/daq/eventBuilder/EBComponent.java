@@ -29,6 +29,13 @@ import org.apache.commons.logging.LogFactory;
 public class EBComponent
     extends DAQComponent
 {
+    /**
+     * Name of property used to signal that events should be validated
+     * before being written to the physics file.
+     */
+    public static final String PROP_VALIDATE_EVENTS =
+            "icecube.daq.eventBuilder.validateEvents";
+
     /** Component name. */
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
@@ -56,6 +63,16 @@ public class EBComponent
      * Create an event builder component.
      */
     public EBComponent()
+    {
+        this(false);
+    }
+
+    /**
+     * Create an event builder component.
+     *
+     * @param validateEvents if <tt>true</tt>, use a validating dispatcher
+     */
+    public EBComponent(boolean validateEvents)
     {
         super(COMPONENT_NAME, 0);
 
@@ -92,7 +109,7 @@ public class EBComponent
 
         backEnd =
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
-                                    dispatcher);
+                                    dispatcher, validateEvents);
 
         EventBuilderTriggerRequestDemultiplexer demuxer =
             new EventBuilderTriggerRequestDemultiplexer(trigFactory);
@@ -221,7 +238,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 3077 2008-05-27 20:53:04Z dglo $";
+	return "$Id: EBComponent.java 3343 2008-08-01 22:03:36Z dglo $";
     }
 
     /**
@@ -289,6 +306,8 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
-        new DAQCompServer(new EBComponent(), args);
+        boolean validateEvents =
+            System.getProperty(PROP_VALIDATE_EVENTS) != null;
+        new DAQCompServer(new EBComponent(validateEvents), args);
     }
 }

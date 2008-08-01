@@ -13,6 +13,7 @@ import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.SourceIdRegistry;
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.reqFiller.RequestFiller;
@@ -156,6 +157,9 @@ public class EventBuilderBackEnd
 
     // per-run monitoring counters
     private int execListLen;
+    private long numBadEvents;
+    private long prevFirstTime;
+    private long prevLastTime;
 
     // lifetime monitoring counters
     private long prevRunTotalEvents;
@@ -185,6 +189,8 @@ public class EventBuilderBackEnd
 
     /** Has the back end been reset? */
     private boolean isReset;
+    /** should events be validated? */
+    private boolean validateEvents;
 
     /**
      * Constructor
@@ -194,10 +200,25 @@ public class EventBuilderBackEnd
      * @param analysis data splicer analysis
      * @param dispatcher DAQ dispatch
      */
-    public EventBuilderBackEnd(IByteBufferCache eventCache,
-                               Splicer splicer,
-                               SPDataAnalysis analysis,
-                               Dispatcher dispatcher)
+    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
+                               SPDataAnalysis analysis, Dispatcher dispatcher)
+    {
+        this(eventCache, splicer, analysis, dispatcher, false);
+    }
+
+    /**
+     * Constructor
+     *
+     * @param eventCache event buffer cache manager
+     * @param splicer data splicer
+     * @param analysis data splicer analysis
+     * @param dispatcher DAQ dispatch
+     * @param validateEvents <tt>true</tt> if created events should be
+     *                       checked for validity
+     */
+    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
+                               SPDataAnalysis analysis, Dispatcher dispatcher,
+                               boolean validateEvents)
     {
         super("EventBuilderBackEnd", true);
 
@@ -205,6 +226,7 @@ public class EventBuilderBackEnd
         this.splicer = splicer;
         this.analysis = analysis;
         this.cacheManager = eventCache;
+        this.validateEvents = validateEvents;
 
         // register this object with splicer analysis
         analysis.setDataProcessor(this);
@@ -388,6 +410,16 @@ public class EventBuilderBackEnd
         }
 
         return -num - 1;
+    }
+
+    /**
+     * Get number of bad events for this run.
+     *
+     * @return number of bad events
+     */
+    public long getNumBadEvents()
+    {
+        return numBadEvents;
     }
 
     /**
@@ -830,6 +862,9 @@ public class EventBuilderBackEnd
             recycleFinalData();
 
             execListLen = 0;
+            numBadEvents = 0;
+            prevFirstTime = 0L;
+            prevLastTime = 0L;
 
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
@@ -890,6 +925,24 @@ public class EventBuilderBackEnd
             if (eventSubrunNumber != lastDispSubrunNumber) {
                 rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
                 lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            if (validateEvents) {
+                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
+                    numBadEvents++;
+                } else if (prevLastTime >
+                           tmpEvent.getFirstTimeUTC().longValue())
+                {
+                    LOG.error("Previous event time interval [" +
+                              prevFirstTime + "-" + prevLastTime +
+                              "] overlaps current event interval [" +
+                              tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() + "]");
+                    numBadEvents++;
+                }
+
+                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
+                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
             }
 
             dispatcher.dispatchEvent(tmpEvent);
