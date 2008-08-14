@@ -14,10 +14,12 @@ import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.splicer.HKN1Splicer;
 import icecube.daq.splicer.Splicer;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
@@ -58,6 +60,9 @@ public class EBComponent
     private Splicer splicer;
 
     private Dispatcher dispatcher;
+
+    private boolean validateEvents;
+    private File configDir;
 
     /**
      * Create an event builder component.
@@ -148,6 +153,8 @@ public class EBComponent
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
+
+        this.validateEvents = validateEvents;
     }
 
     /**
@@ -169,6 +176,13 @@ public class EBComponent
         }
 
         backEnd.commitSubrun(subrunNumber, startTime);
+    }
+
+    public void configuring(String configName) throws DAQCompException
+    {
+        if (validateEvents) {
+            PayloadChecker.configure(configDir, configName);
+        }
     }
 
     public IByteBufferCache getDataCache()
@@ -238,7 +252,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-	return "$Id: EBComponent.java 3343 2008-08-01 22:03:36Z dglo $";
+        return "$Id: EBComponent.java 3393 2008-08-14 20:31:39Z dglo $";
     }
 
     /**
@@ -264,15 +278,36 @@ public class EBComponent
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     * @param dirName The absolute path of directory where the dispatch files
+     *                will be stored.
      */
     public void setDispatchDestStorage(String dirName) {
         dispatcher.setDispatchDestStorage(dirName);
     }
 
+    /**
+     * Set the dispatcher to use.
+     *
+     * @param dispatcher object which deals with events
+     */
     public void setDispatcher(Dispatcher dispatcher)
     {
         backEnd.setDispatcher(dispatcher);
+    }
+
+    /**
+     * Set the directory where the global configuration files can be found.
+     *
+     * @param dirName The absolute path of the global configuration directory
+     */
+    public void setGlobalConfigurationDir(String dirName)
+    {
+        configDir = new File(dirName);
+
+        if (!configDir.exists()) {
+            throw new Error("Configuration directory \"" + configDir +
+                            "\" does not exist");
+        }
     }
 
     /**
