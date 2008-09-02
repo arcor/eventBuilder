@@ -1079,7 +1079,8 @@ public class EventBuilderBackEnd
                            newSubrunNumber);
             dispatcher.dataBoundary(message);
             if (LOG.isInfoEnabled()) {
-                LOG.info("called dataBoundary for subrun with the message: " + message);
+                LOG.info("called dataBoundary for subrun with the message: " +
+                         message);
             }
 
             // save event count from ending subrun

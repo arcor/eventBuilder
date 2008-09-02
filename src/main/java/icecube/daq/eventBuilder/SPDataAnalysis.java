@@ -153,8 +153,10 @@ public class SPDataAnalysis
         } catch (DispatchException de) {
             LOG.error("Couldn't start dispatcher (" + message + ")", de);
         }
-        LOG.info("called dataBoundary on STARTING with the message: " +
-                 message);
+        if (LOG.isInfoEnabled()) {
+            LOG.info("called dataBoundary on STARTING with the message: " +
+                     message);
+        }
     }
 
     /**
@@ -184,8 +186,10 @@ public class SPDataAnalysis
         } catch (DispatchException de) {
             LOG.error("Couldn't stop dispatcher (" + message + ")", de);
         }
-        LOG.info("called dataBoundary on STOPPED with the message: " +
-                 message);
+        if (LOG.isInfoEnabled()) {
+            LOG.info("called dataBoundary on STOPPED with the message: " +
+                     message);
+        }
 
         runNumber = Integer.MIN_VALUE;
         reportedBadRunNumber = false;
