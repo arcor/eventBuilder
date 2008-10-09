@@ -252,7 +252,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 3393 2008-08-14 20:31:39Z dglo $";
+        return "$Id: EBComponent.java 3569 2008-10-09 17:05:39Z dglo $";
     }
 
     /**
@@ -343,6 +343,15 @@ public class EBComponent
     {
         boolean validateEvents =
             System.getProperty(PROP_VALIDATE_EVENTS) != null;
-        new DAQCompServer(new EBComponent(validateEvents), args);
+
+        DAQCompServer srvr;
+        try {
+            srvr = new DAQCompServer(new EBComponent(validateEvents), args);
+        } catch (IllegalArgumentException ex) {
+            System.err.println(ex.getMessage());
+            System.exit(1);
+            return; // without this, compiler whines about uninitialized 'srvr'
+        }
+        srvr.startServing();
     }
 }
