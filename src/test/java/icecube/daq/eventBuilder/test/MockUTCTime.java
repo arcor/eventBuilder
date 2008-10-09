@@ -71,6 +71,16 @@ public class MockUTCTime
         return time;
     }
 
+    public int hashCode()
+    {
+        final long modValue = Integer.MAX_VALUE / 256;
+
+        final long topTwo = time / modValue;
+
+        return (int) (topTwo / modValue) + (int) (topTwo % modValue) +
+            (int) (time % modValue);
+    }
+
     /**
      * Object knows how to recycle itself
      */
