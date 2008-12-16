@@ -57,6 +57,13 @@ public interface BackEndMonitor
     double getEventsPerSecond();
 
     /**
+     * Get number of bad events for this run.
+     *
+     * @return number of bad events
+     */
+    long getNumBadEvents();
+
+    /**
      * Get number of readouts which could not be loaded.
      *
      * @return number of bad readouts received since last reset

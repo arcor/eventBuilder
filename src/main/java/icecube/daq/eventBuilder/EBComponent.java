@@ -14,10 +14,12 @@ import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.splicer.HKN1Splicer;
 import icecube.daq.splicer.Splicer;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
@@ -29,6 +31,13 @@ import org.apache.commons.logging.LogFactory;
 public class EBComponent
     extends DAQComponent
 {
+    /**
+     * Name of property used to signal that events should be validated
+     * before being written to the physics file.
+     */
+    public static final String PROP_VALIDATE_EVENTS =
+            "icecube.daq.eventBuilder.validateEvents";
+
     /** Component name. */
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
@@ -36,32 +45,50 @@ public class EBComponent
     /** Message logger. */
     private static final Log LOG = LogFactory.getLog(EBComponent.class);
 
+    private IByteBufferCache trigBufMgr;
     private GlobalTriggerReader gtInputProcess;
+
+    private IByteBufferCache rdoutDataMgr;
     private SpliceablePayloadReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
-    private EventBuilderSPcachePayloadOutputEngine spFlushOutputProcess;
+
+    private MonitoringData monData;
 
     private EventBuilderBackEnd backEnd;
     private SPDataAnalysis splicedAnalysis;
+    private Splicer splicer;
 
     private Dispatcher dispatcher;
+
+    private boolean validateEvents;
+    private File configDir;
 
     /**
      * Create an event builder component.
      */
     public EBComponent()
     {
+        this(false);
+    }
+
+    /**
+     * Create an event builder component.
+     *
+     * @param validateEvents if <tt>true</tt>, use a validating dispatcher
+     */
+    public EBComponent(boolean validateEvents)
+    {
         super(COMPONENT_NAME, 0);
 
         final int compId = 0;
 
-        IByteBufferCache rdoutDataMgr = new VitreousBufferCache();
+        rdoutDataMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
 
-        IByteBufferCache trigBufMgr = new VitreousBufferCache();
+        trigBufMgr = new VitreousBufferCache();
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
@@ -75,11 +102,11 @@ public class EBComponent
         addMBean("jvm", new MemoryStatistics());
         addMBean("system", new SystemStatistics());
 
-        MonitoringData monData = new MonitoringData();
+        monData = new MonitoringData();
         addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
-        Splicer splicer = new HKN1Splicer(splicedAnalysis);
+        splicer = new HKN1Splicer(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
@@ -87,7 +114,10 @@ public class EBComponent
 
         backEnd =
             new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
-                                    dispatcher);
+                                    dispatcher, validateEvents);
+
+        EventBuilderTriggerRequestDemultiplexer demuxer =
+            new EventBuilderTriggerRequestDemultiplexer(trigFactory);
 
         try {
             gtInputProcess =
@@ -114,28 +144,17 @@ public class EBComponent
         addMonitoredEngine(DAQConnector.TYPE_READOUT_DATA,
                            rdoutDataInputProcess);
 
-        final boolean skipFlush = true;
-
-        if (!skipFlush) {
-            // TODO: don't add this output engine; it should go away
-            spFlushOutputProcess =
-                new EventBuilderSPcachePayloadOutputEngine(COMPONENT_NAME,
-                                                           compId,
-                                                           "spFlushOutput");
-        }
-
         // connect pieces together
-        gtInputProcess.registerStringProcReqOutputEngine(spReqOutputProcess);
-        if (!skipFlush) {
-            backEnd.registerStringProcCacheOutputEngine(spFlushOutputProcess);
-        }
+        gtInputProcess.registerDemultiplexer(demuxer);
+
+        demuxer.registerOutputEngine(spReqOutputProcess);
+
         spReqOutputProcess.registerBufferManager(genMgr);
-        if (!skipFlush) {
-            spFlushOutputProcess.registerBufferManager(genMgr);
-        }
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
+
+        this.validateEvents = validateEvents;
     }
 
     /**
@@ -159,6 +178,33 @@ public class EBComponent
         backEnd.commitSubrun(subrunNumber, startTime);
     }
 
+    public void configuring(String configName) throws DAQCompException
+    {
+        if (validateEvents) {
+            PayloadChecker.configure(configDir, configName);
+        }
+    }
+
+    public IByteBufferCache getDataCache()
+    {
+        return rdoutDataMgr;
+    }
+
+    public SpliceablePayloadReader getDataReader()
+    {
+        return rdoutDataInputProcess;
+    }
+
+    public Splicer getDataSplicer()
+    {
+        return splicer;
+    }
+
+    public Dispatcher getDispatcher()
+    {
+        return dispatcher;
+    }
+
     /**
      * Get the number of events for the given subrun.
      * NOTE: This should only be implemented by the event builder component.
@@ -175,8 +221,38 @@ public class EBComponent
         try {
             return backEnd.getSubrunTotalEvents(subrun);
         } catch (RuntimeException rte) {
-            throw new DAQCompException(rte.getMessage());
+            throw new DAQCompException(rte.getMessage(), rte);
         }
+    }
+
+    public MonitoringData getMonitoringData()
+    {
+        return monData;
+    }
+
+    public EventBuilderSPreqPayloadOutputEngine getRequestWriter()
+    {
+        return spReqOutputProcess;
+    }
+
+    public IByteBufferCache getTriggerCache()
+    {
+        return trigBufMgr;
+    }
+
+    public GlobalTriggerReader getTriggerReader()
+    {
+        return gtInputProcess;
+    }
+
+    /**
+     * Return this component's svn version id as a String.
+     *
+     * @return svn version id as a String
+     */
+    public String getVersionInfo()
+    {
+        return "$Id: EBComponent.java 3569 2008-10-09 17:05:39Z dglo $";
     }
 
     /**
@@ -202,10 +278,36 @@ public class EBComponent
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     * @param dirName The absolute path of directory where the dispatch files
+     *                will be stored.
      */
     public void setDispatchDestStorage(String dirName) {
         dispatcher.setDispatchDestStorage(dirName);
+    }
+
+    /**
+     * Set the dispatcher to use.
+     *
+     * @param dispatcher object which deals with events
+     */
+    public void setDispatcher(Dispatcher dispatcher)
+    {
+        backEnd.setDispatcher(dispatcher);
+    }
+
+    /**
+     * Set the directory where the global configuration files can be found.
+     *
+     * @param dirName The absolute path of the global configuration directory
+     */
+    public void setGlobalConfigurationDir(String dirName)
+    {
+        configDir = new File(dirName);
+
+        if (!configDir.exists()) {
+            throw new Error("Configuration directory \"" + configDir +
+                            "\" does not exist");
+        }
     }
 
     /**
@@ -230,17 +332,6 @@ public class EBComponent
     }
 
     /**
-     * Return this component's svn version id as a String.
-     *
-     * @return svn version id as a String
-     */
-    public String getVersionInfo()
-    {
-	return "$Id: EBComponent.java 2713 2008-02-28 23:01:59Z dglo $";
-    }
-
-
-    /**
      * Run a DAQ component server.
      *
      * @param args command-line arguments
@@ -250,6 +341,17 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
-        new DAQCompServer(new EBComponent(), args);
+        boolean validateEvents =
+            System.getProperty(PROP_VALIDATE_EVENTS) != null;
+
+        DAQCompServer srvr;
+        try {
+            srvr = new DAQCompServer(new EBComponent(validateEvents), args);
+        } catch (IllegalArgumentException ex) {
+            System.err.println(ex.getMessage());
+            System.exit(1);
+            return; // without this, compiler whines about uninitialized 'srvr'
+        }
+        srvr.startServing();
     }
 }

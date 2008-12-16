@@ -119,6 +119,20 @@ public class MonitoringData
     }
 
     /**
+     * Get number of bad events for this run.
+     *
+     * @return number of bad events
+     */
+    public long getNumBadEvents()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumBadEvents();
+    }
+
+    /**
      * Get number of readouts which could not be loaded.
      *
      * @return num bad readouts

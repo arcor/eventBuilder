@@ -58,8 +58,6 @@ public class GlobalTriggerReader
         }
         this.trFactory = trigReqFactory;
         this.bufMgr = bufMgr;
-
-        demuxer = new EventBuilderTriggerRequestDemultiplexer(trFactory);
     }
 
     public long getReceivedMessages()
@@ -107,23 +105,12 @@ ByteBuffer newBuf = buf;
         demuxer.demux(pay);
 
         // add trigger request to back-end queue
-        backEnd.addRequest((ILoadablePayload) pay);
+        backEnd.addRequest(pay);
     }
 
-    public void registerStringProcCacheOutputEngine(EventBuilderSPcachePayloadOutputEngine oe)
+    public void registerDemultiplexer(EventBuilderTriggerRequestDemultiplexer demuxer)
     {
-        if (oe != null) {
-            oe.registerBufferManager(bufMgr);
-        }
-    }
-
-    public void registerStringProcReqOutputEngine(RequestPayloadOutputEngine oe)
-    {
-        oe.registerBufferManager(bufMgr);
-
-        // Register the output engine
-        // with the global trigger to string proc demultiplexer
-        demuxer.registerOutputEngine(oe);
+        this.demuxer = demuxer;
     }
 
     public void sendStop()

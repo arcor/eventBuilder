@@ -4,8 +4,7 @@ import icecube.daq.payload.IUTCTime;
 import icecube.util.Poolable;
 
 public class MockUTCTime
-    extends Poolable
-    implements IUTCTime
+    implements IUTCTime, Poolable
 {
     private long time;
 
@@ -70,6 +69,16 @@ public class MockUTCTime
     public long longValue()
     {
         return time;
+    }
+
+    public int hashCode()
+    {
+        final long modValue = Integer.MAX_VALUE / 256;
+
+        final long topTwo = time / modValue;
+
+        return (int) (topTwo / modValue) + (int) (topTwo % modValue) +
+            (int) (time % modValue);
     }
 
     /**

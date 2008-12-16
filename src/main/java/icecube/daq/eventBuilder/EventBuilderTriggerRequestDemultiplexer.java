@@ -12,7 +12,7 @@ import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,28 +41,7 @@ public class EventBuilderTriggerRequestDemultiplexer
     /** <tt>true</tt> if generator has been initialized */
     private boolean generatorInitialized;
 
-    /*
-     * The unique ID for the Event generated in response
-     * to the Trigger Request that invoked this object.
-     * This is gotted from the ITriggerRequestPayload.
-     */
-    private int eventId;
-
-    /* Vector of all readout reqeust elements associated with
-     * this event. Obtained by calling getReadoutRequest()
-     * on mt_rrq.
-     */
-    private Vector readoutElements;
-
-    /**
-     * Every Payload has to have a time stamp. This field is used to
-     * generate the time stamps on the ReadoutRequestPayload's sent out
-     * to the SP/IDH's. comes from the TriggerRequestPaylaod with which
-     * we got invoked.
-     */
-    private IUTCTime utcTime;
-
-    // The output engine used to send Readout Requests to String procs.
+    /** The output engine used to send Readout Requests to StringHubs. */
     private RequestPayloadOutputEngine payloadDest;
 
     /**
@@ -94,6 +73,14 @@ public class EventBuilderTriggerRequestDemultiplexer
             return false;
         }
 
+        IPayloadDestinationCollection dests =
+            payloadDest.getPayloadDestinationCollection();
+
+        if (!generatorInitialized) {
+            readoutGenerator.setDestinations(dests.getAllSourceIDs());
+            generatorInitialized = true;
+        }
+
         if (inputTriggerRequest.getPayloadType() !=
             PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST)
         {
@@ -116,22 +103,14 @@ public class EventBuilderTriggerRequestDemultiplexer
         }
 
         // looks like a valid trigger request payload judging by the type.
-        eventId = inputTriggerRequest.getUID();
+        int eventId = inputTriggerRequest.getUID();
 
         // We need to get the Payload time stamp to put in the readout
         // requests.
-        utcTime = inputTriggerRequest.getPayloadTimeUTC();
+        IUTCTime utcTime = inputTriggerRequest.getPayloadTimeUTC();
 
         final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
-        readoutElements =
-            tmpReq.getReadoutRequestElements();
-
-        if (!generatorInitialized) {
-            IPayloadDestinationCollection coll =
-                payloadDest.getPayloadDestinationCollection();
-            readoutGenerator.setDestinations(coll.getAllSourceIDs());
-            generatorInitialized = true;
-        }
+        List readoutElements = tmpReq.getReadoutRequestElements();
 
         // Get readout Request payloads to send from the Generator object.
         Collection readouts =
@@ -150,9 +129,6 @@ public class EventBuilderTriggerRequestDemultiplexer
             return false;
         }
 
-        IPayloadDestinationCollection dests =
-            payloadDest.getPayloadDestinationCollection();
-
         // Let's dump these readouts to logs and to the output destination.
         Iterator iter = readouts.iterator();
         while (iter.hasNext()) {
@@ -163,7 +139,7 @@ public class EventBuilderTriggerRequestDemultiplexer
             // payloadDest payload output engine.
             //  We try to demux the readouts to different files.
 
-            Vector elemVec = tmpRRQ.getReadoutRequestElements();
+            List elemVec = tmpRRQ.getReadoutRequestElements();
 
             if (LOG.isErrorEnabled() && elemVec.size() != 1) {
                 LOG.error("Expected one element in readout request #" +
@@ -172,7 +148,7 @@ public class EventBuilderTriggerRequestDemultiplexer
 
             //this works coz there's only one element in each readoutRequest
             IReadoutRequestElement tmpReadout =
-                (IReadoutRequestElement) elemVec.elementAt(0);
+                (IReadoutRequestElement) elemVec.get(0);
 
             //DO the actual demuxing...
             try {

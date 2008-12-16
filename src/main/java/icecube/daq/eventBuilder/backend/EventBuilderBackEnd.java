@@ -1,12 +1,11 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.eventbuilder.IReadoutDataPayload;
-import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
+import icecube.daq.eventbuilder.impl.EventPayload_v4Factory;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
@@ -14,6 +13,7 @@ import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.SourceIdRegistry;
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.reqFiller.RequestFiller;
@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -149,16 +150,17 @@ public class EventBuilderBackEnd
     private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
 
-    private EventBuilderSPcachePayloadOutputEngine cacheOutputEngine;
-
     // Factory to make EventPayloads.
-    private EventPayload_v3Factory eventFactory;
+    private EventPayload_v4Factory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
 
     // per-run monitoring counters
     private int execListLen;
+    private long numBadEvents;
+    private long prevFirstTime;
+    private long prevLastTime;
 
     // lifetime monitoring counters
     private long prevRunTotalEvents;
@@ -188,6 +190,12 @@ public class EventBuilderBackEnd
 
     /** Has the back end been reset? */
     private boolean isReset;
+    /** should events be validated? */
+    private boolean validateEvents;
+
+    /** Current year. */
+    private short year;
+    private long prevEventStart;
 
     /**
      * Constructor
@@ -197,34 +205,39 @@ public class EventBuilderBackEnd
      * @param analysis data splicer analysis
      * @param dispatcher DAQ dispatch
      */
-    public EventBuilderBackEnd(IByteBufferCache eventCache,
-                               Splicer splicer,
-                               SPDataAnalysis analysis,
-                               Dispatcher dispatcher)
+    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
+                               SPDataAnalysis analysis, Dispatcher dispatcher)
+    {
+        this(eventCache, splicer, analysis, dispatcher, false);
+    }
+
+    /**
+     * Constructor
+     *
+     * @param eventCache event buffer cache manager
+     * @param splicer data splicer
+     * @param analysis data splicer analysis
+     * @param dispatcher DAQ dispatch
+     * @param validateEvents <tt>true</tt> if created events should be
+     *                       checked for validity
+     */
+    public EventBuilderBackEnd(IByteBufferCache eventCache, Splicer splicer,
+                               SPDataAnalysis analysis, Dispatcher dispatcher,
+                               boolean validateEvents)
     {
         super("EventBuilderBackEnd", true);
-
-        if (dispatcher == null) {
-            if (LOG.isFatalEnabled()) {
-                try {
-                    throw new NullPointerException("Dispatcher");
-                } catch (NullPointerException ex) {
-                    LOG.fatal("Constructor called with null dispatcher", ex);
-                }
-            }
-            System.exit(1);
-        }
 
         this.dispatcher = dispatcher;
         this.splicer = splicer;
         this.analysis = analysis;
         this.cacheManager = eventCache;
+        this.validateEvents = validateEvents;
 
         // register this object with splicer analysis
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v3Factory();
+        eventFactory = new EventPayload_v4Factory();
         eventFactory.setByteBufferCache(eventCache);
     }
 
@@ -315,14 +328,24 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Dispose of a list of data payloads which are no longer needed.
+     *
+     * @param dataList list of data payload
+     */
+    public void disposeDataList(List dataList)
+    {
+        // if we truncate the final data payload,
+        // all the others will also be removed
+        Object obj = dataList.get(dataList.size() - 1);
+        splicer.truncate((Spliceable) obj);
+    }
+
+    /**
      * Finish any tasks to be done just before the thread exits.
      */
     public void finishThreadCleanup()
     {
         analysis.stopDispatcher();
-        if (cacheOutputEngine != null) {
-            cacheOutputEngine.sendLastAndStop();
-        }
         totStopsSent++;
     }
 
@@ -392,6 +415,16 @@ public class EventBuilderBackEnd
         }
 
         return -num - 1;
+    }
+
+    /**
+     * Get number of bad events for this run.
+     *
+     * @return number of bad events
+     */
+    public long getNumBadEvents()
+    {
+        return numBadEvents;
     }
 
     /**
@@ -768,6 +801,12 @@ public class EventBuilderBackEnd
             return null;
         }
 
+        if (year == 0 || startTime.longValue() < prevEventStart) {
+            GregorianCalendar cal = new GregorianCalendar(); 
+            year = (short) cal.get(GregorianCalendar.YEAR);
+            prevEventStart = startTime.longValue();
+        }
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Closing Event " + startTime + " - " + endTime);
         }
@@ -775,8 +814,6 @@ public class EventBuilderBackEnd
             LOG.warn("Sending empty event for window [" + startTime + " - " +
                      endTime + "]");
         }
-
-        final int eventType = req.getTriggerType();
 
         int subnum;
         synchronized (subrunLock) {
@@ -790,7 +827,7 @@ public class EventBuilderBackEnd
 
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       eventType, runNumber, subnum, req,
+                                       year, runNumber, subnum, req,
                                        new Vector(dataList));
 
         return event;
@@ -824,17 +861,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Register the string processor cache-flush output engine.
-     *
-     * @param oe output engine
-     */
-    public void registerStringProcCacheOutputEngine
-        (EventBuilderSPcachePayloadOutputEngine oe)
-    {
-        cacheOutputEngine = oe;
-    }
-
-    /**
      * Reset the back end after it has been stopped.
      */
     public void reset()
@@ -845,6 +871,9 @@ public class EventBuilderBackEnd
             recycleFinalData();
 
             execListLen = 0;
+            numBadEvents = 0;
+            prevFirstTime = 0L;
+            prevLastTime = 0L;
 
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
@@ -905,6 +934,24 @@ public class EventBuilderBackEnd
             if (eventSubrunNumber != lastDispSubrunNumber) {
                 rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
                 lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            if (validateEvents) {
+                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
+                    numBadEvents++;
+                } else if (prevLastTime >
+                           tmpEvent.getFirstTimeUTC().longValue())
+                {
+                    LOG.error("Previous event time interval [" +
+                              prevFirstTime + "-" + prevLastTime +
+                              "] overlaps current event interval [" +
+                              tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() + "]");
+                    numBadEvents++;
+                }
+
+                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
+                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
             }
 
             dispatcher.dispatchEvent(tmpEvent);
@@ -1041,7 +1088,8 @@ public class EventBuilderBackEnd
                            newSubrunNumber);
             dispatcher.dataBoundary(message);
             if (LOG.isInfoEnabled()) {
-                LOG.info("called dataBoundary for subrun with the message: " + message);
+                LOG.info("called dataBoundary for subrun with the message: " +
+                         message);
             }
 
             // save event count from ending subrun
@@ -1054,6 +1102,20 @@ public class EventBuilderBackEnd
                 subrunEventCountMap.put(newData, newData);
             }
             subrunEventCount = 0;
+        }
+    }
+
+    /**
+     * Set the event dispatcher.
+     *
+     * @param dispatcher event dispatcher
+     */
+    public void setDispatcher(Dispatcher dispatcher)
+    {
+        if (dispatcher == null) {
+            LOG.error("Cannot set null dispatcher");
+        } else {
+            this.dispatcher = dispatcher;
         }
     }
 
