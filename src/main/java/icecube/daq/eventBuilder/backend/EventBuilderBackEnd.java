@@ -5,7 +5,7 @@ import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.eventbuilder.IReadoutDataPayload;
-import icecube.daq.eventbuilder.impl.EventPayload_v4Factory;
+import icecube.daq.eventbuilder.impl.EventPayload_v3Factory;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -151,7 +150,7 @@ public class EventBuilderBackEnd
     private Dispatcher dispatcher;
 
     // Factory to make EventPayloads.
-    private EventPayload_v4Factory eventFactory;
+    private EventPayload_v3Factory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
@@ -193,10 +192,6 @@ public class EventBuilderBackEnd
     /** should events be validated? */
     private boolean validateEvents;
 
-    /** Current year. */
-    private short year;
-    private long prevEventStart;
-
     /**
      * Constructor
      *
@@ -237,7 +232,7 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v4Factory();
+        eventFactory = new EventPayload_v3Factory();
         eventFactory.setByteBufferCache(eventCache);
     }
 
@@ -801,12 +796,6 @@ public class EventBuilderBackEnd
             return null;
         }
 
-        if (year == 0 || startTime.longValue() < prevEventStart) {
-            GregorianCalendar cal = new GregorianCalendar(); 
-            year = (short) cal.get(GregorianCalendar.YEAR);
-            prevEventStart = startTime.longValue();
-        }
-
         if (LOG.isDebugEnabled()) {
             LOG.debug("Closing Event " + startTime + " - " + endTime);
         }
@@ -814,6 +803,8 @@ public class EventBuilderBackEnd
             LOG.warn("Sending empty event for window [" + startTime + " - " +
                      endTime + "]");
         }
+
+        final int eventType = req.getTriggerType();
 
         int subnum;
         synchronized (subrunLock) {
@@ -827,7 +818,7 @@ public class EventBuilderBackEnd
 
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       year, runNumber, subnum, req,
+                                       eventType, runNumber, subnum, req,
                                        new Vector(dataList));
 
         return event;
