@@ -375,7 +375,7 @@ public class EventBuilderBackEnd
      *
      * @return the number of units still available in the disk.
      */
-    public int getDiskAvailable()
+    public long getDiskAvailable()
     {
         return dispatcher.getDiskAvailable();
     }
@@ -386,7 +386,7 @@ public class EventBuilderBackEnd
      *
      * @return the total number of units in the disk.
      */
-    public int getDiskSize()
+    public long getDiskSize()
     {
         return dispatcher.getDiskSize();
     }

@@ -57,12 +57,12 @@ public class MockDispatcher
         throw new Error("Unimplemented");
     }
 
-    public int getDiskAvailable()
+    public long getDiskAvailable()
     {
         return 0;
     }
 
-    public int getDiskSize()
+    public long getDiskSize()
     {
         return 0;
     }

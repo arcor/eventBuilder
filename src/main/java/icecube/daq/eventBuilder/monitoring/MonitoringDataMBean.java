@@ -39,7 +39,7 @@ public interface MonitoringDataMBean
      *
      * @return the number of units still available in the disk.
      */
-    int getDiskAvailable();
+    long getDiskAvailable();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -47,7 +47,7 @@ public interface MonitoringDataMBean
      *
      * @return the total number of units in the disk.
      */
-    int getDiskSize();
+    long getDiskSize();
 
     /**
      * Get current rate of events per second.

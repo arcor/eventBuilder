@@ -80,7 +80,7 @@ public class MonitoringData
      *
      * @return the number of units still available in the disk.
      */
-    public int getDiskAvailable()
+    public long getDiskAvailable()
     {
         if (backEnd == null) {
             return 0;
@@ -95,7 +95,7 @@ public class MonitoringData
      *
      * @return the total number of units in the disk.
      */
-    public int getDiskSize()
+    public long getDiskSize()
     {
         if (backEnd == null) {
             return 0;
