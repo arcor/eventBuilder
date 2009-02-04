@@ -817,12 +817,12 @@ public class EventBuilderBackEnd
 
         int subnum;
         synchronized (subrunLock) {
-	    if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
-		// commitSubrun was called & that subrun is here
-		subrunNumber = getNextSubrunNumber(subrunNumber);
-		newSubrunStartTime = false;
-	    }
-	    subnum = subrunNumber;
+            if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
+                // commitSubrun was called & that subrun is here
+                subrunNumber = getNextSubrunNumber(subrunNumber);
+                newSubrunStartTime = false;
+            }
+            subnum = subrunNumber;
         }
 
         Payload event =
@@ -1026,17 +1026,17 @@ public class EventBuilderBackEnd
      */
     public void prepareSubrun(int subrunNumber)
     {
-	subrunNumber = -subrunNumber;
-	synchronized (subrunLock) {
+        subrunNumber = -subrunNumber;
+        synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
                 LOG.warn("Preparing for subrun " + subrunNumber +
                          ", though current subrun is " + this.subrunNumber +
                          ". (Expected next subrun to be " + tmpNum + ")");
             }
-	    this.subrunNumber = subrunNumber;
+            this.subrunNumber = subrunNumber;
             newSubrunStartTime = false;
-	}
+        }
     }
 
     /**
@@ -1056,7 +1056,7 @@ public class EventBuilderBackEnd
      */
     public void commitSubrun(int subrunNumber, long startTime)
     {
-	synchronized (subrunLock) {
+        synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
                 throw new RuntimeException("Provided subrun # " + subrunNumber +
@@ -1066,9 +1066,9 @@ public class EventBuilderBackEnd
             if (newSubrunStartTime) {
                 throw new RuntimeException("subrun already has start time set.");
             }
-	    newSubrunStartTime = true;
-	    this.subrunStart = startTime;
-	}
+            newSubrunStartTime = true;
+            this.subrunStart = startTime;
+        }
     }
 
     /**
