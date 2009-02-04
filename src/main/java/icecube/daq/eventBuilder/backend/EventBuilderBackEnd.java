@@ -811,7 +811,7 @@ public class EventBuilderBackEnd
             LOG.debug("Closing Event " + startTime + " - " + endTime);
         }
         if (LOG.isWarnEnabled() && dataList.size() == 0) {
-            LOG.warn("Sending empty event for window [" + startTime + " - " +
+            LOG.info("Sending empty event for window [" + startTime + " - " +
                      endTime + "]");
         }
 
