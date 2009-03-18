@@ -120,6 +120,13 @@ public interface BackEndMonitor
     long getNumReadoutsDiscarded();
 
     /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return number of readouts dropped
+     */
+    long getNumReadoutsDropped();
+
+    /**
      * Get number of readouts queued for processing.
      *
      * @return number of readouts queued
@@ -170,13 +177,6 @@ public interface BackEndMonitor
      * @return number of trigger requests received for this run
      */
     long getNumTriggerRequestsReceived();
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return number of unused readouts since last reset.
-     */
-    long getNumUnusedReadouts();
 
     /**
      * Get the total number of events from the previous run.

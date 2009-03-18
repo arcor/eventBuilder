@@ -273,6 +273,20 @@ public class MonitoringData
     }
 
     /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return number of readouts dropped
+     */
+    public long getNumReadoutsDropped()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumReadoutsDropped();
+    }
+
+    /**
      * Get number of readouts queued for processing.
      *
      * @return num readouts queued
@@ -342,20 +356,6 @@ public class MonitoringData
         }
 
         return backEnd.getNumTriggerRequestsReceived();
-    }
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return num unused readouts
-     */
-    public long getNumUnusedReadouts()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumUnusedReadouts();
     }
 
     /**
@@ -630,6 +630,8 @@ public class MonitoringData
                 append(getNumReadoutsCached());
             buf.append("\n  numReadoutsDiscarded ").
                 append(getNumReadoutsDiscarded());
+            buf.append("\n  numReadoutsDropped ").
+                append(getNumReadoutsDropped());
             buf.append("\n  numReadoutsQueued ").
                 append(getNumReadoutsQueued());
             buf.append("\n  numReadoutsRcvd ").
@@ -640,8 +642,6 @@ public class MonitoringData
                 append(getNumTriggerRequestsQueued());
             buf.append("\n  numTRsRcvd ").
                 append(getNumTriggerRequestsReceived());
-            buf.append("\n  numUnusedReadouts ").
-                append(getNumUnusedReadouts());
             buf.append("\n  previousRunTotalEvts ").
                 append(getPreviousRunTotalEvents());
             buf.append("\n  readoutsPerSecond ").

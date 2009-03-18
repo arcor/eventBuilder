@@ -498,6 +498,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return number of readouts dropped
+     */
+    public long getNumReadoutsDropped()
+    {
+        return getNumDataPayloadsDropped();
+    }
+
+    /**
      * Get number of readouts queued for processing.
      *
      * @return number of readouts queued
@@ -564,16 +574,6 @@ public class EventBuilderBackEnd
      */
     public long getNumTriggerRequestsReceived() {
         return getNumRequestsReceived();
-    }
-
-    /**
-     * Get number of readouts not used for an event.
-     *
-     * @return number of unused readouts
-     */
-    public long getNumUnusedReadouts()
-    {
-        return getNumUnusedDataPayloads();
     }
 
     /**

@@ -134,6 +134,13 @@ public interface MonitoringDataMBean
     //long getNumReadoutsDiscarded();
 
     /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return num readouts dropped
+     */
+    //long getNumReadoutsDropped();
+
+    /**
      * Get number of readouts queued for processing.
      *
      * @return num readouts queued
@@ -169,13 +176,6 @@ public interface MonitoringDataMBean
      * @return num trigger requests received
      */
     long getNumTriggerRequestsReceived();
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return num unused readouts
-     */
-    //long getNumUnusedReadouts();
 
     /**
      * Get the total number of events from the previous run.
