@@ -21,13 +21,12 @@ import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
 import icecube.daq.trigger.ITriggerRequestPayload;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
@@ -144,8 +143,6 @@ public class EventBuilderBackEnd
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
-    private IByteBufferCache cacheManager;
-
     private Splicer splicer;
     private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
@@ -197,6 +194,12 @@ public class EventBuilderBackEnd
     private short year;
     private long prevEventStart;
 
+    /** Output queue  -- ACCESS MUST BE SYNCHRONIZED. */
+    private List<ILoadablePayload> outputQueue =
+        new LinkedList<ILoadablePayload>();
+    /** Output thread. */
+    private OutputThread outputThread;
+
     /**
      * Constructor
      *
@@ -230,7 +233,6 @@ public class EventBuilderBackEnd
         this.dispatcher = dispatcher;
         this.splicer = splicer;
         this.analysis = analysis;
-        this.cacheManager = eventCache;
         this.validateEvents = validateEvents;
 
         // register this object with splicer analysis
@@ -548,6 +550,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    public int getNumOutputsQueued()
+    {
+        return outputQueue.size();
+    }
+
+    /**
      * Number of trigger requests dropped while stopping.
      *
      * @return number of trigger requests dropped
@@ -802,7 +814,7 @@ public class EventBuilderBackEnd
         }
 
         if (year == 0 || startTime.longValue() < prevEventStart) {
-            GregorianCalendar cal = new GregorianCalendar(); 
+            GregorianCalendar cal = new GregorianCalendar();
             year = (short) cal.get(GregorianCalendar.YEAR);
             prevEventStart = startTime.longValue();
         }
@@ -878,6 +890,20 @@ public class EventBuilderBackEnd
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
 
+            if (outputQueue.size() > 0) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Unwritten events queued at reset");
+                }
+
+                synchronized (outputQueue) {
+                    outputQueue.clear();
+                }
+            }
+
+            if (outputThread == null) {
+                outputThread = new OutputThread("EventWriter");
+            }
+
             isReset = true;
         }
 
@@ -909,70 +935,12 @@ public class EventBuilderBackEnd
      */
     public boolean sendOutput(ILoadablePayload output)
     {
-        boolean sent = sendToDaqDispatch(output);
-
-        // XXX not sending flush msg to string processors
-
-        return sent;
-    }
-
-    /**
-     * Send an event to DAQ Dispatch.
-     *
-     * @param event event being sent
-     *
-     * @return <tt>true</tt> if event was sent
-     */
-    private boolean sendToDaqDispatch(ILoadablePayload event)
-    {
-        IEventPayload tmpEvent = (IEventPayload) event;
-
-        boolean eventSent = false;
-
-        int eventSubrunNumber = tmpEvent.getSubrunNumber();
-        try {
-            if (eventSubrunNumber != lastDispSubrunNumber) {
-                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
-                lastDispSubrunNumber = eventSubrunNumber;
-            }
-
-            if (validateEvents) {
-                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
-                    numBadEvents++;
-                } else if (prevLastTime >
-                           tmpEvent.getFirstTimeUTC().longValue())
-                {
-                    LOG.error("Previous event time interval [" +
-                              prevFirstTime + "-" + prevLastTime +
-                              "] overlaps current event interval [" +
-                              tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() + "]");
-                    numBadEvents++;
-                }
-
-                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
-                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
-            }
-
-            dispatcher.dispatchEvent(tmpEvent);
-
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                          tmpEvent.getLastTimeUTC() +
-                          " written to daq-dispatch");
-            }
-
-            subrunEventCount++;
-            eventSent = true;
-        } catch (DispatchException ex) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Could not dispatch event", ex);
-            }
+        synchronized (outputQueue) {
+            outputQueue.add(output);
+            outputQueue.notify();
         }
 
-        tmpEvent.recycle();
-
-        return eventSent;
+        return true;
     }
 
     /**
@@ -1125,5 +1093,129 @@ public class EventBuilderBackEnd
     public void splicerStopped()
     {
         addDataStop();
+    }
+
+    /**
+     * If the thread is running, stop it.
+     */
+    public void stopThread()
+    {
+        if (outputThread != null) {
+            outputThread = null;
+
+            synchronized (outputQueue) {
+                outputQueue.notify();
+            }
+        }
+
+        super.stopThread();
+    }
+
+    /**
+     * Class which writes events to file(s).
+     */
+    class OutputThread
+        implements Runnable
+    {
+        /**
+         * Create and start output thread.
+         *
+         * @param name thread name
+         */
+        OutputThread(String name)
+        {
+            Thread tmpThread = new Thread(this);
+            tmpThread.setName(name);
+            tmpThread.start();
+        }
+
+        /**
+         * Main event dispatching loop.
+         */
+        public void run()
+        {
+            ILoadablePayload event;
+            while (outputThread != null) {
+                synchronized (outputQueue) {
+                    if (outputQueue.size() == 0) {
+                        try {
+                            outputQueue.wait();
+                        } catch (InterruptedException ie) {
+                            LOG.error("Interrupt while waiting for output queue",
+                                      ie);
+                        }
+                    }
+
+                    if (outputQueue.size() == 0) {
+                        event = null;
+                    } else {
+                        event = outputQueue.remove(0);
+                    }
+                }
+
+                if (event != null) {
+                    sendToDaqDispatch(event);
+                }
+            }
+        }
+
+        /**
+         * Send an event to DAQ Dispatch.
+         *
+         * @param event event being sent
+         *
+         * @return <tt>true</tt> if event was sent
+         */
+        private boolean sendToDaqDispatch(ILoadablePayload event)
+        {
+            IEventPayload tmpEvent = (IEventPayload) event;
+
+            boolean eventSent = false;
+
+            int eventSubrunNumber = tmpEvent.getSubrunNumber();
+            try {
+                if (eventSubrunNumber != lastDispSubrunNumber) {
+                    rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
+                    lastDispSubrunNumber = eventSubrunNumber;
+                }
+
+                if (validateEvents) {
+                    if (!PayloadChecker.validatePayload(tmpEvent, true)) {
+                        numBadEvents++;
+                    } else if (prevLastTime >
+                               tmpEvent.getFirstTimeUTC().longValue())
+                    {
+                        LOG.error("Previous event time interval [" +
+                                  prevFirstTime + "-" + prevLastTime +
+                                  "] overlaps current event interval [" +
+                                  tmpEvent.getFirstTimeUTC() + "-" +
+                                  tmpEvent.getLastTimeUTC() + "]");
+                        numBadEvents++;
+                    }
+
+                    prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
+                    prevLastTime = tmpEvent.getLastTimeUTC().longValue();
+                }
+
+                dispatcher.dispatchEvent(tmpEvent);
+
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() +
+                              " written to daq-dispatch");
+                }
+
+                subrunEventCount++;
+                eventSent = true;
+            } catch (DispatchException ex) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not dispatch event", ex);
+                }
+            }
+
+            tmpEvent.recycle();
+
+            return eventSent;
+        }
     }
 }

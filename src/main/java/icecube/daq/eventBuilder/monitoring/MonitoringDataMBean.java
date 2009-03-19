@@ -120,6 +120,13 @@ public interface MonitoringDataMBean
     //long getNumNullReadouts();
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    int getNumOutputsQueued();
+
+    /**
      * Get the number of readouts to be included in the event being built.
      *
      * @return num readouts cached

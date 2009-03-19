@@ -245,6 +245,20 @@ public class MonitoringData
     }
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    public int getNumOutputsQueued()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumOutputsQueued();
+    }
+
+    /**
      * Get the number of readouts to be included in the event being built.
      *
      * @return num readouts cached
