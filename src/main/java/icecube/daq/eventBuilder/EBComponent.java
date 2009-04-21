@@ -83,7 +83,7 @@ public class EBComponent
 
         final int compId = 0;
 
-        rdoutDataMgr = new VitreousBufferCache(500000000);
+        rdoutDataMgr = new VitreousBufferCache(250000000);
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
         MasterPayloadFactory rdoutDataFactory =
             new MasterPayloadFactory(rdoutDataMgr);
@@ -136,7 +136,7 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new SpliceablePayloadReader(COMPONENT_NAME, 25000, splicer,
+                new SpliceablePayloadReader(COMPONENT_NAME, 50000, splicer,
                                             rdoutDataFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
@@ -252,7 +252,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4048 2009-04-08 05:48:59Z joanna $";
+        return "$Id: EBComponent.java 4096 2009-04-21 12:53:54Z kael $";
     }
 
     /**
