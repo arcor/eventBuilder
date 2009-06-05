@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -840,7 +839,7 @@ public class EventBuilderBackEnd
         Payload event =
             eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
                                        year, runNumber, subnum, req,
-                                       new Vector(dataList));
+                                       dataList);
 
         return event;
     }
