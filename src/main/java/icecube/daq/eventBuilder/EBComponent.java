@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.eventbuilder.impl.ReadoutDataPayloadFactory;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.Dispatcher;
@@ -85,8 +86,9 @@ public class EBComponent
 
         rdoutDataMgr = new VitreousBufferCache("EBRdOut", 250000000);
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
-        MasterPayloadFactory rdoutDataFactory =
-            new MasterPayloadFactory(rdoutDataMgr);
+        ReadoutDataPayloadFactory rdoutDataFactory =
+            new ReadoutDataPayloadFactory();
+        rdoutDataFactory.setByteBufferCache(rdoutDataMgr);
 
         trigBufMgr = new VitreousBufferCache("EBTrig");
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
@@ -252,7 +254,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4268 2009-06-08 16:50:49Z dglo $";
+        return "$Id: EBComponent.java 4270 2009-06-08 22:33:57Z dglo $";
     }
 
     /**
