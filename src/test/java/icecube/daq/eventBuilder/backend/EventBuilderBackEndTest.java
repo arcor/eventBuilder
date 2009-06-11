@@ -6,13 +6,16 @@ import icecube.daq.eventBuilder.test.MockBufferCache;
 import icecube.daq.eventBuilder.test.MockDispatcher;
 import icecube.daq.eventBuilder.test.MockFactory;
 import icecube.daq.eventBuilder.test.MockHit;
+import icecube.daq.eventBuilder.test.MockReadoutData;
 import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.eventbuilder.IEventPayload;
+import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -25,6 +28,14 @@ public class EventBuilderBackEndTest
     extends TestCase
 {
     private static final MockAppender appender = new MockAppender();
+
+    private static short year;
+
+    static {
+        GregorianCalendar cal = new GregorianCalendar();
+        year = (short) cal.get(GregorianCalendar.YEAR);
+    }
+
 
     public EventBuilderBackEndTest(String name)
     {
@@ -54,6 +65,39 @@ public class EventBuilderBackEndTest
                      0, appender.getNumberOfMessages());
 
         super.tearDown();
+    }
+
+    private static void validateEvent(IEventPayload evt, int runNum,
+                                      int subrunNum, int uid, long firstTime,
+                                      long lastTime, MockTriggerRequest req,
+                                      List hitList)
+    {
+        try {
+            evt.loadPayload();
+        } catch (Exception ex) {
+            fail("Couldn't load event");
+        }
+
+        assertEquals("Bad type", -1, evt.getEventType());
+        assertEquals("Bad config ID", -1, evt.getEventConfigID());
+        assertEquals("Bad run number", runNum, evt.getRunNumber());
+        assertEquals("Bad subrun number", subrunNum, evt.getSubrunNumber());
+        assertEquals("Bad UID", uid, evt.getEventUID());
+        assertEquals("Bad year", year, evt.getYear());
+        assertNotNull("Null first time", evt.getFirstTimeUTC());
+        assertEquals("Bad first time",
+                     firstTime, evt.getFirstTimeUTC().longValue());
+        assertNotNull("Null last time", evt.getLastTimeUTC());
+        assertEquals("Bad last time",
+                     lastTime, evt.getLastTimeUTC().longValue());
+
+        ITriggerRequestPayload evtReq = evt.getTriggerRequestPayload();
+        assertNotNull("Null trigger request", evtReq);
+        assertEquals("Bad trigger request", req, evtReq);
+
+        List rdpList = evt.getReadoutDataPayloads();
+        assertNotNull("Null data list", rdpList);
+        assertEquals("Bad data list length", hitList.size(), rdpList.size());
     }
 
     public void testCreate()
@@ -151,11 +195,16 @@ public class EventBuilderBackEndTest
 
         long firstTime = 10000L;
         long lastTime = 20000L;
+        int uid = 888;
 
         MockTriggerRequest req =
-            new MockTriggerRequest(firstTime, lastTime, 999, 888);
+            new MockTriggerRequest(firstTime, lastTime, 999, uid);
 
-        backEnd.makeDataPayload(req, new ArrayList());
+        List hitList = new ArrayList();
+
+        IEventPayload evt =
+            (IEventPayload) backEnd.makeDataPayload(req, hitList);
+        validateEvent(evt, 0, 0, uid, firstTime, lastTime, req, hitList);
 
         if (appender.getNumberOfMessages() > 0) {
             assertEquals("Bad number of log messages",
@@ -184,19 +233,23 @@ public class EventBuilderBackEndTest
 
         long firstTime = 10000L;
         long lastTime = 20000L;
+        int uid = 888;
 
         MockTriggerRequest req =
-            new MockTriggerRequest(firstTime, lastTime, 999, 888);
+            new MockTriggerRequest(firstTime, lastTime, 999, uid);
 
         ArrayList hitList = new ArrayList();
         hitList.add(new MockHit());
 
-        backEnd.makeDataPayload(req, hitList);
+        IEventPayload evt =
+            (IEventPayload) backEnd.makeDataPayload(req, hitList);
+        validateEvent(evt, 0, 0, uid, firstTime, lastTime, req, hitList);
     }
 
+    /** Test the proper subrun numbering when making data payloads */
     public void testMakeDataPayloadSubruns()
     {
-        /* Test the proper subrun numbering when making data payloads */
+        appender.setVerbose(true);
 
         MockBufferCache bufCache = new MockBufferCache();
         MockFactory factory = new MockFactory();
@@ -208,64 +261,95 @@ public class EventBuilderBackEndTest
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.reset();
+
         assertEquals("Bad subrun number", 0, backEnd.getSubrunNumber());
 
         final long timeStep = 10000L;
 
+        final int runNum = 4;
+        backEnd.setRunNumber(runNum);
+
+        int numEvts = 0;
+
         int subrun = 0;
         for (int i = 0; i < 10; i++) {
-            final long firstTime = (long) (i + 1) * timeStep;
+            final long startTime = (long) (i + 1) * timeStep;
             final long substep = timeStep / (i + 1);
-            final long commitTime = firstTime + (i * substep)/2;
+            final long commitTime = startTime + (i * substep)/2;
 
             if (i != 0) {
                 backEnd.prepareSubrun(subrun);
                 backEnd.commitSubrun(subrun, commitTime);
             }
 
-            long lastTime = firstTime;
+            long firstTime = startTime;
+            long lastTime = firstTime + substep;
+
             for (int j = 0; j < i + 1; j++) {
-                long tmpTime = lastTime + substep;
-                long reqStartTime = lastTime;
+                int uid = 888 + numEvts;
 
                 MockTriggerRequest req =
-                    new MockTriggerRequest(reqStartTime, tmpTime, 999, 888 + i);
-
-                lastTime = tmpTime;
+                    new MockTriggerRequest(firstTime, lastTime, 999, uid);
 
                 ArrayList hitList = new ArrayList();
-                hitList.add(new MockHit());
+                hitList.add(new MockReadoutData(111, 222, firstTime + 1L,
+                                                lastTime - 1L));
 
                 IEventPayload evt =
                     (IEventPayload) backEnd.makeDataPayload(req, hitList);
 
-                if (reqStartTime >= commitTime)
-                    assertEquals("Bad subrun number", subrun, evt.getSubrunNumber());
-                else
-                    assertEquals("Bad subrun number", -subrun, evt.getSubrunNumber());
+                numEvts++;
 
-                /* dispatching needs to wait for a better MockDispatcher
-                  assertTrue("Failure to dispatch event", backEnd.sendOutput(evt));
-                */
+                int expSubrun;
+                if (firstTime >= commitTime) {
+                    expSubrun = subrun;
+                } else {
+                    expSubrun = -subrun;
+                }
+
+                validateEvent(evt, runNum, expSubrun, uid, firstTime, lastTime,
+                              req, hitList);
+
+                backEnd.sendOutput(evt);
+                while (backEnd.getNumOutputsQueued() > 0) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception ex) {
+                        // do nothing
+                    }
+                }
+
+                assertEquals("Bad number of dispatched events",
+                             numEvts, dispatcher.getTotalDispatchedEvents());
+
+                firstTime = lastTime;
+                lastTime += substep;
             }
 
             subrun++;
         }
 
-        /* checking event count, requires dispatching
-        int nextSubrun = 0;
-        for (int n = 1; nextSubrun != subrun; n++) {
+        backEnd.stopThread();
+
+        /* checking event count */
+        int numEvents = 0;
+        for (int nextSubrun = 0; nextSubrun < subrun; nextSubrun++) {
+            if ((nextSubrun & 1) == 0) {
+                numEvents++;
+            }
+
             assertEquals("Bad number of events for subrun " + nextSubrun,
-                         n, backEnd.getSubrunTotalEvents(nextSubrun));
-            nextSubrun++;
-        } */
+                         numEvents, backEnd.getSubrunTotalEvents(nextSubrun));
+        }
     }
 
+    /**
+     * Check that a sufficiently short and diabolical subruns do not cause
+     * incorrect numbering of subruns.
+     * Regression for issue #2318
+     */
     public void testShortSubruns() {
-        /* Check that a sufficiently short and diabolical subruns do
-           not cause incorrect numbering of subruns.  Regression for
-           issue #2318 */
-
         //System.out.println("Entering testShortSubruns():");
         //appender.setVerbose(true);
         //appender.setLevel(org.apache.log4j.Level.INFO);
@@ -279,67 +363,101 @@ public class EventBuilderBackEndTest
         EventBuilderBackEnd backEnd    =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
 
+        final int runNum = 123456;
+        backEnd.setRunNumber(runNum);
+
         // Bits for generating events
-        MockTriggerRequest req;
-        ArrayList hitList;
-        IEventPayload evt;
         Calendar now = new GregorianCalendar();
-        Calendar startOfYear = new GregorianCalendar(now.get(Calendar.YEAR), 0, 1);
+        Calendar startOfYear =
+            new GregorianCalendar(now.get(Calendar.YEAR), 0, 1);
         long t0 = startOfYear.getTimeInMillis();
-        long utc;
 
         // Fire a few events through the backend - subrun 0
         for (int i = 0; i < 10; i++) {
-            utc = (System.currentTimeMillis() - t0) * 10000000L;
-            req = new MockTriggerRequest(utc, utc + 50L, 999, 888 + i);
-            hitList = new ArrayList();
+            final long firstTime = (System.currentTimeMillis() - t0) * 10000000L;
+            final long lastTime = firstTime + 50L;
+            final int uid = 888 + i;
+
+            MockTriggerRequest req =
+                new MockTriggerRequest(firstTime, lastTime, 999, uid);
+
+            ArrayList hitList = new ArrayList();
             hitList.add(new MockHit());
-            evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
-            assertEquals("Bad subrun number in event", 0, evt.getSubrunNumber());
-            assertEquals("Bad subrun number in backend", 0, backEnd.getSubrunNumber());
+
+            IEventPayload evt =
+                (IEventPayload) backEnd.makeDataPayload(req, hitList);
+            validateEvent(evt, runNum, 0, uid, firstTime, lastTime,
+                          req, hitList);
+
+            assertEquals("Bad subrun number in backend",
+                         0, backEnd.getSubrunNumber());
         }
+
+        final long startTime = (System.currentTimeMillis() - t0) * 10000000L;
+        final long commitTime1 = startTime + 50L;
+
+        MockTriggerRequest req;
+        ArrayList hitList;
+        IEventPayload evt;
 
         // prep for subrun 1
         backEnd.prepareSubrun(1);
-        utc = (System.currentTimeMillis() - t0) * 10000000L;
-        backEnd.commitSubrun(1, utc + 50L);
+        backEnd.commitSubrun(1, commitTime1);
+
+        final long firstTime1 = startTime;
+        final long lastTime1 = firstTime1 + 5L;
+        final int uid1 = 900;
 
         // a transitional event: subrun -1
-        req = new MockTriggerRequest(utc, utc + 5L, 999, 900);
+        req = new MockTriggerRequest(firstTime1, lastTime1, 999, uid1);
         hitList = new ArrayList();
         hitList.add(new MockHit());
+
         evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        assertEquals("Bad subrun number in event", -1, evt.getSubrunNumber());
-        assertEquals("Bad subrun number in backend", -1, backEnd.getSubrunNumber());
+        validateEvent(evt, runNum, -1, uid1, firstTime1, lastTime1,
+                      req, hitList);
+
+        assertEquals("Bad subrun number in backend",
+                     -1, backEnd.getSubrunNumber());
 
         // prep for subrun 2
         backEnd.prepareSubrun(2);
 
-        // Now send event after subrun 1's start time but before we
-        // set subrun 2's start time.  Events should be part of subrun -2
-        req = new MockTriggerRequest(utc + 100L, utc + 20L, 999, 901);
-        hitList = new ArrayList();
-        hitList.add(new MockHit());
-        evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        assertEquals("Bad subrun number in event", -2, evt.getSubrunNumber());
-        assertEquals("Bad subrun number in backend", -2, backEnd.getSubrunNumber());
+        final long commitTime2 = commitTime1 + 150L;
 
-        // Now set start time for 2 and check that an event before that
-        // gets subrun -2 and after that get subrun 2
-        backEnd.commitSubrun(2, utc + 200L);
-        req = new MockTriggerRequest(utc + 150L, utc + 20L, 999, 902);
-        hitList = new ArrayList();
-        hitList.add(new MockHit());
-        evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        assertEquals("Bad subrun number in event", -2, evt.getSubrunNumber());
-        assertEquals("Bad subrun number in backend", -2, backEnd.getSubrunNumber());
+        long baseTime = commitTime1;
 
-        req = new MockTriggerRequest(utc + 300L, utc + 20L, 999, 903);
-        hitList = new ArrayList();
-        hitList.add(new MockHit());
-        evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        assertEquals("Bad subrun number in event", 2, evt.getSubrunNumber());
-        assertEquals("Bad subrun number in backend", 2, backEnd.getSubrunNumber());
+        for (int i = 0; i < 3; i++) {
+
+            // Now send event after subrun 1's start time but before we
+            // set subrun 2's start time.  Events should be part of subrun -2
+            final long firstTime = baseTime + 50L;
+            final long lastTime = firstTime + 20L;
+            int uid = uid1 + i + 1;
+
+            baseTime += 50L;
+
+            if (i == 1) {
+                backEnd.commitSubrun(2, commitTime2);
+            }
+
+            int subrun;
+            if (firstTime < commitTime2) {
+                subrun = -2;
+            } else {
+                subrun = 2;
+            }
+
+            req = new MockTriggerRequest(firstTime, lastTime, 999, uid);
+            hitList = new ArrayList();
+            hitList.add(new MockHit());
+
+            evt = (IEventPayload) backEnd.makeDataPayload(req, hitList);
+            validateEvent(evt, runNum, subrun, uid, firstTime, lastTime,
+                          req, hitList);
+            assertEquals("Bad subrun number in backend",
+                         subrun, backEnd.getSubrunNumber());
+        }
 
         //appender.setVerbose(false);
         //appender.setLevel(org.apache.log4j.Level.WARN);
