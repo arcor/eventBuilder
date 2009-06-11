@@ -337,8 +337,10 @@ public class EventBuilderBackEnd
     {
         // if we truncate the final data payload,
         // all the others will also be removed
-        Object obj = dataList.get(dataList.size() - 1);
-        splicer.truncate((Spliceable) obj);
+        if (dataList.size() > 0) {
+            Object obj = dataList.get(dataList.size() - 1);
+            splicer.truncate((Spliceable) obj);
+        }
     }
 
     /**
