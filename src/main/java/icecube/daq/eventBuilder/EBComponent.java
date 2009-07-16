@@ -227,6 +227,11 @@ public class EBComponent
         }
     }
 
+    public long getEventsSent()
+    {
+        return dispatcher.getTotalDispatchedEvents();
+    }
+
     public MonitoringData getMonitoringData()
     {
         return monData;
@@ -235,6 +240,11 @@ public class EBComponent
     public EventBuilderSPreqPayloadOutputEngine getRequestWriter()
     {
         return spReqOutputProcess;
+    }
+
+    public long getRequestsSent()
+    {
+        return spReqOutputProcess.getTotalRecordsSent();
     }
 
     public IByteBufferCache getTriggerCache()
@@ -254,7 +264,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4424 2009-07-16 22:11:09Z dglo $";
+        return "$Id: EBComponent.java 4425 2009-07-16 22:12:19Z dglo $";
     }
 
     /**
