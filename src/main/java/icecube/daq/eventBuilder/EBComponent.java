@@ -254,7 +254,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4270 2009-06-08 22:33:57Z dglo $";
+        return "$Id: EBComponent.java 4424 2009-07-16 22:11:09Z dglo $";
     }
 
     /**
@@ -294,6 +294,7 @@ public class EBComponent
      */
     public void setDispatcher(Dispatcher dispatcher)
     {
+        this.dispatcher = dispatcher;
         backEnd.setDispatcher(dispatcher);
     }
 
