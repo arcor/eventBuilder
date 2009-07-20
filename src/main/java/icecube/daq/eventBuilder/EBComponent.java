@@ -115,7 +115,7 @@ public class EBComponent
         dispatcher = new FileDispatcher("physics", evtDataMgr);
 
         backEnd =
-            new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
+            new EventBuilderBackEnd(evtDataMgr, splicer, splicedAnalysis,
                                     dispatcher, validateEvents);
 
         EventBuilderTriggerRequestDemultiplexer demuxer =
@@ -242,6 +242,11 @@ public class EBComponent
         return spReqOutputProcess;
     }
 
+    public long getReadoutsReceived()
+    {
+        return backEnd.getTotalReadoutsReceived();
+    }
+
     public long getRequestsSent()
     {
         return spReqOutputProcess.getTotalRecordsSent();
@@ -264,7 +269,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4425 2009-07-16 22:12:19Z dglo $";
+        return "$Id: EBComponent.java 4431 2009-07-20 16:41:10Z dglo $";
     }
 
     /**
