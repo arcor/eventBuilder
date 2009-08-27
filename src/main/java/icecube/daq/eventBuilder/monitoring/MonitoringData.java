@@ -80,7 +80,7 @@ public class MonitoringData
      *
      * @return the number of units still available in the disk.
      */
-    public int getDiskAvailable()
+    public long getDiskAvailable()
     {
         if (backEnd == null) {
             return 0;
@@ -95,7 +95,7 @@ public class MonitoringData
      *
      * @return the total number of units in the disk.
      */
-    public int getDiskSize()
+    public long getDiskSize()
     {
         if (backEnd == null) {
             return 0;
@@ -245,6 +245,20 @@ public class MonitoringData
     }
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    public int getNumOutputsQueued()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumOutputsQueued();
+    }
+
+    /**
      * Get the number of readouts to be included in the event being built.
      *
      * @return num readouts cached
@@ -270,6 +284,20 @@ public class MonitoringData
         }
 
         return backEnd.getNumReadoutsDiscarded();
+    }
+
+    /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return number of readouts dropped
+     */
+    public long getNumReadoutsDropped()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumReadoutsDropped();
     }
 
     /**
@@ -342,20 +370,6 @@ public class MonitoringData
         }
 
         return backEnd.getNumTriggerRequestsReceived();
-    }
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return num unused readouts
-     */
-    public long getNumUnusedReadouts()
-    {
-        if (backEnd == null) {
-            return 0;
-        }
-
-        return backEnd.getNumUnusedReadouts();
     }
 
     /**
@@ -630,6 +644,8 @@ public class MonitoringData
                 append(getNumReadoutsCached());
             buf.append("\n  numReadoutsDiscarded ").
                 append(getNumReadoutsDiscarded());
+            buf.append("\n  numReadoutsDropped ").
+                append(getNumReadoutsDropped());
             buf.append("\n  numReadoutsQueued ").
                 append(getNumReadoutsQueued());
             buf.append("\n  numReadoutsRcvd ").
@@ -640,8 +656,6 @@ public class MonitoringData
                 append(getNumTriggerRequestsQueued());
             buf.append("\n  numTRsRcvd ").
                 append(getNumTriggerRequestsReceived());
-            buf.append("\n  numUnusedReadouts ").
-                append(getNumUnusedReadouts());
             buf.append("\n  previousRunTotalEvts ").
                 append(getPreviousRunTotalEvents());
             buf.append("\n  readoutsPerSecond ").

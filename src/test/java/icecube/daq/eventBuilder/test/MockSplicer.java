@@ -1,6 +1,5 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.daq.splicer.MonitorPoints;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SplicedAnalysis;
@@ -51,11 +50,6 @@ public class MockSplicer
     }
 
     public SplicedAnalysis getAnalysis()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public MonitorPoints getMonitorPoints()
     {
         throw new Error("Unimplemented");
     }

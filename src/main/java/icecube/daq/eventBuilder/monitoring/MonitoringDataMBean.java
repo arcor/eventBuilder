@@ -39,7 +39,7 @@ public interface MonitoringDataMBean
      *
      * @return the number of units still available in the disk.
      */
-    int getDiskAvailable();
+    long getDiskAvailable();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -47,7 +47,7 @@ public interface MonitoringDataMBean
      *
      * @return the total number of units in the disk.
      */
-    int getDiskSize();
+    long getDiskSize();
 
     /**
      * Get current rate of events per second.
@@ -120,6 +120,13 @@ public interface MonitoringDataMBean
     //long getNumNullReadouts();
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    int getNumOutputsQueued();
+
+    /**
      * Get the number of readouts to be included in the event being built.
      *
      * @return num readouts cached
@@ -132,6 +139,13 @@ public interface MonitoringDataMBean
      * @return num readouts discarded
      */
     //long getNumReadoutsDiscarded();
+
+    /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return num readouts dropped
+     */
+    //long getNumReadoutsDropped();
 
     /**
      * Get number of readouts queued for processing.
@@ -169,13 +183,6 @@ public interface MonitoringDataMBean
      * @return num trigger requests received
      */
     long getNumTriggerRequestsReceived();
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return num unused readouts
-     */
-    //long getNumUnusedReadouts();
 
     /**
      * Get the total number of events from the previous run.

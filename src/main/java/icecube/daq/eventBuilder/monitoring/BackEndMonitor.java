@@ -39,7 +39,7 @@ public interface BackEndMonitor
      *
      * @return the number of units still available in the disk.
      */
-    int getDiskAvailable();
+    long getDiskAvailable();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -47,7 +47,7 @@ public interface BackEndMonitor
      *
      * @return the total number of units in the disk.
      */
-    int getDiskSize();
+    long getDiskSize();
 
     /**
      * Get current rate of events per second.
@@ -106,6 +106,13 @@ public interface BackEndMonitor
     long getNumEventsSent();
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    int getNumOutputsQueued();
+
+    /**
      * Get the number of readouts to be included in the event being built.
      *
      * @return number of readouts to be included in the event being built
@@ -118,6 +125,13 @@ public interface BackEndMonitor
      * @return number of readouts not included in any event for this run
      */
     long getNumReadoutsDiscarded();
+
+    /**
+     * Get number of readouts dropped while stopping.
+     *
+     * @return number of readouts dropped
+     */
+    long getNumReadoutsDropped();
 
     /**
      * Get number of readouts queued for processing.
@@ -170,13 +184,6 @@ public interface BackEndMonitor
      * @return number of trigger requests received for this run
      */
     long getNumTriggerRequestsReceived();
-
-    /**
-     * Get number of readouts not used for an event since last reset.
-     *
-     * @return number of unused readouts since last reset.
-     */
-    long getNumUnusedReadouts();
 
     /**
      * Get the total number of events from the previous run.

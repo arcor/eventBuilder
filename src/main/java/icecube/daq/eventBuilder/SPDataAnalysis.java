@@ -88,18 +88,6 @@ public class SPDataAnalysis
         // ignored
     }
 
-   /**
-     * Returns the {@link SpliceableFactory} that should be used to create the
-     * {@link Spliceable Spliceable} objects used by this
-     * object.
-     *
-     * @return the SpliceableFactory that creates Spliceable objects.
-     */
-    public SpliceableFactory getFactory()
-    {
-        return factory;
-    }
-
     /**
      * Set the string processor data handler.
      *

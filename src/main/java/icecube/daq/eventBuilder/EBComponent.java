@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.eventbuilder.impl.ReadoutDataPayloadFactory;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.Dispatcher;
@@ -83,20 +84,21 @@ public class EBComponent
 
         final int compId = 0;
 
-        rdoutDataMgr = new VitreousBufferCache();
+        rdoutDataMgr = new VitreousBufferCache("EBRdOut", 250000000);
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
-        MasterPayloadFactory rdoutDataFactory =
-            new MasterPayloadFactory(rdoutDataMgr);
+        ReadoutDataPayloadFactory rdoutDataFactory =
+            new ReadoutDataPayloadFactory();
+        rdoutDataFactory.setByteBufferCache(rdoutDataMgr);
 
-        trigBufMgr = new VitreousBufferCache();
+        trigBufMgr = new VitreousBufferCache("EBTrig");
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         MasterPayloadFactory trigFactory =
             new MasterPayloadFactory(trigBufMgr);
 
-        IByteBufferCache evtDataMgr = new VitreousBufferCache();
+        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent");
         addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
 
-        IByteBufferCache genMgr = new VitreousBufferCache();
+        IByteBufferCache genMgr = new VitreousBufferCache("EBGen");
         addCache(genMgr);
 
         addMBean("jvm", new MemoryStatistics());
@@ -113,7 +115,7 @@ public class EBComponent
         dispatcher = new FileDispatcher("physics", evtDataMgr);
 
         backEnd =
-            new EventBuilderBackEnd(genMgr, splicer, splicedAnalysis,
+            new EventBuilderBackEnd(evtDataMgr, splicer, splicedAnalysis,
                                     dispatcher, validateEvents);
 
         EventBuilderTriggerRequestDemultiplexer demuxer =
@@ -136,7 +138,7 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new SpliceablePayloadReader(COMPONENT_NAME, splicer,
+                new SpliceablePayloadReader(COMPONENT_NAME, 50000, splicer,
                                             rdoutDataFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
@@ -225,6 +227,11 @@ public class EBComponent
         }
     }
 
+    public long getEventsSent()
+    {
+        return dispatcher.getTotalDispatchedEvents();
+    }
+
     public MonitoringData getMonitoringData()
     {
         return monData;
@@ -233,6 +240,16 @@ public class EBComponent
     public EventBuilderSPreqPayloadOutputEngine getRequestWriter()
     {
         return spReqOutputProcess;
+    }
+
+    public long getReadoutsReceived()
+    {
+        return backEnd.getTotalReadoutsReceived();
+    }
+
+    public long getRequestsSent()
+    {
+        return spReqOutputProcess.getTotalRecordsSent();
     }
 
     public IByteBufferCache getTriggerCache()
@@ -252,7 +269,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 3569 2008-10-09 17:05:39Z dglo $";
+        return "$Id: EBComponent.java 4431 2009-07-20 16:41:10Z dglo $";
     }
 
     /**
@@ -292,6 +309,7 @@ public class EBComponent
      */
     public void setDispatcher(Dispatcher dispatcher)
     {
+        this.dispatcher = dispatcher;
         backEnd.setDispatcher(dispatcher);
     }
 

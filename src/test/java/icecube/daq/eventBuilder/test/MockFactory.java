@@ -18,11 +18,6 @@ public class MockFactory
         throw new Error("Unimplemented");
     }
 
-    public Spliceable createCurrentPlaceSpliceable()
-    {
-        throw new Error("Unimplemented");
-    }
-
     public Spliceable createSpliceable(ByteBuffer x0)
     {
         throw new Error("Unimplemented");
