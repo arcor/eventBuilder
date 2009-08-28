@@ -1,11 +1,12 @@
 package icecube.daq.eventBuilder.test;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestination;
+import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.trigger.IReadoutRequest;
-import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,25 +19,28 @@ public class MockTriggerRequest
 {
     private static final int LENGTH = 41;
 
+    private int uid;
+    private int type;
+    private int cfgId;
+    private int srcId = SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID;
     private IUTCTime startTime;
     private IUTCTime endTime;
-    private int type;
-    private int uid;
-    private int srcId = SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID;
     private IReadoutRequest rdoutReq;
     private boolean recycled;
 
-    public MockTriggerRequest(long startVal, long endVal, int type, int uid)
+    public MockTriggerRequest(int uid, int type, int cfgId, long startVal,
+                              long endVal)
     {
         if (startVal > endVal) {
             throw new Error("Starting time " + startVal +
                             " cannot be less than ending time " + endVal);
         }
 
+        this.uid = uid;
+        this.type = type;
+        this.cfgId = cfgId;
         startTime = new MockUTCTime(startVal);
         endTime = new MockUTCTime(endVal);
-        this.type = type;
-        this.uid = uid;
     }
 
     private static int compareTimes(IUTCTime a, IUTCTime b)
@@ -74,8 +78,8 @@ public class MockTriggerRequest
 
     public Object deepCopy()
     {
-        return new MockTriggerRequest(startTime.longValue(),
-                                      endTime.longValue(), type, uid);
+        return new MockTriggerRequest(uid, type, cfgId, startTime.longValue(),
+                                      endTime.longValue());
     }
 
     public void dispose()
@@ -146,7 +150,7 @@ public class MockTriggerRequest
 
     public int getTriggerConfigID()
     {
-        throw new Error("Unimplemented");
+        return cfgId;
     }
 
     public int getTriggerType()
@@ -179,6 +183,11 @@ public class MockTriggerRequest
         }
 
         recycled = true;
+    }
+
+    public void setCache(IByteBufferCache cache)
+    {
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean b0, IPayloadDestination x1)

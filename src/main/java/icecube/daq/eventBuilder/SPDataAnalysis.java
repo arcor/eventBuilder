@@ -4,7 +4,6 @@ import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.backend.SPDataProcessor;
 import icecube.daq.io.DispatchException;
 import icecube.daq.splicer.Spliceable;
-import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.SplicedAnalysis;
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerChangedEvent;
@@ -23,8 +22,6 @@ public class SPDataAnalysis
 {
     private static final Log LOG = LogFactory.getLog(SPDataAnalysis.class);
 
-    /** Factory used to build spliceable objects. */
-    private SpliceableFactory factory;
     /** Interface for event builder back end. */
     private SPDataProcessor dataProc;
     /** Track progress through splicer data. */
@@ -37,12 +34,9 @@ public class SPDataAnalysis
 
     /**
      * Create splicer analysis.
-     *
-     * @param factory spliceable factory
      */
-    public SPDataAnalysis(SpliceableFactory factory)
+    public SPDataAnalysis()
     {
-        this.factory = factory;
     }
 
     /**

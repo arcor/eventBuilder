@@ -1,7 +1,8 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.daq.eventbuilder.IReadoutDataPayload;
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestination;
+import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import java.io.IOException;
@@ -91,7 +92,7 @@ public class MockReadoutData
     public List getPayloads()
         throws DataFormatException
     {
-        throw new DataFormatException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int getReadoutDataPayloadNumber()
@@ -139,15 +140,20 @@ public class MockReadoutData
         recycled = true;
     }
 
+    public void setCache(IByteBufferCache cache)
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 }

@@ -3,23 +3,25 @@ package icecube.daq.eventBuilder.backend;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
-import icecube.daq.eventbuilder.IEventPayload;
-import icecube.daq.eventbuilder.IReadoutDataPayload;
-import icecube.daq.eventbuilder.impl.EventPayload_v4Factory;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IEventFactory;
+import icecube.daq.payload.IEventHitRecord;
+import icecube.daq.payload.IEventPayload;
+import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadChecker;
+import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.impl.EventFactory;
 import icecube.daq.reqFiller.RequestFiller;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
-import icecube.daq.trigger.ITriggerRequestPayload;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -147,7 +149,7 @@ public class EventBuilderBackEnd
     private Dispatcher dispatcher;
 
     // Factory to make EventPayloads.
-    private EventPayload_v4Factory eventFactory;
+    private IEventFactory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
@@ -238,8 +240,13 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v4Factory();
-        eventFactory.setByteBufferCache(eventCache);
+        final int eventVersion = 5;
+        try {
+            eventFactory = new EventFactory(eventCache, eventVersion);
+        } catch (PayloadException pe) {
+            throw new Error("Cannot create factory for Event V" +
+                            eventVersion);
+        }
     }
 
     /**
@@ -287,13 +294,13 @@ public class EventBuilderBackEnd
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
-        IReadoutDataPayload data = (IReadoutDataPayload) dataPayload;
+        IHitRecordList data = (IHitRecordList) dataPayload;
 
         final int uid;
         if (data == null) {
             uid = Integer.MAX_VALUE;
         } else {
-            uid = data.getRequestUID();
+            uid = data.getUID();
         }
 
         if (uid < req.getUID()) {
@@ -828,6 +835,15 @@ public class EventBuilderBackEnd
                      endTime + "]");
         }
 
+        List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
+        for (Object obj : dataList) {
+            IHitRecordList list = (IHitRecordList) obj;
+
+            for (IEventHitRecord rec : list) {
+                hitRecList.add(rec);
+            }
+        }
+
         int subnum;
         synchronized (subrunLock) {
             if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
@@ -838,12 +854,17 @@ public class EventBuilderBackEnd
             subnum = subrunNumber;
         }
 
-        Payload event =
-            eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       year, runNumber, subnum, req,
-                                       dataList);
+        ILoadablePayload evt;
+        try {
+            evt = eventFactory.createPayload(req.getUID(), startTime, endTime,
+                                             year, runNumber, subnum, req,
+                                             hitRecList);
+        } catch (PayloadException pe) {
+            LOG.error("Cannot create event #" + req.getUID(), pe);
+            evt = null;
+        }
 
-        return event;
+        return evt;
     }
 
     /**
@@ -855,7 +876,7 @@ public class EventBuilderBackEnd
     {
         Iterator iter = payloadList.iterator();
         while (iter.hasNext()) {
-            Payload payload = (Payload) iter.next();
+            ILoadablePayload payload = (ILoadablePayload) iter.next();
             payload.recycle();
         }
     }

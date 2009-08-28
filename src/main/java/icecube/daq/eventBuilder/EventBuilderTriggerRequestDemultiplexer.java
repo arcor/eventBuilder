@@ -1,14 +1,13 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.payload.IPayloadDestinationCollection;
+import icecube.daq.payload.IReadoutRequest;
+import icecube.daq.payload.IReadoutRequestElement;
+import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
-import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.trigger.IReadoutRequest;
-import icecube.daq.trigger.IReadoutRequestElement;
-import icecube.daq.trigger.ITriggerRequestPayload;
+import icecube.daq.payload.impl.ReadoutRequestFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -49,9 +48,9 @@ public class EventBuilderTriggerRequestDemultiplexer
      *
      * @param master master payload factory
      */
-    public EventBuilderTriggerRequestDemultiplexer(MasterPayloadFactory master)
+    public EventBuilderTriggerRequestDemultiplexer(ReadoutRequestFactory factory)
     {
-        readoutGenerator = new EventBuilderReadoutRequestGenerator(master);
+        readoutGenerator = new EventBuilderReadoutRequestGenerator(factory);
     }
 
     /**
@@ -81,17 +80,6 @@ public class EventBuilderTriggerRequestDemultiplexer
             generatorInitialized = true;
         }
 
-        if (inputTriggerRequest.getPayloadType() !=
-            PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST)
-        {
-            //Something sucks - Global Trigger sent a weird payload. Bailout.
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Not a triggerRequestPayload.");
-            }
-
-            return false;
-        }
-
         final int inSrcId = inputTriggerRequest.getSourceID().getSourceID();
         if (inSrcId != SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID) {
             // ...ditto
@@ -107,7 +95,7 @@ public class EventBuilderTriggerRequestDemultiplexer
 
         // We need to get the Payload time stamp to put in the readout
         // requests.
-        IUTCTime utcTime = inputTriggerRequest.getPayloadTimeUTC();
+        IUTCTime utcTime = inputTriggerRequest.getFirstTimeUTC();
 
         final IReadoutRequest tmpReq = inputTriggerRequest.getReadoutRequest();
         List readoutElements = tmpReq.getReadoutRequestElements();

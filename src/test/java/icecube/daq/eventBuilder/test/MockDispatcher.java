@@ -1,8 +1,8 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
+import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadChecker;
 
