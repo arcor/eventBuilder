@@ -828,11 +828,12 @@ public class EventBuilderBackEnd
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + startTime + " - " + endTime);
+            LOG.debug("Closing Event " + req.getUID() + " [" + startTime +
+                      " - " + endTime + "]");
         }
         if (LOG.isInfoEnabled() && dataList.size() == 0) {
-            LOG.info("Sending empty event for window [" + startTime + " - " +
-                     endTime + "]");
+            LOG.info("Sending empty event " + req.getUID() + " window [" +
+                     startTime + " - " + endTime + "]");
         }
 
         List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
