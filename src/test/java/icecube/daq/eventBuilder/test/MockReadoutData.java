@@ -64,6 +64,11 @@ public class MockReadoutData
         return endTime;
     }
 
+    public int getNumHits()
+    {
+        return 0;
+    }
+
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
