@@ -12,6 +12,7 @@ import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
+import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
@@ -135,6 +136,9 @@ public class EventBuilderBackEnd
         }
     }
 
+    /** Version of events being built */
+    public static final int EVENT_VERSION = 5;
+
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -240,12 +244,11 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        final int eventVersion = 5;
         try {
-            eventFactory = new EventFactory(eventCache, eventVersion);
+            eventFactory = new EventFactory(eventCache, EVENT_VERSION);
         } catch (PayloadException pe) {
             throw new Error("Cannot create factory for Event V" +
-                            eventVersion);
+                            EVENT_VERSION);
         }
     }
 
@@ -282,6 +285,24 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Extract hit records from separate HitRecordPayloads into a single list.
+     * @param dataList list of HitRecordPayloads
+     * @return unified list
+     */
+    private static List<IEventHitRecord> buildHitRecordList(List dataList)
+    {
+        List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
+        for (Object obj : dataList) {
+            IHitRecordList list = (IHitRecordList) obj;
+
+            for (IEventHitRecord rec : list) {
+                hitRecList.add(rec);
+            }
+        }
+        return hitRecList;
+    }
+
+    /**
      * Do a simple comparison of the request and data payloads.
      *
      * @param reqPayload request payload
@@ -294,13 +315,14 @@ public class EventBuilderBackEnd
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
-        IHitRecordList data = (IHitRecordList) dataPayload;
 
         final int uid;
-        if (data == null) {
+        if (dataPayload == null) {
             uid = Integer.MAX_VALUE;
+        } else if (EVENT_VERSION < 5) {
+            uid = ((IReadoutDataPayload) dataPayload).getRequestUID();
         } else {
-            uid = data.getUID();
+            uid = ((IHitRecordList) dataPayload).getUID();
         }
 
         if (uid < req.getUID()) {
@@ -836,15 +858,6 @@ public class EventBuilderBackEnd
                      startTime + " - " + endTime + "]");
         }
 
-        List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
-        for (Object obj : dataList) {
-            IHitRecordList list = (IHitRecordList) obj;
-
-            for (IEventHitRecord rec : list) {
-                hitRecList.add(rec);
-            }
-        }
-
         int subnum;
         synchronized (subrunLock) {
             if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
@@ -856,13 +869,20 @@ public class EventBuilderBackEnd
         }
 
         ILoadablePayload evt;
-        try {
-            evt = eventFactory.createPayload(req.getUID(), startTime, endTime,
-                                             year, runNumber, subnum, req,
-                                             hitRecList);
-        } catch (PayloadException pe) {
-            LOG.error("Cannot create event #" + req.getUID(), pe);
-            evt = null;
+        if (EVENT_VERSION < 5) {
+            evt = eventFactory.createPayload(req.getUID(), ME, startTime,
+                                             endTime, year, runNumber, subnum,
+                                             req, dataList);
+        } else {
+            try {
+                evt = eventFactory.createPayload(req.getUID(), startTime,
+                                                 endTime, year, runNumber,
+                                                 subnum, req,
+                                                 buildHitRecordList(dataList));
+            } catch (PayloadException pe) {
+                LOG.error("Cannot create event #" + req.getUID(), pe);
+                evt = null;
+            }
         }
 
         return evt;

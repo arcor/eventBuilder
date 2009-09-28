@@ -1,10 +1,15 @@
 package icecube.daq.eventBuilder.test;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IHitDataPayload;
 import icecube.daq.payload.IHitRecordList;
+import icecube.daq.payload.IPayloadDestination;
+import icecube.daq.payload.IUTCTime;
+import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadException;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -45,7 +50,7 @@ class MockHitRecord
 }
 
 public class MockHitRecordList
-    implements IHitRecordList
+    implements IHitRecordList, IWriteablePayload
 {
     private int uid;
     private List<IEventHitRecord> recList;
@@ -62,6 +67,41 @@ public class MockHitRecordList
         recList.add(new MockHitRecord(chanId, hitTime));
     }
 
+    public Object deepCopy()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void dispose()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public ByteBuffer getPayloadBacking()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadInterfaceType()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadLength()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public IUTCTime getPayloadTimeUTC()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadType()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int getUID()
     {
         return uid;
@@ -70,5 +110,32 @@ public class MockHitRecordList
     public Iterator<IEventHitRecord> iterator()
     {
         return recList.iterator();
+    }
+
+    public void recycle()
+    {
+        uid = -1;
+
+        if (recList != null) {
+            recList.clear();
+            recList = null;
+        }
+    }
+
+    public void setCache(IByteBufferCache x0)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int writePayload(boolean b0, IPayloadDestination x1)
+        throws IOException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public int writePayload(boolean b0, int i1, ByteBuffer x2)
+        throws IOException
+    {
+        throw new IOException("Unimplemented");
     }
 }
