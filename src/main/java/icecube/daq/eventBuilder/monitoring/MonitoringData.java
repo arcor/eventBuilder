@@ -105,6 +105,20 @@ public class MonitoringData
     }
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    public long[] getEventData()
+    {
+        if (backEnd == null) {
+            return new long[] { -1L, -1L };
+        }
+
+        return backEnd.getEventData();
+    }
+
+    /**
      * Get current rate of events per second.
      *
      * @return events per second
@@ -116,6 +130,20 @@ public class MonitoringData
         }
 
         return backEnd.getEventsPerSecond();
+    }
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    public long getFirstEventTime()
+    {
+        if (backEnd == null) {
+            return -1L;
+        }
+
+        return backEnd.getFirstEventTime();
     }
 
     /**

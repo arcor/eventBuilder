@@ -50,11 +50,25 @@ public interface BackEndMonitor
     long getDiskSize();
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    long[] getEventData();
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
      */
     double getEventsPerSecond();
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    long getFirstEventTime();
 
     /**
      * Get number of bad events for this run.

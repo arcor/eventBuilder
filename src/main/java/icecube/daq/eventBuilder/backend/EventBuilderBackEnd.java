@@ -424,6 +424,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    public long[] getEventData()
+    {
+        return new long[] { getNumOutputsSent(), getLastOutputTime() };
+    }
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
@@ -431,6 +441,16 @@ public class EventBuilderBackEnd
     public double getEventsPerSecond()
     {
         return getOutputsPerSecond();
+    }
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    public long getFirstEventTime()
+    {
+        return getFirstOutputTime();
     }
 
     /**
