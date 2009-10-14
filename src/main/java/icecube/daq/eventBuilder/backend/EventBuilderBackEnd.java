@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.common.EventVersion;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.io.DispatchException;
@@ -136,9 +137,6 @@ public class EventBuilderBackEnd
         }
     }
 
-    /** Version of events being built */
-    public static final int EVENT_VERSION = 5;
-
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -245,10 +243,10 @@ public class EventBuilderBackEnd
 
         //get factory object for event payloads
         try {
-            eventFactory = new EventFactory(eventCache, EVENT_VERSION);
+            eventFactory = new EventFactory(eventCache, EventVersion.VERSION);
         } catch (PayloadException pe) {
             throw new Error("Cannot create factory for Event V" +
-                            EVENT_VERSION);
+                            EventVersion.VERSION);
         }
     }
 
@@ -319,7 +317,7 @@ public class EventBuilderBackEnd
         final int uid;
         if (dataPayload == null) {
             uid = Integer.MAX_VALUE;
-        } else if (EVENT_VERSION < 5) {
+        } else if (EventVersion.VERSION < 5) {
             uid = ((IReadoutDataPayload) dataPayload).getRequestUID();
         } else {
             uid = ((IHitRecordList) dataPayload).getUID();
@@ -889,7 +887,7 @@ public class EventBuilderBackEnd
         }
 
         ILoadablePayload evt;
-        if (EVENT_VERSION < 5) {
+        if (EventVersion.VERSION < 5) {
             evt = eventFactory.createPayload(req.getUID(), ME, startTime,
                                              endTime, year, runNumber, subnum,
                                              req, dataList);

@@ -4,6 +4,7 @@ import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IHitDataPayload;
 import icecube.daq.payload.IHitRecordList;
+import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
@@ -14,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.zip.DataFormatException;
 
 class MockHitRecord
     implements IEventHitRecord
@@ -25,6 +27,11 @@ class MockHitRecord
     {
         this.chanId = chanId;
         this.hitTime = hitTime;
+    }
+
+    public short getChannelId()
+    {
+        return chanId;
     }
 
     public long getHitTime()
@@ -50,7 +57,7 @@ class MockHitRecord
 }
 
 public class MockHitRecordList
-    implements IHitRecordList, IWriteablePayload
+    implements IHitRecordList, ILoadablePayload, IWriteablePayload
 {
     private int uid;
     private List<IEventHitRecord> recList;
@@ -69,7 +76,12 @@ public class MockHitRecordList
 
     public Object deepCopy()
     {
-        throw new Error("Unimplemented");
+        MockHitRecordList hrl = new MockHitRecordList(uid);
+        for (IEventHitRecord hitRec : recList) {
+            MockHitRecord mock = (MockHitRecord) hitRec;
+            hrl.addRecord(mock.getChannelId(), mock.getHitTime());
+        }
+        return hrl;
     }
 
     public void dispose()
@@ -112,6 +124,12 @@ public class MockHitRecordList
         return recList.iterator();
     }
 
+    public void loadPayload()
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
     public void recycle()
     {
         uid = -1;
@@ -137,5 +155,11 @@ public class MockHitRecordList
         throws IOException
     {
         throw new IOException("Unimplemented");
+    }
+
+    public String toString()
+    {
+        return "MockHitRecordList[uid " + uid + ", " +
+            recList.size() + " recs]";
     }
 }

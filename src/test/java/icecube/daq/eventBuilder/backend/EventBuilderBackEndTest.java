@@ -1,10 +1,12 @@
 package icecube.daq.eventBuilder.backend;
 
+import icecube.daq.common.EventVersion;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.test.MockAppender;
 import icecube.daq.eventBuilder.test.MockBufferCache;
 import icecube.daq.eventBuilder.test.MockDispatcher;
 import icecube.daq.eventBuilder.test.MockHitRecordList;
+import icecube.daq.eventBuilder.test.MockReadoutData;
 import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
@@ -237,18 +239,23 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         MockTriggerRequest req =
             new MockTriggerRequest(uid, 999, cfgId, firstTime, lastTime);
 
-        MockHitRecordList recList = new MockHitRecordList(uid);
-        recList.addRecord((short) 101, firstTime + 1);
-
         ArrayList hitList = new ArrayList();
-        hitList.add(recList);
+        if (EventVersion.VERSION < 5) {
+            hitList.add(new MockReadoutData(111, 222, firstTime + 1L,
+                                            lastTime - 1L));
+        } else {
+            MockHitRecordList recList = new MockHitRecordList(uid);
+            recList.addRecord((short) 101, firstTime + 1);
+
+            hitList.add(recList);
+        }
+
 
         IEventPayload evt =
             (IEventPayload) backEnd.makeDataPayload(req, hitList);
         validateEvent(evt, 0, 0, uid, firstTime, lastTime, req, hitList);
 
         if (appender.getNumberOfMessages() > 0) {
-for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i+": "+appender.getMessage(i));
             assertEquals("Bad number of log messages",
                          0, appender.getNumberOfMessages());
         }
@@ -298,14 +305,19 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             for (int j = 0; j < i + 1; j++) {
                 int uid = 888 + numEvts;
 
-                MockHitRecordList recList = new MockHitRecordList(uid);
-                recList.addRecord((short) (j + 101), firstTime + 1);
-
-                ArrayList hitList = new ArrayList();
-                hitList.add(recList);
-
                 MockTriggerRequest req =
                     new MockTriggerRequest(uid, 999, cfgId, firstTime, lastTime);
+
+                ArrayList hitList = new ArrayList();
+                if (EventVersion.VERSION < 5) {
+                    hitList.add(new MockReadoutData(111, 222, firstTime + 1L,
+                                                    lastTime - 1L));
+                } else {
+                    MockHitRecordList recList = new MockHitRecordList(uid);
+                    recList.addRecord((short) (j + 101), firstTime + 1);
+
+                    hitList.add(recList);
+                }
 
                 IEventPayload evt =
                     (IEventPayload) backEnd.makeDataPayload(req, hitList);
