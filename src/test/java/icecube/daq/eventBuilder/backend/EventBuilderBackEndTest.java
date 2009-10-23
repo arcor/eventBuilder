@@ -335,14 +335,29 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                               req, hitList);
 
                 backEnd.sendOutput(evt);
-                while (backEnd.getNumOutputsQueued() > 0) {
+                for (int o = 0; o < 10 && backEnd.getNumOutputsQueued() > 0;
+                     o++)
+                {
                     try {
                         Thread.sleep(100);
                     } catch (Exception ex) {
                         // do nothing
                     }
                 }
+                assertEquals("Still have " + backEnd.getNumOutputsQueued() +
+                             " outputs queued",
+                             0, backEnd.getNumOutputsQueued());
 
+                for (int o = 0;
+                     o < 10 && dispatcher.getTotalDispatchedEvents() < numEvts;
+                     o++)
+                {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception ex) {
+                        // do nothing
+                    }
+                }
                 assertEquals("Bad number of dispatched events",
                              numEvts, dispatcher.getTotalDispatchedEvents());
 
