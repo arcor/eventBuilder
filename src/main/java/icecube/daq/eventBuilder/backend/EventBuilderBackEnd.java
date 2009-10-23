@@ -963,6 +963,7 @@ public class EventBuilderBackEnd
 
             if (outputThread == null) {
                 outputThread = new OutputThread("EventWriter");
+                outputThread.start();
             }
 
             isReset = true;
@@ -1178,6 +1179,8 @@ public class EventBuilderBackEnd
     class OutputThread
         implements Runnable
     {
+        private String name;
+
         /**
          * Create and start output thread.
          *
@@ -1185,9 +1188,7 @@ public class EventBuilderBackEnd
          */
         OutputThread(String name)
         {
-            Thread tmpThread = new Thread(this);
-            tmpThread.setName(name);
-            tmpThread.start();
+            this.name = name;
         }
 
         /**
@@ -1277,6 +1278,16 @@ public class EventBuilderBackEnd
             tmpEvent.recycle();
 
             return eventSent;
+        }
+
+        /**
+         * Start the thread.
+         */
+        public void start()
+        {
+            Thread tmpThread = new Thread(this);
+            tmpThread.setName(name);
+            tmpThread.start();
         }
     }
 }
