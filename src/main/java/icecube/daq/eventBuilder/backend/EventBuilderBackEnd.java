@@ -1162,6 +1162,9 @@ public class EventBuilderBackEnd
      */
     public void stopThread()
     {
+        // run parent method first so any added data is processed
+        super.stopThread();
+
         if (outputThread != null) {
             outputThread = null;
 
@@ -1169,8 +1172,6 @@ public class EventBuilderBackEnd
                 outputQueue.notify();
             }
         }
-
-        super.stopThread();
     }
 
     /**
@@ -1179,7 +1180,7 @@ public class EventBuilderBackEnd
     class OutputThread
         implements Runnable
     {
-        private String name;
+        private Thread thread;
 
         /**
          * Create and start output thread.
@@ -1188,7 +1189,8 @@ public class EventBuilderBackEnd
          */
         OutputThread(String name)
         {
-            this.name = name;
+            thread = new Thread(this);
+            thread.setName(name);
         }
 
         /**
@@ -1285,9 +1287,7 @@ public class EventBuilderBackEnd
          */
         public void start()
         {
-            Thread tmpThread = new Thread(this);
-            tmpThread.setName(name);
-            tmpThread.start();
+            thread.start();
         }
     }
 }
