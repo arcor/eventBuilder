@@ -3,6 +3,7 @@ package icecube.daq.eventBuilder;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
+import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
 import icecube.daq.io.SpliceablePayloadReader;
@@ -163,6 +164,22 @@ public class EBComponent
     }
 
     /**
+     * Close all open files, sockets, etc.
+     */
+    public void closeAll()
+        throws IOException
+    {
+        gtInputProcess.destroyProcessor();
+        spReqOutputProcess.destroyProcessor();
+        gtInputProcess.destroyProcessor();
+        try {
+            dispatcher.close();
+        } catch (DispatchException de) {
+            throw new IOException("Cannot close dispatcher: " + de.getMessage());
+        }
+    }
+
+    /**
      * Begin packaging events for the specified subrun.
      *
      * @param subrunNumber subrun number
@@ -272,7 +289,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4574 2009-08-28 21:32:32Z dglo $";
+        return "$Id: EBComponent.java 4860 2010-01-24 17:47:28Z dglo $";
     }
 
     /**
@@ -312,6 +329,14 @@ public class EBComponent
      */
     public void setDispatcher(Dispatcher dispatcher)
     {
+        if (this.dispatcher != null) {
+            try {
+                this.dispatcher.close();
+            } catch (DispatchException de) {
+                LOG.error("Cannot close previous dispatcher", de);
+            }
+        }
+
         this.dispatcher = dispatcher;
         backEnd.setDispatcher(dispatcher);
     }
