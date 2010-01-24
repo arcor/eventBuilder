@@ -100,7 +100,11 @@ public class GlobalTriggerReader
 
     public void sendStop()
     {
-        backEnd.addRequestStop();
+        try {
+            backEnd.addRequestStop();
+        } catch (IOException ioe) {
+            LOG.error("Cannot add stop to backend request queue");
+        }
 
         demuxer.sendStopMessage();
     }

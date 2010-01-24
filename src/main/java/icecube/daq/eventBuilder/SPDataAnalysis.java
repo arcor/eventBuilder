@@ -9,6 +9,7 @@ import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerChangedEvent;
 import icecube.daq.splicer.SplicerListener;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -66,7 +67,11 @@ public class SPDataAnalysis
 
         int addIndex = listOffset - decrement;
         if (listLen > addIndex) {
-            dataProc.addData(list, addIndex);
+            try {
+                dataProc.addData(list, addIndex);
+            } catch (IOException ioe) {
+                LOG.error("Could not add data", ioe);
+            }
         }
 
         listOffset = listLen;

@@ -25,6 +25,7 @@ import icecube.daq.reqFiller.RequestFiller;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
@@ -997,6 +998,18 @@ public class EventBuilderBackEnd
      */
     public boolean sendOutput(ILoadablePayload output)
     {
+        if (outputThread == null) {
+            throw new Error("Output thread is not running");
+        } else if (outputThread.hasFailed()) {
+            //LOG.error("Output thread has failed");
+            try {
+                throw new Error("Output thread has failed");
+            } catch (Error err) {
+                LOG.error("Output thread has failed", err);
+            }
+            return false;
+        }
+
         synchronized (outputQueue) {
             outputQueue.add(output);
             outputQueue.notify();
@@ -1110,18 +1123,8 @@ public class EventBuilderBackEnd
      * @param newSubrunNumber the subrun number of the new subrun
      */
     private void rollSubRun(int oldSubrunNumber, int newSubrunNumber)
-        throws DispatchException
     {
         synchronized (subrunLock) {
-            String message =
-                new String(DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
-                           newSubrunNumber);
-            dispatcher.dataBoundary(message);
-            if (LOG.isInfoEnabled()) {
-                LOG.info("called dataBoundary for subrun with the message: " +
-                         message);
-            }
-
             // save event count from ending subrun
             SubrunEventCount newData =
                 new SubrunEventCount(oldSubrunNumber, subrunEventCount);
@@ -1132,6 +1135,25 @@ public class EventBuilderBackEnd
                 subrunEventCountMap.put(newData, newData);
             }
             subrunEventCount = 0;
+
+            String message = DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
+                newSubrunNumber;
+
+
+            if (LOG.isInfoEnabled()) {
+                LOG.info("calling dataBoundary for subrun with the message: " +
+                         message);
+            }
+
+            try {
+                dispatcher.dataBoundary(message);
+            } catch (DispatchException de) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not inform dispatcher of subrun change" +
+                              " (" + oldSubrunNumber + " to " +
+                              newSubrunNumber + ")", de);
+                }
+            }
         }
     }
 
@@ -1154,13 +1176,21 @@ public class EventBuilderBackEnd
      */
     public void splicerStopped()
     {
-        addDataStop();
+        try {
+            addDataStop();
+        } catch (IOException ioe) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Cannot send final data stop after splicer stopped",
+                          ioe);
+            }
+        }
     }
 
     /**
      * If the thread is running, stop it.
      */
     public void stopThread()
+        throws IOException
     {
         // run parent method first so any added data is processed
         super.stopThread();
@@ -1181,6 +1211,7 @@ public class EventBuilderBackEnd
         implements Runnable
     {
         private Thread thread;
+        private boolean failed;
 
         /**
          * Create and start output thread.
@@ -1191,6 +1222,17 @@ public class EventBuilderBackEnd
         {
             thread = new Thread(this);
             thread.setName(name);
+            failed = false;
+        }
+
+        /**
+         * Has the output thread failed?
+         *
+         * @return true if the output thread died due to internal problems
+         */
+        boolean hasFailed()
+        {
+            return failed;
         }
 
         /**
@@ -1234,48 +1276,55 @@ public class EventBuilderBackEnd
         {
             IEventPayload tmpEvent = (IEventPayload) event;
 
-            boolean eventSent = false;
-
             int eventSubrunNumber = tmpEvent.getSubrunNumber();
+            if (eventSubrunNumber != lastDispSubrunNumber) {
+                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
+                lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            if (validateEvents) {
+                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
+                    numBadEvents++;
+                } else if (prevLastTime >
+                           tmpEvent.getFirstTimeUTC().longValue())
+                {
+                    LOG.error("Previous event time interval [" +
+                              prevFirstTime + "-" + prevLastTime +
+                              "] overlaps current event interval [" +
+                              tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() + "]");
+                    numBadEvents++;
+                }
+
+                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
+                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
+            }
+
+            boolean eventSent = false;
             try {
-                if (eventSubrunNumber != lastDispSubrunNumber) {
-                    rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
-                    lastDispSubrunNumber = eventSubrunNumber;
-                }
-
-                if (validateEvents) {
-                    if (!PayloadChecker.validatePayload(tmpEvent, true)) {
-                        numBadEvents++;
-                    } else if (prevLastTime >
-                               tmpEvent.getFirstTimeUTC().longValue())
-                    {
-                        LOG.error("Previous event time interval [" +
-                                  prevFirstTime + "-" + prevLastTime +
-                                  "] overlaps current event interval [" +
-                                  tmpEvent.getFirstTimeUTC() + "-" +
-                                  tmpEvent.getLastTimeUTC() + "]");
-                        numBadEvents++;
-                    }
-
-                    prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
-                    prevLastTime = tmpEvent.getLastTimeUTC().longValue();
-                }
-
                 dispatcher.dispatchEvent(tmpEvent);
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() +
-                              " written to daq-dispatch");
+                eventSent = true;
+            } catch (DispatchException de) {
+                Throwable cause = de.getCause();
+                if (cause instanceof IOException &&
+                    cause.getMessage().equals("Read-only file system"))
+                {
+                    failed = true;
+                    throw new Error("Read-only filesystem for " + tmpEvent);
                 }
 
-                subrunEventCount++;
-                eventSent = true;
-            } catch (DispatchException ex) {
                 if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not dispatch event", ex);
+                    LOG.error("Could not dispatch event", de);
                 }
             }
+
+            if (eventSent && LOG.isDebugEnabled()) {
+                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                          tmpEvent.getLastTimeUTC() +
+                          " written to daq-dispatch");
+            }
+
+            subrunEventCount++;
 
             tmpEvent.recycle();
 

@@ -12,6 +12,7 @@ import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -264,7 +265,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
     /** Test the proper subrun numbering when making data payloads */
     public void testMakeDataPayloadSubruns()
     {
-        appender.setVerbose(true);
+        //appender.setVerbose(true);
 
         MockBufferCache bufCache = new MockBufferCache("MakeSub");
 
@@ -368,7 +369,11 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             subrun++;
         }
 
-        backEnd.stopThread();
+        try {
+            backEnd.stopThread();
+        } catch (IOException ioe) {
+            fail("Caught " + ioe);
+        }
 
         /* checking event count */
         int numEvents = 0;
@@ -502,6 +507,133 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         //appender.setLevel(org.apache.log4j.Level.WARN);
         appender.clear();
         //System.out.println("Exiting testShortSubruns():");
+    }
+
+    public void testReadOnlyFilesystem()
+    {
+        MockBufferCache bufCache = new MockBufferCache("MakeSub");
+
+        SPDataAnalysis analysis = new SPDataAnalysis();
+        MockSplicer splicer = new MockSplicer();
+
+        MockDispatcher dispatcher = new MockDispatcher();
+
+        EventBuilderBackEnd backEnd =
+            new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.reset();
+        backEnd.setMaximumOutputFailures(5);
+
+        assertEquals("Bad subrun number", 0, backEnd.getSubrunNumber());
+
+        final long timeStep = 10000L;
+
+        final int runNum = 4;
+        backEnd.setRunNumber(runNum);
+
+        final int cfgId = 444;
+
+        int numEvts = 0;
+
+        long firstTime = timeStep;
+        long lastTime = firstTime + timeStep;
+
+        short recNum = 777;
+
+        int numGood = 5;
+        boolean readOnly = false;
+
+        for (int i = 0; i < 10; i++) {
+            int uid = 888 + numEvts;
+
+            if (i == numGood) {
+                dispatcher.setReadOnly(true);
+            } else if (i == numGood + 1) {
+                readOnly = true;
+            }
+
+            MockTriggerRequest req =
+                new MockTriggerRequest(uid, 999, cfgId, firstTime, lastTime);
+
+            ArrayList hitList = new ArrayList();
+            if (EventVersion.VERSION < 5) {
+                hitList.add(new MockReadoutData(111, 222, firstTime + 1L,
+                                                lastTime - 1L));
+            } else {
+                MockHitRecordList recList = new MockHitRecordList(uid);
+                recList.addRecord(recNum, firstTime + 1);
+                recNum++;
+
+                hitList.add(recList);
+            }
+
+            IEventPayload evt =
+                (IEventPayload) backEnd.makeDataPayload(req, hitList);
+
+            numEvts++;
+
+            validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req,
+                          hitList);
+
+            boolean outputSent = backEnd.sendOutput(evt);
+            if (!outputSent && !readOnly) {
+                throw new Error("Send failed for evt#" + numEvts);
+            } else if (outputSent && readOnly) {
+                throw new Error("Send should have failed for evt#" + numEvts);
+            }
+
+            for (int o = 0; o < 10 && backEnd.getNumOutputsQueued() > 0;
+                 o++)
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+            }
+            assertEquals("Still have " + backEnd.getNumOutputsQueued() +
+                         " outputs queued",
+                         0, backEnd.getNumOutputsQueued());
+
+            for (int o = 0;
+                 o < 10 && dispatcher.getTotalDispatchedEvents() < numEvts;
+                 o++)
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+            }
+
+            int expEvts;
+            if (numEvts <= numGood) {
+                expEvts = numEvts;
+            } else {
+                expEvts = numGood + 1;
+            }
+
+            assertEquals("Bad number of dispatched events",
+                         expEvts, dispatcher.getTotalDispatchedEvents());
+
+            firstTime = lastTime;
+            lastTime += timeStep;
+        }
+
+        try {
+            backEnd.stopThread();
+        } catch (IOException ioe) {
+            fail("Caught " + ioe);
+        }
+
+        assertEquals("Bad number of log messages",
+                     4, appender.getNumberOfMessages());
+
+        final String badMsg = "Output thread has failed";
+        for (int i = 0; i < 4; i++) {
+            assertEquals("Bad log message", badMsg, appender.getMessage(i));
+        }
+
+        appender.clear();
     }
 
     public static void main(String[] args)

@@ -2,6 +2,7 @@ package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.io.DispatchException;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,8 +16,11 @@ public interface SPDataProcessor
      *
      * @param newData list of new data
      * @param offset number of previously-seen data at front of list
+     *
+     * @throws IOException if the processing thread is stopped
      */
-    void addData(List newData, int offset);
+    void addData(List newData, int offset)
+        throws IOException;
 
     /**
      * Increment the count of splicer.execute() calls.
