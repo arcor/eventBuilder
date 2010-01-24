@@ -18,6 +18,12 @@ public class MockDispatcher
     {
     }
 
+    public void close()
+        throws DispatchException
+    {
+        // do nothing
+    }
+
     public void dataBoundary()
         throws DispatchException
     {
