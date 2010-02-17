@@ -1176,12 +1176,14 @@ public class EventBuilderBackEnd
      */
     public void splicerStopped()
     {
-        try {
-            addDataStop();
-        } catch (IOException ioe) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Cannot send final data stop after splicer stopped",
-                          ioe);
+        if (isRunning()) {
+            try {
+                addDataStop();
+            } catch (IOException ioe) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Cannot send final data stop" +
+                              " after splicer stopped", ioe);
+                }
             }
         }
     }
@@ -1306,7 +1308,9 @@ public class EventBuilderBackEnd
                 eventSent = true;
             } catch (DispatchException de) {
                 Throwable cause = de.getCause();
-                if (cause instanceof IOException &&
+                if (cause != null &&
+                    cause instanceof IOException &&
+                    cause.getMessage() != null &&
                     cause.getMessage().equals("Read-only file system"))
                 {
                     failed = true;
