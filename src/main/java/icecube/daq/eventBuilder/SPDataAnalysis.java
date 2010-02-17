@@ -70,7 +70,8 @@ public class SPDataAnalysis
             try {
                 dataProc.addData(list, addIndex);
             } catch (IOException ioe) {
-                LOG.error("Could not add data", ioe);
+                LOG.error("Could not add data (len=" + list.size() + ", dec=" +
+                          decrement + ")", ioe);
             }
         }
 
