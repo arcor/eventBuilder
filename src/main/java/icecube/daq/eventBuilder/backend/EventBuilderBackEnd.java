@@ -24,6 +24,7 @@ import icecube.daq.payload.impl.EventFactory;
 import icecube.daq.reqFiller.RequestFiller;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
+import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -203,6 +204,9 @@ public class EventBuilderBackEnd
         new LinkedList<ILoadablePayload>();
     /** Output thread. */
     private OutputThread outputThread;
+
+    /** DOM registry used to map each hit's DOM ID to the channel ID */
+    private IDOMRegistry domRegistry;
 
     /**
      * Constructor
@@ -863,8 +867,11 @@ public class EventBuilderBackEnd
         }
 
         if (year == 0 || startTime.longValue() < prevEventStart) {
-            GregorianCalendar cal = new GregorianCalendar();
-            year = (short) cal.get(GregorianCalendar.YEAR);
+            final short oldYear = year;
+            setCurrentYear();
+            if (oldYear != 0) {
+                LOG.error("Changed year from " + oldYear + " to " + year);
+            }
             prevEventStart = startTime.longValue();
         }
 
@@ -893,11 +900,17 @@ public class EventBuilderBackEnd
                                              endTime, year, runNumber, subnum,
                                              req, dataList);
         } else {
+            if (domRegistry == null) {
+                LOG.error("Cannot create event #" + req.getUID() +
+                          ": DOM registry has not been set");
+            }
+
             try {
                 evt = eventFactory.createPayload(req.getUID(), startTime,
                                                  endTime, year, runNumber,
                                                  subnum, req,
-                                                 buildHitRecordList(dataList));
+                                                 buildHitRecordList(dataList),
+                                                 domRegistry);
             } catch (PayloadException pe) {
                 LOG.error("Cannot create event #" + req.getUID(), pe);
                 evt = null;
@@ -1019,6 +1032,15 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Set the DOM registry used to translate hit DOM IDs to channel IDs
+     * @param domRegistry DOM registry
+     */
+    public void setDOMRegistry(IDOMRegistry domRegistry)
+    {
+        this.domRegistry = domRegistry;
+    }
+
+    /**
      * Record the length of the list passed to splicedAnalysis.execute().
      *
      * @param execListLen list length
@@ -1051,6 +1073,15 @@ public class EventBuilderBackEnd
     public void setRunNumber(int runNumber)
     {
         this.runNumber = runNumber;
+    }
+
+    /**
+     * Set the current year.
+     */
+    public void setCurrentYear()
+    {
+        GregorianCalendar cal = new GregorianCalendar();
+        year = (short) cal.get(GregorianCalendar.YEAR);
     }
 
     /**

@@ -21,12 +21,18 @@ import icecube.daq.payload.impl.TriggerRequestFactory;
 import icecube.daq.payload.impl.VitreousBufferCache;
 import icecube.daq.splicer.HKN1Splicer;
 import icecube.daq.splicer.Splicer;
+import icecube.daq.util.DOMRegistry;
+import icecube.daq.util.IDOMRegistry;
 
 import java.io.File;
 import java.io.IOException;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.xml.sax.SAXException;
 
 /**
  * Event builder component.
@@ -169,6 +175,7 @@ public class EBComponent
     public void closeAll()
         throws IOException
     {
+        splicer.dispose();
         gtInputProcess.destroyProcessor();
         spReqOutputProcess.destroyProcessor();
         gtInputProcess.destroyProcessor();
@@ -282,6 +289,11 @@ public class EBComponent
         return gtInputProcess;
     }
 
+    public long getTriggerRequestsReceived()
+    {
+        return backEnd.getNumTriggerRequestsReceived();
+    }
+
     /**
      * Return this component's svn version id as a String.
      *
@@ -289,7 +301,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4860 2010-01-24 17:47:28Z dglo $";
+        return "$Id: EBComponent.java 4982 2010-04-15 21:26:38Z dglo $";
     }
 
     /**
@@ -353,6 +365,24 @@ public class EBComponent
         if (!configDir.exists()) {
             throw new Error("Configuration directory \"" + configDir +
                             "\" does not exist");
+        }
+
+        IDOMRegistry domRegistry;
+        try {
+            domRegistry = DOMRegistry.loadRegistry(dirName);
+        } catch (ParserConfigurationException pce) {
+            LOG.error("Cannot load DOM registry", pce);
+            domRegistry = null;
+        } catch (SAXException se) {
+            LOG.error("Cannot load DOM registry", se);
+            domRegistry = null;
+        } catch (IOException ioe) {
+            LOG.error("Cannot load DOM registry", ioe);
+            domRegistry = null;
+        }
+
+        if (domRegistry != null) {
+            backEnd.setDOMRegistry(domRegistry);
         }
     }
 

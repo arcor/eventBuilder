@@ -2,13 +2,14 @@ package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventHitRecord;
-import icecube.daq.payload.IHitDataPayload;
+import icecube.daq.payload.IHitPayload;
 import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadException;
+import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -44,7 +45,7 @@ class MockHitRecord
         return 10;
     }
 
-    public boolean matches(IHitDataPayload pay)
+    public boolean matches(IDOMRegistry domRegistry, IHitPayload pay)
     {
         throw new Error("Unimplemented");
     }

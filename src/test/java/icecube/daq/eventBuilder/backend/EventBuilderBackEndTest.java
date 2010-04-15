@@ -11,12 +11,14 @@ import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
+import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Set;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -28,6 +30,25 @@ import org.apache.log4j.BasicConfigurator;
 public class EventBuilderBackEndTest
     extends TestCase
 {
+    class MockDOMRegistry
+        implements IDOMRegistry
+    {
+        public short getChannelId(String mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public int getStringMajor(String mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public Set<String> keys()
+        {
+            throw new Error("Unimplemented");
+        }
+    }
+
     private static final MockAppender appender =
         //new MockAppender(org.apache.log4j.Level.ALL).setVerbose(true);
         new MockAppender();
@@ -169,6 +190,7 @@ public class EventBuilderBackEndTest
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
 
         backEnd.makeDataPayload(null, null);
 
@@ -192,6 +214,8 @@ public class EventBuilderBackEndTest
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
 
         final long firstTime = 10000L;
         final long lastTime = 20000L;
@@ -231,6 +255,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
 
         final long firstTime = 10000L;
         final long lastTime = 20000L;
@@ -276,6 +302,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
+
         backEnd.reset();
 
         assertEquals("Bad subrun number", 0, backEnd.getSubrunNumber());
@@ -520,6 +549,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         EventBuilderBackEnd backEnd =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
+
         backEnd.reset();
         backEnd.setMaximumOutputFailures(5);
 
