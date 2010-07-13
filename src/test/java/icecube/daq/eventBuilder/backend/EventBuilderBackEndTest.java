@@ -33,6 +33,11 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
+        public double distanceBetweenDOMs(String mbid0, String mbid1)
+        {
+            throw new Error("Unimplemented");
+        }
+
         public short getChannelId(String mbid)
         {
             throw new Error("Unimplemented");
