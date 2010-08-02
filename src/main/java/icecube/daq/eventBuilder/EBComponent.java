@@ -178,7 +178,7 @@ public class EBComponent
         splicer.dispose();
         gtInputProcess.destroyProcessor();
         spReqOutputProcess.destroyProcessor();
-        gtInputProcess.destroyProcessor();
+        rdoutDataInputProcess.destroyProcessor();
         try {
             dispatcher.close();
         } catch (DispatchException de) {
@@ -301,7 +301,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4982 2010-04-15 21:26:38Z dglo $";
+        return "$Id: EBComponent.java 5110 2010-08-02 20:14:11Z dglo $";
     }
 
     /**
