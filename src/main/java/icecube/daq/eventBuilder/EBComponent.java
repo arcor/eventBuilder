@@ -182,7 +182,7 @@ public class EBComponent
         try {
             dispatcher.close();
         } catch (DispatchException de) {
-            throw new IOException("Cannot close dispatcher: " + de.getMessage());
+            throw new IOException("Cannot close dispatcher", de);
         }
     }
 
@@ -301,7 +301,15 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 5110 2010-08-02 20:14:11Z dglo $";
+        return "$Id: EBComponent.java 12314 2010-10-06 21:26:12Z dglo $";
+    }
+
+    /**
+     * Is the back end thread still processing data?
+     */
+    public boolean isBackEndRunning()
+    {
+        return backEnd.isRunning();
     }
 
     /**
