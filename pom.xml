@@ -78,6 +78,12 @@
       <groupId>edu.wisc.icecube</groupId>
       <artifactId>daq-request-filler</artifactId>
     </dependency>
+
+    <!-- needed by SAXParser -->
+    <dependency>
+      <groupId>jaxen</groupId>
+      <artifactId>jaxen</artifactId>
+    </dependency>
   </dependencies>
 
 </project>
