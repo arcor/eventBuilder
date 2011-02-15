@@ -153,6 +153,11 @@ public class MockTriggerRequest
         return cfgId;
     }
 
+    public String getTriggerName()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int getTriggerType()
     {
         return type;
