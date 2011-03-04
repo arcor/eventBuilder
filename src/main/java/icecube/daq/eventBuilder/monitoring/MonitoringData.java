@@ -105,6 +105,19 @@ public class MonitoringData
     }
 
     /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    public long getNumBytesWritten() {
+	if (backEnd == null) {
+	    return 0;
+	}
+
+	return backEnd.getNumBytesWritten();
+    }
+
+    /**
      * Return the number of events and the last event time as a list.
      *
      * @return event data

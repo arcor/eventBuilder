@@ -50,6 +50,13 @@ public interface MonitoringDataMBean
     long getDiskSize();
 
     /**
+     * Returns the number of bytes written to disk
+     *
+     * @return the total number of bytes written to disk
+     */
+    long getNumBytesWritten();
+
+    /**
      * Return the number of events and the last event time as a list.
      *
      * @return event data

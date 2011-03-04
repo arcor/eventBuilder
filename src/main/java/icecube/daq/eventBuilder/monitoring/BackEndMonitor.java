@@ -42,6 +42,13 @@ public interface BackEndMonitor
     long getDiskAvailable();
 
     /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    long getNumBytesWritten();
+
+    /**
      * Returns the total number of units in the disk (measured in MB).
      * If it fails to check the disk space, then it returns -1.
      *
