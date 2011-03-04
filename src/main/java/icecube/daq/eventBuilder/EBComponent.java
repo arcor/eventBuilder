@@ -302,7 +302,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 12320 2010-10-11 18:20:30Z dglo $";
+        return "$Id: EBComponent.java 12750 2011-03-04 18:15:33Z mnewcomb $";
     }
 
     /**
@@ -360,6 +360,21 @@ public class EBComponent
 
         this.dispatcher = dispatcher;
         backEnd.setDispatcher(dispatcher);
+    }
+
+    /**
+     * Get the number of bytes written to disk by the dispatcher
+     * Note that the dispatcher can apparently be null as it's not 
+     * checked for in setDispatcher.  Is that the desired behaviour???
+     *
+     * @returns the number of bytes written to disk
+     */
+    public long getNumBytesWritten() {
+	if(this.dispatcher!=null) {
+	    return this.dispatcher.getNumBytesWritten();
+	} else {
+	    return 0;
+	}
     }
 
     /**
