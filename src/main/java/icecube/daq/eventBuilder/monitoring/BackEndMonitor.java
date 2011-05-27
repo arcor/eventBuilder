@@ -13,20 +13,6 @@ public interface BackEndMonitor
     long getAverageReadoutsPerEvent();
 
     /**
-     * Get back-end state.
-     *
-     * @return state string
-     */
-    String getBackEndState();
-
-    /**
-     * Get back-end timing profile.
-     *
-     * @return back-end timing profile
-     */
-    String getBackEndTiming();
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return most recent splicer.execute() list length
@@ -40,13 +26,6 @@ public interface BackEndMonitor
      * @return the number of units still available in the disk.
      */
     long getDiskAvailable();
-
-    /**
-     * Returns the number of bytes written to disk by the event builder
-     *
-     * @return the number of bytes written to disk by the event builder
-     */
-    long getNumBytesWritten();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -78,6 +57,20 @@ public interface BackEndMonitor
     long getFirstEventTime();
 
     /**
+     * Get internal state.
+     *
+     * @return state string
+     */
+    String getInternalState();
+
+    /**
+     * Get internal timing profile.
+     *
+     * @return internal timing profile
+     */
+    String getInternalTiming();
+
+    /**
      * Get number of bad events for this run.
      *
      * @return number of bad events
@@ -97,6 +90,13 @@ public interface BackEndMonitor
      * @return number of bad trigger requests since last reset
      */
     long getNumBadTriggerRequests();
+
+    /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    long getNumBytesWritten();
 
     /**
      * Get number of passes through the main loop without a trigger request.

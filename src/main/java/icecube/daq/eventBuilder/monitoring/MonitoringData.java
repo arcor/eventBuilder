@@ -33,34 +33,6 @@ public class MonitoringData
     }
 
     /**
-     * Get back-end state.
-     *
-     * @return back end state
-     */
-    public String getBackEndState()
-    {
-        if (backEnd == null) {
-            return "<NO BACKEND>";
-        }
-
-        return backEnd.getBackEndState();
-    }
-
-    /**
-     * Get back-end timing profile.
-     *
-     * @return back end timing
-     */
-    public String getBackEndTiming()
-    {
-        if (backEnd == null) {
-            return "<NO BACKEND>";
-        }
-
-        return backEnd.getBackEndTiming();
-    }
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return current execute list length
@@ -102,19 +74,6 @@ public class MonitoringData
         }
 
         return backEnd.getDiskSize();
-    }
-
-    /**
-     * Returns the number of bytes written to disk by the event builder
-     *
-     * @return the number of bytes written to disk by the event builder
-     */
-    public long getNumBytesWritten() {
-	if (backEnd == null) {
-	    return 0;
-	}
-
-	return backEnd.getNumBytesWritten();
     }
 
     /**
@@ -160,6 +119,34 @@ public class MonitoringData
     }
 
     /**
+     * Get internal state.
+     *
+     * @return internal state
+     */
+    public String getInternalState()
+    {
+        if (backEnd == null) {
+            return "<NO BACKEND>";
+        }
+
+        return backEnd.getInternalState();
+    }
+
+    /**
+     * Get internal timing profile.
+     *
+     * @return internal timing
+     */
+    public String getInternalTiming()
+    {
+        if (backEnd == null) {
+            return "<NO BACKEND>";
+        }
+
+        return backEnd.getInternalTiming();
+    }
+
+    /**
      * Get number of bad events for this run.
      *
      * @return number of bad events
@@ -199,6 +186,19 @@ public class MonitoringData
         }
 
         return backEnd.getNumBadTriggerRequests();
+    }
+
+    /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    public long getNumBytesWritten() {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumBytesWritten();
     }
 
     /**
@@ -664,8 +664,8 @@ public class MonitoringData
         } else {
             buf.append("\n  averageReadoutsPerEvt ").
                 append(getAverageReadoutsPerEvent());
-            buf.append("\n  backEndState ").append(getBackEndState());
-            buf.append("\n  backEndTiming ").append(getBackEndTiming());
+            buf.append("\n  backEndState ").append(getInternalState());
+            buf.append("\n  backEndTiming ").append(getInternalTiming());
             buf.append("\n  curExecuteListLength ").
                 append(getCurrentExecuteListLength());
             buf.append("\n  diskAvailable ").
