@@ -168,6 +168,11 @@ public class MockTriggerRequest
         return uid;
     }
 
+    public long getUTCTime()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int hashCode()
     {
         return uid + type +

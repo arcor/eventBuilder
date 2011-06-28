@@ -120,6 +120,11 @@ public class MockHitRecordList
         return uid;
     }
 
+    public long getUTCTime()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public Iterator<IEventHitRecord> iterator()
     {
         return recList.iterator();
