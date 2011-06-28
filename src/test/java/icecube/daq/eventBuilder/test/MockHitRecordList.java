@@ -30,7 +30,7 @@ class MockHitRecord
         this.hitTime = hitTime;
     }
 
-    public short getChannelId()
+    public short getChannelID()
     {
         return chanId;
     }
@@ -80,7 +80,7 @@ public class MockHitRecordList
         MockHitRecordList hrl = new MockHitRecordList(uid);
         for (IEventHitRecord hitRec : recList) {
             MockHitRecord mock = (MockHitRecord) hitRec;
-            hrl.addRecord(mock.getChannelId(), mock.getHitTime());
+            hrl.addRecord(mock.getChannelID(), mock.getHitTime());
         }
         return hrl;
     }
