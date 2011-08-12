@@ -222,6 +222,9 @@ public class EventBuilderBackEndTest
         backEnd.setCurrentYear();
         backEnd.setDOMRegistry(new MockDOMRegistry());
 
+        final int runNum = 1;
+        backEnd.setRunNumber(runNum);
+
         final long firstTime = 10000L;
         final long lastTime = 20000L;
         final int uid = 888;
@@ -234,7 +237,7 @@ public class EventBuilderBackEndTest
 
         IEventPayload evt =
             (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        validateEvent(evt, 0, 0, uid, firstTime, lastTime, req, hitList);
+        validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req, hitList);
 
         if (appender.getNumberOfMessages() > 0) {
 for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i+": "+appender.getMessage(i));
@@ -263,6 +266,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         backEnd.setCurrentYear();
         backEnd.setDOMRegistry(new MockDOMRegistry());
 
+        final int runNum = 2;
+        backEnd.setRunNumber(runNum);
+
         final long firstTime = 10000L;
         final long lastTime = 20000L;
         final int uid = 888;
@@ -282,10 +288,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             hitList.add(recList);
         }
 
-
         IEventPayload evt =
             (IEventPayload) backEnd.makeDataPayload(req, hitList);
-        validateEvent(evt, 0, 0, uid, firstTime, lastTime, req, hitList);
+        validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req, hitList);
 
         if (appender.getNumberOfMessages() > 0) {
             assertEquals("Bad number of log messages",
@@ -452,7 +457,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         // Fire a few events through the backend - subrun 0
         for (int i = 0; i < 10; i++) {
-            final long firstTime = (System.currentTimeMillis() - t0) * 10000000L;
+            final long firstTime =
+                (System.currentTimeMillis() - t0) * 10000000L;
             final long lastTime = firstTime + 50L;
             final int uid = 888 + i;
 
