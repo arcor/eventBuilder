@@ -215,6 +215,11 @@ public class EBComponent
         }
     }
 
+    public EventBuilderBackEnd getBackEnd()
+    {
+        return backEnd;
+    }
+
     public IByteBufferCache getDataCache()
     {
         return rdoutDataMgr;
@@ -302,7 +307,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 12753 2011-03-04 18:34:28Z mnewcomb $";
+        return "$Id: EBComponent.java 13261 2011-08-12 18:10:44Z dglo $";
     }
 
     /**
