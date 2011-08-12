@@ -338,19 +338,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Mark data boundary between runs.
-     *
-     * @param message run message
-     *
-     * @throws DispatchException if there is a problem changing the run
-     */
-    public void dataBoundary(String message)
-        throws DispatchException
-    {
-        dispatcher.dataBoundary(message);
-    }
-
-    /**
      * Dispose of a data payload which is no longer needed.
      *
      * @param data payload
@@ -380,7 +367,24 @@ public class EventBuilderBackEnd
      */
     public void finishThreadCleanup()
     {
-        analysis.stopDispatcher();
+        if (runNumber < 0) {
+            if (!reportedBadRunNumber) {
+                LOG.error("Run number has not been set");
+                reportedBadRunNumber = true;
+            }
+            return;
+        }
+
+        String message = Dispatcher.STOP_PREFIX + runNumber;
+        try {
+            dispatcher.dataBoundary(message);
+        } catch (DispatchException de) {
+            LOG.error("Couldn't stop dispatcher (" + message + ")", de);
+        }
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Stopped dispatcher");
+        }
+
         totStopsSent++;
     }
 
@@ -1066,12 +1070,7 @@ public class EventBuilderBackEnd
      */
     public void setRequestTimes(IPayload payload)
     {
-        if (LOG.isDebugEnabled()) {
-            final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
-
-            LOG.debug("Filling trigger#" + req.getUID() + " [" +
-                      req.getFirstTimeUTC() + "-" + req.getLastTimeUTC() + "]");
-        }
+        // do nothing (required by RequestFiller)
     }
 
     /**
@@ -1091,6 +1090,31 @@ public class EventBuilderBackEnd
     {
         GregorianCalendar cal = new GregorianCalendar();
         year = (short) cal.get(GregorianCalendar.YEAR);
+    }
+
+    /**
+     * Inform the dispatcher that a new run is starting.
+     */
+    public void startDispatcher()
+    {
+        if (runNumber < 0) {
+            if (!reportedBadRunNumber) {
+                LOG.error("Run number has not been set");
+                reportedBadRunNumber = true;
+            }
+            return;
+        }
+
+        LOG.info("Splicer entered STARTING state");
+        String message = Dispatcher.START_PREFIX + runNumber;
+        try {
+            dispatcher.dataBoundary(message);
+        } catch (DispatchException de) {
+            LOG.error("Couldn't start dispatcher (" + message + ")", de);
+        }
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Started dispatcher");
+        }
     }
 
     /**

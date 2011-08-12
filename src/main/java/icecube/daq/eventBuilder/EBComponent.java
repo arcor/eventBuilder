@@ -307,7 +307,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 13261 2011-08-12 18:10:44Z dglo $";
+        return "$Id: EBComponent.java 13264 2011-08-12 19:58:26Z dglo $";
     }
 
     /**
@@ -418,7 +418,6 @@ public class EBComponent
     {
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
-        splicedAnalysis.setRunNumber(runNumber);
     }
 
     /**

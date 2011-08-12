@@ -40,15 +40,6 @@ public interface SPDataProcessor
     void addTruncateCall();
 
     /**
-     * Mark data boundary between runs.
-     *
-     * @param message run message
-     *
-     * @throws DispatchException if there is a problem changing the run
-     */
-    void dataBoundary(String message) throws DispatchException;
-
-    /**
      * Recycle all payloads in the list.
      *
      * @param payloadList list of payloads
@@ -66,4 +57,9 @@ public interface SPDataProcessor
      * Inform processor that the splicer has stopped.
      */
     void splicerStopped();
+
+    /**
+     * Inform the dispatcher that a new run is starting.
+     */
+    void startDispatcher();
 }
