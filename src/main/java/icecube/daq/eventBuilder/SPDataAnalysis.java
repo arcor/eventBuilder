@@ -1,8 +1,8 @@
 package icecube.daq.eventBuilder;
 
-import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.backend.SPDataProcessor;
 import icecube.daq.io.DispatchException;
+import icecube.daq.io.Dispatcher;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SplicedAnalysis;
 import icecube.daq.splicer.Splicer;
@@ -134,8 +134,7 @@ public class SPDataAnalysis
         }
 
         LOG.info("Splicer entered STARTING state");
-        String message =
-            DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + runNumber;
+        String message = Dispatcher.START_PREFIX + runNumber;
         try {
             dataProc.dataBoundary(message);
         } catch (DispatchException de) {
@@ -168,7 +167,7 @@ public class SPDataAnalysis
             return;
         }
 
-        String message = DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG + runNumber;
+        String message = Dispatcher.STOP_PREFIX + runNumber;
         try {
             dataProc.dataBoundary(message);
         } catch (DispatchException de) {

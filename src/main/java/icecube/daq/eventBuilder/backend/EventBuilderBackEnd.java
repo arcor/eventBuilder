@@ -415,7 +415,7 @@ public class EventBuilderBackEnd
         return dispatcher.getDiskAvailable();
     }
 
-    /** 
+    /**
      * Returns the number of bytes written to disk by the event builder
      *
      * @return the number of bytes written to disk by the event builder
@@ -1176,10 +1176,7 @@ public class EventBuilderBackEnd
             }
             subrunEventCount = 0;
 
-            String message = DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
-                newSubrunNumber;
-
-
+            String message = Dispatcher.SUBRUN_START_PREFIX + newSubrunNumber;
             if (LOG.isInfoEnabled()) {
                 LOG.info("calling dataBoundary for subrun with the message: " +
                          message);
