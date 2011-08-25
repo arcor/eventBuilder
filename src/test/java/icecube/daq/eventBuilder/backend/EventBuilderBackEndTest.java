@@ -328,6 +328,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         int numEvts = 0;
 
+        backEnd.startDispatcher();
+
         int subrun = 0;
         for (int i = 0; i < 10; i++) {
             final long startTime = (long) (i + 1) * timeStep;
@@ -584,6 +586,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         int numGood = 5;
         boolean readOnly = false;
+
+        backEnd.startDispatcher();
 
         for (int i = 0; i < 10; i++) {
             int uid = 888 + numEvts;
