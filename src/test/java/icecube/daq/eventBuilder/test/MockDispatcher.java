@@ -13,9 +13,11 @@ import java.nio.ByteBuffer;
 public class MockDispatcher
     implements Dispatcher
 {
-    private int numSeen = 0;
-    private int numBad = 0;
-    private boolean readOnly = false;
+    private int numSeen;
+    private int numBad;
+    private int readOnlyTrigger;
+    private boolean readOnly;
+    private boolean started;
 
     public MockDispatcher()
     {
@@ -33,10 +35,22 @@ public class MockDispatcher
         throw new Error("Unimplemented");
     }
 
-    public void dataBoundary(String s0)
+    public void dataBoundary(String msg)
         throws DispatchException
     {
-        // ignored
+        if (msg.startsWith(START_PREFIX)) {
+            if (started) {
+                throw new Error("Dispatcher has already been started");
+            }
+
+            started = true;
+        } else if (msg.startsWith(STOP_PREFIX)) {
+            if (!started) {
+                throw new Error("Dispatcher is already stopped");
+            }
+
+            started = false;
+        }
     }
 
     public void dispatchEvent(ByteBuffer buf)
@@ -49,6 +63,11 @@ public class MockDispatcher
         throws DispatchException
     {
         numSeen++;
+
+        if (readOnlyTrigger > 0 && numSeen >= readOnlyTrigger) {
+            readOnly = true;
+        }
+
         if (!PayloadChecker.validateEvent((IEventPayload) pay, true)) {
             numBad++;
         }
@@ -88,9 +107,8 @@ public class MockDispatcher
 
     public long getNumBytesWritten() 
     {
-	return 0;
+        return 0;
     }
-
 
     public int getNumberOfBadEvents()
     {
@@ -102,9 +120,14 @@ public class MockDispatcher
         return numSeen;
     }
 
-    public void setDispatchDestStorage(String s0)
+    public boolean isStarted()
     {
-        throw new Error("Unimplemented");
+        return started;
+    }
+
+    public void setDispatchDestStorage(String destDir)
+    {
+        // do nothing
     }
 
     public void setMaxFileSize(long x0)
@@ -115,6 +138,16 @@ public class MockDispatcher
     public void setReadOnly(boolean readOnly)
     {
         this.readOnly = readOnly;
+    }
+
+    /**
+     * Trigger a read-only filesystem event after <tt>eventCount</tt> events.
+     *
+     * @param eventCount number of events needed to trigger a read-only filesystem
+     */
+    public void setReadOnlyTrigger(int eventCount)
+    {
+        this.readOnlyTrigger = eventCount;
     }
 
     public String toString()
