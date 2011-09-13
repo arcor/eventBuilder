@@ -1,8 +1,6 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.eventBuilder.backend.SPDataProcessor;
-import icecube.daq.io.DispatchException;
-import icecube.daq.io.Dispatcher;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SplicedAnalysis;
 import icecube.daq.splicer.Splicer;

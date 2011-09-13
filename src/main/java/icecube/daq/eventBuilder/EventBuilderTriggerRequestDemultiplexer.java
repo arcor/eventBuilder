@@ -48,7 +48,8 @@ public class EventBuilderTriggerRequestDemultiplexer
      *
      * @param master master payload factory
      */
-    public EventBuilderTriggerRequestDemultiplexer(ReadoutRequestFactory factory)
+    public EventBuilderTriggerRequestDemultiplexer
+        (ReadoutRequestFactory factory)
     {
         readoutGenerator = new EventBuilderReadoutRequestGenerator(factory);
     }

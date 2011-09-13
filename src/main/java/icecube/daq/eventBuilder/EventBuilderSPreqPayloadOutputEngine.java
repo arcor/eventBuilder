@@ -1,7 +1,8 @@
 /*
  * class: EventBuilderSPreqPayloadOutputEngine
  *
- * Version $Id: EventBuilderSPreqPayloadOutputEngine.java 3433 2008-08-31 16:19:12Z dglo $
+ * Version $Id: EventBuilderSPreqPayloadOutputEngine.java 
+ *     3433 2008-08-31 16:19:12Z dglo $
  *
  * Date: May 23 2005
  *
@@ -16,7 +17,8 @@ import icecube.daq.io.SimpleDestinationOutputEngine;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: EventBuilderSPreqPayloadOutputEngine.java 3433 2008-08-31 16:19:12Z dglo $
+ * @version $Id: EventBuilderSPreqPayloadOutputEngine.java 
+ *     3433 2008-08-31 16:19:12Z dglo $
  */
 public class EventBuilderSPreqPayloadOutputEngine
     extends SimpleDestinationOutputEngine

@@ -424,8 +424,9 @@ public class EventBuilderBackEnd
      *
      * @return the number of bytes written to disk by the event builder
      */
-    public long getNumBytesWritten() {
-	return dispatcher.getNumBytesWritten();
+    public long getNumBytesWritten() 
+    {
+        return dispatcher.getNumBytesWritten();
     }
 
     /**
@@ -446,7 +447,7 @@ public class EventBuilderBackEnd
      */
     public long[] getEventData()
     {
-        return new long[] { getNumOutputsSent(), getLastOutputTime() };
+        return new long[] {getNumOutputsSent(), getLastOutputTime() };
     }
 
     /**
@@ -640,7 +641,8 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
-    public int getNumTriggerRequestsQueued() {
+    public int getNumTriggerRequestsQueued() 
+    {
         return getNumRequestsQueued();
     }
 
@@ -650,7 +652,8 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
-    public long getNumTriggerRequestsReceived() {
+    public long getNumTriggerRequestsReceived() 
+    {
         return getNumRequestsReceived();
     }
 
@@ -800,7 +803,8 @@ public class EventBuilderBackEnd
      *
      * @return total number of trigger requests received
      */
-    public long getTotalTriggerRequestsReceived() {
+    public long getTotalTriggerRequestsReceived() 
+    {
         return getTotalRequestsReceived();
     }
 
@@ -1166,12 +1170,13 @@ public class EventBuilderBackEnd
         synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
-                throw new RuntimeException("Provided subrun # " + subrunNumber +
-                                           " does not follow subrun: " +
-                                           this.subrunNumber);
+                throw new RuntimeException("Provided subrun # " + 
+                    subrunNumber + " does not follow subrun: " +
+                        this.subrunNumber);
             }
             if (newSubrunStartTime) {
-                throw new RuntimeException("subrun already has start time set.");
+                throw new RuntimeException(
+                    "subrun already has start time set.");
             }
             newSubrunStartTime = true;
             this.subrunStart = startTime;
@@ -1310,8 +1315,9 @@ public class EventBuilderBackEnd
                         try {
                             outputQueue.wait();
                         } catch (InterruptedException ie) {
-                            LOG.error("Interrupt while waiting for output queue",
-                                      ie);
+                            LOG.error(
+                                "Interrupt while waiting for output queue", 
+                                    ie);
                         }
                     }
 

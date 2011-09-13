@@ -84,7 +84,7 @@ public class MonitoringData
     public long[] getEventData()
     {
         if (backEnd == null) {
-            return new long[] { -1L, -1L };
+            return new long[] {-1L, -1L };
         }
 
         return backEnd.getEventData();
@@ -193,7 +193,8 @@ public class MonitoringData
      *
      * @return the number of bytes written to disk by the event builder
      */
-    public long getNumBytesWritten() {
+    public long getNumBytesWritten() 
+    {
         if (backEnd == null) {
             return 0;
         }

@@ -307,7 +307,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 13264 2011-08-12 19:58:26Z dglo $";
+        return "$Id: EBComponent.java 13353 2011-09-13 17:58:18Z seshadrivija $";
     }
 
     /**
@@ -344,7 +344,8 @@ public class EBComponent
      * @param dirName The absolute path of directory where the dispatch files
      *                will be stored.
      */
-    public void setDispatchDestStorage(String dirName) {
+    public void setDispatchDestStorage(String dirName) 
+    {
         dispatcher.setDispatchDestStorage(dirName);
     }
 
@@ -405,7 +406,8 @@ public class EBComponent
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
-    public void setMaxFileSize(long maxFileSize) {
+    public void setMaxFileSize(long maxFileSize) 
+    {
         dispatcher.setMaxFileSize(maxFileSize);
     }
 
@@ -439,7 +441,7 @@ public class EBComponent
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);
-            return; // without this, compiler whines about uninitialized 'srvr'
+            return; 
         }
         srvr.startServing();
     }

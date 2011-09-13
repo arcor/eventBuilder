@@ -1,7 +1,5 @@
 package icecube.daq.eventBuilder.backend;
 
-import icecube.daq.io.DispatchException;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

@@ -93,7 +93,8 @@ public class GlobalTriggerReader
         backEnd.addRequest(pay);
     }
 
-    public void registerDemultiplexer(EventBuilderTriggerRequestDemultiplexer demuxer)
+    public void registerDemultiplexer
+        (EventBuilderTriggerRequestDemultiplexer demuxer)
     {
         this.demuxer = demuxer;
     }
