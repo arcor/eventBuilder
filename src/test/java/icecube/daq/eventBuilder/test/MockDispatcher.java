@@ -105,7 +105,7 @@ public class MockDispatcher
         return 0;
     }
 
-    public long getNumBytesWritten() 
+    public long getNumBytesWritten()
     {
         return 0;
     }

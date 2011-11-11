@@ -424,7 +424,7 @@ public class EventBuilderBackEnd
      *
      * @return the number of bytes written to disk by the event builder
      */
-    public long getNumBytesWritten() 
+    public long getNumBytesWritten()
     {
         return dispatcher.getNumBytesWritten();
     }
@@ -641,7 +641,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
-    public int getNumTriggerRequestsQueued() 
+    public int getNumTriggerRequestsQueued()
     {
         return getNumRequestsQueued();
     }
@@ -652,7 +652,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
-    public long getNumTriggerRequestsReceived() 
+    public long getNumTriggerRequestsReceived()
     {
         return getNumRequestsReceived();
     }
@@ -803,7 +803,7 @@ public class EventBuilderBackEnd
      *
      * @return total number of trigger requests received
      */
-    public long getTotalTriggerRequestsReceived() 
+    public long getTotalTriggerRequestsReceived()
     {
         return getTotalRequestsReceived();
     }
@@ -875,6 +875,7 @@ public class EventBuilderBackEnd
 
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
+        final int uid = req.getUID();
         IUTCTime startTime = req.getFirstTimeUTC();
         IUTCTime endTime = req.getLastTimeUTC();
 
@@ -893,12 +894,12 @@ public class EventBuilderBackEnd
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + req.getUID() + " [" + startTime +
-                      " - " + endTime + "]");
+            LOG.debug("Closing Event " + uid + " [" + startTime + " - " +
+                      endTime + "]");
         }
         if (LOG.isInfoEnabled() && dataList.size() == 0) {
-            LOG.info("Sending empty event " + req.getUID() + " window [" +
-                     startTime + " - " + endTime + "]");
+            LOG.info("Sending empty event " + uid + " window [" + startTime +
+                     " - " + endTime + "]");
         }
 
         int subnum;
@@ -913,23 +914,21 @@ public class EventBuilderBackEnd
 
         ILoadablePayload evt;
         if (EventVersion.VERSION < 5) {
-            evt = eventFactory.createPayload(req.getUID(), ME, startTime,
-                                             endTime, year, runNumber, subnum,
-                                             req, dataList);
+            evt = eventFactory.createPayload(uid, ME, startTime, endTime, year,
+                                             runNumber, subnum, req, dataList);
         } else {
             if (domRegistry == null) {
-                LOG.error("Cannot create event #" + req.getUID() +
+                LOG.error("Cannot create event #" + uid +
                           ": DOM registry has not been set");
             }
 
             try {
-                evt = eventFactory.createPayload(req.getUID(), startTime,
-                                                 endTime, year, runNumber,
-                                                 subnum, req,
+                evt = eventFactory.createPayload(uid, startTime, endTime,
+                                                 year, runNumber, subnum, req,
                                                  buildHitRecordList(dataList),
                                                  domRegistry);
             } catch (PayloadException pe) {
-                LOG.error("Cannot create event #" + req.getUID(), pe);
+                LOG.error("Cannot create event #" + uid, pe);
                 evt = null;
             }
         }
@@ -1170,7 +1169,7 @@ public class EventBuilderBackEnd
         synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
-                throw new RuntimeException("Provided subrun # " + 
+                throw new RuntimeException("Provided subrun # " +
                     subrunNumber + " does not follow subrun: " +
                         this.subrunNumber);
             }
@@ -1316,7 +1315,7 @@ public class EventBuilderBackEnd
                             outputQueue.wait();
                         } catch (InterruptedException ie) {
                             LOG.error(
-                                "Interrupt while waiting for output queue", 
+                                "Interrupt while waiting for output queue",
                                     ie);
                         }
                     }
