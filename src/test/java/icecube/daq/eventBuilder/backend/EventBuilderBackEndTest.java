@@ -391,7 +391,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                              0, backEnd.getNumOutputsQueued());
 
                 for (int o = 0;
-                     o < 10 && dispatcher.getTotalDispatchedEvents() < numEvts;
+                     o < 10 && dispatcher.getNumDispatchedEvents() < numEvts;
                      o++)
                 {
                     try {
@@ -401,7 +401,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                     }
                 }
                 assertEquals("Bad number of dispatched events",
-                             numEvts, dispatcher.getTotalDispatchedEvents());
+                             numEvts, dispatcher.getNumDispatchedEvents());
 
                 firstTime = lastTime;
                 lastTime += substep;
@@ -642,7 +642,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                          0, backEnd.getNumOutputsQueued());
 
             for (int o = 0;
-                 o < 10 && dispatcher.getTotalDispatchedEvents() < numEvts;
+                 o < 10 && dispatcher.getNumDispatchedEvents() < numEvts;
                  o++)
             {
                 try {
@@ -660,7 +660,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             }
 
             assertEquals("Bad number of dispatched events",
-                         expEvts, dispatcher.getTotalDispatchedEvents());
+                         expEvts, dispatcher.getNumDispatchedEvents());
 
             firstTime = lastTime;
             lastTime += timeStep;
@@ -681,6 +681,87 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         }
 
         appender.clear();
+    }
+
+    public void testMakeDataPayloadSwitchRun()
+    {
+        MockBufferCache bufCache = new MockBufferCache("Make");
+
+        SPDataAnalysis analysis = new SPDataAnalysis();
+        MockSplicer splicer = new MockSplicer();
+
+        MockDispatcher dispatcher = new MockDispatcher();
+
+        EventBuilderBackEnd backEnd =
+            new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
+
+        int runNum = 987654;
+        backEnd.setRunNumber(runNum);
+
+        final int cfgId = 444;
+
+        long firstTime = 10000L;
+        long lastTime = 20000L;
+        int trUID = 888;
+        int rdUID = 111;
+
+        final int switchNum = runNum + 100;
+
+        backEnd.startDispatcher();
+
+        for (int i = 0; i < 3; i++) {
+            String expMessage = null;
+
+            if (i == 1) {
+                backEnd.setSwitchRunNumber(switchNum);
+            } else if (i == 2) {
+                trUID = 1;
+                expMessage = "Switching from run " + runNum + " to " +
+                    switchNum;
+                runNum = switchNum;
+            }
+
+            MockTriggerRequest req =
+                new MockTriggerRequest(trUID, 999, cfgId, firstTime, lastTime);
+
+            ArrayList hitList = new ArrayList();
+            if (EventVersion.VERSION < 5) {
+                hitList.add(new MockReadoutData(111, rdUID, firstTime + 1L,
+                                                lastTime - 1L));
+            } else {
+                MockHitRecordList recList = new MockHitRecordList(trUID);
+                recList.addRecord((short) 101, firstTime + 1);
+
+                hitList.add(recList);
+            }
+
+            IEventPayload evt =
+                (IEventPayload) backEnd.makeDataPayload(req, hitList);
+            validateEvent(evt, runNum, 0, trUID, firstTime, lastTime, req,
+                          hitList);
+
+            if (expMessage == null) {
+                if (appender.getNumberOfMessages() > 0) {
+                    assertEquals("Bad number of log messages",
+                                 0, appender.getNumberOfMessages());
+                }
+            } else {
+                assertEquals("Bad number of log messages",
+                             1, appender.getNumberOfMessages());
+
+                assertEquals("Bad log message",
+                             expMessage, appender.getMessage(0));
+
+                appender.clear();
+            }
+
+            firstTime = lastTime + 1000L;
+            lastTime = firstTime + 10000L;
+            trUID++;
+            rdUID++;
+        }
     }
 
     public static void main(String[] args)

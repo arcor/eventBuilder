@@ -4,6 +4,7 @@ import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.common.EventVersion;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
+import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
@@ -139,6 +140,51 @@ public class EventBuilderBackEnd
         }
     }
 
+    /**
+     * Event totals for a run.
+     */
+    class EventRunData
+    {
+        private long numEvents;
+        private long firstEventTime;
+        private long lastEventTime;
+
+        /**
+         * Create an object holding the event totals for a run.
+         *
+         * @param numEvents - number of physics events dispatched
+         * @param firstEventTime - starting time of first event
+         * @param lastEventTime - ending time of last event
+         */
+        EventRunData(long numEvents, long firstEventTime, long lastEventTime)
+        {
+            this.numEvents = numEvents;
+            this.firstEventTime = firstEventTime;
+            this.lastEventTime = lastEventTime;
+        }
+
+        /**
+         * Return run data as an array of <tt>long</tt> values.
+         *
+         * @return array of <tt>long</tt> values
+         */
+        public long[] toArray()
+        {
+            return new long[] { numEvents, firstEventTime, lastEventTime };
+        }
+
+        /**
+         * Return string representation of run data.
+         *
+         * @return string
+         */
+        public String toString()
+        {
+            return "EventRunData[evts " + numEvents + ",first " +
+                firstEventTime + ", last " + lastEventTime + "]";
+        }
+    }
+
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -207,6 +253,13 @@ public class EventBuilderBackEnd
 
     /** DOM registry used to map each hit's DOM ID to the channel ID */
     private IDOMRegistry domRegistry;
+
+    /** New run number to be used when switching runs mid-stream */
+    private int switchNumber;
+
+    /** Map used to track start/stop/count data for each run */
+    private HashMap<Integer, EventRunData> runData =
+        new HashMap<Integer, EventRunData>();
 
     /**
      * Constructor
@@ -319,22 +372,32 @@ public class EventBuilderBackEnd
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
-        final int uid;
-        if (dataPayload == null) {
-            uid = Integer.MAX_VALUE;
-        } else if (EventVersion.VERSION < 5) {
-            uid = ((IReadoutDataPayload) dataPayload).getRequestUID();
+        final long reqFirst, reqLast;
+        if (req == null) {
+            reqFirst = Integer.MAX_VALUE;
+            reqLast = Integer.MAX_VALUE;
         } else {
-            uid = ((IHitRecordList) dataPayload).getUID();
+            reqFirst = req.getFirstTimeUTC().longValue();
+            reqLast = req.getLastTimeUTC().longValue();
         }
 
-        if (uid < req.getUID()) {
-            return -1;
-        } else if (uid == req.getUID()) {
-            return 0;
+        final long time;
+        if (dataPayload == null) {
+            time = Long.MIN_VALUE;
         } else {
-            return 1;
+            time = ((IPayload) dataPayload).getUTCTime();
         }
+
+        int rtnval;
+        if (time < reqFirst) {
+            rtnval = -1;
+        } else if (time > reqLast) {
+            rtnval = 1;
+        } else {
+            rtnval = 0;
+        }
+
+        return rtnval;
     }
 
     /**
@@ -384,6 +447,11 @@ public class EventBuilderBackEnd
         if (LOG.isInfoEnabled()) {
             LOG.info("Stopped dispatcher");
         }
+
+        // save run data for later retrieval
+        runData.put(runNumber,
+                    new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
+                                     getLastOutputTime()));
 
         totStopsSent++;
     }
@@ -678,6 +746,37 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Get the run data for the specified run.
+     *
+     * @return array of <tt>long</tt> values:<ol>
+     *    <li>number of events
+     *    <li>starting time of first event in run
+     *    <li>ending time of last event in run
+     *    </ol>
+     *
+     * @throw EventBuilderException if no data is found for the run
+     */
+    public long[] getRunData(int runNum)
+        throws EventBuilderException
+    {
+        if (!runData.containsKey(runNum)) {
+            LOG.error("No data found for run " + runNum);
+            throw new EventBuilderException("No data found for run " + runNum);
+        }
+
+        LOG.error("Run " + runNum + " EB data is " + runData.get(runNum));
+        return runData.get(runNum).toArray();
+    }
+
+    /**
+     * Get the current run number.
+     */
+    public int getRunNumber()
+    {
+        return runNumber;
+    }
+
+    /**
      * Get the current subrun number.
      *
      * @return current subrun number
@@ -867,20 +966,24 @@ public class EventBuilderBackEnd
             return null;
         }
 
-        if (runNumber < 0 && !reportedBadRunNumber) {
-            LOG.error("Run number has not yet been set");
-            reportedBadRunNumber = true;
-            return null;
-        }
-
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
         final int uid = req.getUID();
-        IUTCTime startTime = req.getFirstTimeUTC();
-        IUTCTime endTime = req.getLastTimeUTC();
+        final IUTCTime startTime = req.getFirstTimeUTC();
+        final IUTCTime endTime = req.getLastTimeUTC();
 
         if (startTime == null || endTime == null) {
             LOG.error("Request may have been recycled; cannot send data");
+            return null;
+        }
+
+        if (uid == 1 && switchNumber > 0) {
+            switchRun();
+        }
+
+        if (runNumber < 0 && !reportedBadRunNumber) {
+            LOG.error("Run number has not yet been set");
+            reportedBadRunNumber = true;
             return null;
         }
 
@@ -980,6 +1083,8 @@ public class EventBuilderBackEnd
 
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
+
+            switchNumber = 0;
 
             if (outputQueue.size() > 0) {
                 if (LOG.isErrorEnabled()) {
@@ -1121,6 +1226,44 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Switch to new run.
+     */
+    private void switchRun()
+    {
+        if (LOG.isErrorEnabled()) {
+            LOG.error("Switching from run " + runNumber + " to " +
+                      switchNumber);
+        }
+
+        try {
+            dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + runNumber);
+        } catch (DispatchException de) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Could not inform dispatcher of run stop" +
+                          " (switch from " + runNumber + " to " +
+                          switchNumber + ")", de);
+            }
+        }
+
+        long[] tmpData = resetOutputData();
+        runData.put(runNumber,
+                    new EventRunData(tmpData[0], tmpData[1], tmpData[2]));
+
+        try {
+            dispatcher.dataBoundary(Dispatcher.START_PREFIX + switchNumber);
+        } catch (DispatchException de) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Could not inform dispatcher of run start" +
+                          " (switch from " + runNumber + " to " +
+                          switchNumber + ")", de);
+            }
+        }
+
+        runNumber = switchNumber;
+        switchNumber = 0;
+    }
+
+    /**
      * Prepare for a new subrun starting soon.  This will cause
      * subsequent events to be marked with a new subrun number, which
      * will be the negative of the number provided here - until the
@@ -1234,6 +1377,31 @@ public class EventBuilderBackEnd
         } else {
             this.dispatcher = dispatcher;
         }
+    }
+
+    /**
+     * Set the run number to be used when we start receiving
+     * reset trigger UIDs.
+     *
+     * @param num run number for next run
+     */
+    public void setSwitchRunNumber(int num)
+    {
+        if (num < 0) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Ignoring invalid switch run number " + num);
+            }
+            return;
+        }
+
+        if (switchNumber > 0) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Overriding previous switch run " + switchNumber +
+                          " with new value " + num);
+            }
+        }
+
+        switchNumber = num;
     }
 
     /**

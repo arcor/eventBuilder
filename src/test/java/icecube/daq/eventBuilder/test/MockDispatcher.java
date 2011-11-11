@@ -110,6 +110,11 @@ public class MockDispatcher
         return 0;
     }
 
+    public long getNumDispatchedEvents()
+    {
+        return numSeen;
+    }
+
     public int getNumberOfBadEvents()
     {
         return numBad;

@@ -2,6 +2,7 @@ package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
+import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
@@ -262,7 +263,7 @@ public class EBComponent
 
     public long getEventsSent()
     {
-        return dispatcher.getTotalDispatchedEvents();
+        return dispatcher.getNumDispatchedEvents();
     }
 
     public MonitoringData getMonitoringData()
@@ -283,6 +284,37 @@ public class EBComponent
     public long getRequestsSent()
     {
         return spReqOutputProcess.getTotalRecordsSent();
+    }
+
+    /**
+     * Get the run data for the specified run.
+     *
+     * @return array of <tt>long</tt> values:<ol>
+     *    <li>number of events
+     *    <li>starting time of first event in run
+     *    <li>ending time of last event in run
+     *    </ol>
+     *
+     * @throw EventBuilderException if no data is found for the run
+     */
+    public long[] getRunData(int runNum)
+        throws DAQCompException
+    {
+        try {
+            return backEnd.getRunData(runNum);
+        } catch (EventBuilderException ebe) {
+            throw new DAQCompException("Cannot get run data", ebe);
+        }
+    }
+
+    /**
+     * Get the current run number.
+     *
+     * @return current run number
+     */
+    public int getRunNumber()
+    {
+        return backEnd.getRunNumber();
     }
 
     public IByteBufferCache getTriggerCache()
@@ -307,7 +339,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 13400 2011-11-11 02:44:51Z dglo $";
+        return "$Id: EBComponent.java 13401 2011-11-11 04:23:13Z dglo $";
     }
 
     /**
@@ -420,6 +452,23 @@ public class EBComponent
     {
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
+    }
+
+    /**
+     * Perform any actions related to switching to a new run.
+     *
+     * @param runNumber new run number
+     *
+     * @throws DAQCompException if there is a problem switching the component
+     */
+    public void switching(int runNumber)
+        throws DAQCompException
+    {
+        if (LOG.isInfoEnabled()){
+            LOG.info("Setting runNumber = " + runNumber);
+        }
+
+        backEnd.setSwitchRunNumber(runNumber);
     }
 
     /**
