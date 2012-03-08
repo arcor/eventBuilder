@@ -194,6 +194,9 @@ public class EventBuilderBackEnd
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
+    /** If <tt>true</tt>, drop events outside firstGoodTime and lastGoodTime */
+    private static final boolean DROP_NOT_GOOD = false;
+
     private Splicer splicer;
     private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
@@ -260,6 +263,25 @@ public class EventBuilderBackEnd
     /** Map used to track start/stop/count data for each run */
     private HashMap<Integer, EventRunData> runData =
         new HashMap<Integer, EventRunData>();
+
+    /** An object for synchronizing good time changes */
+    private Object goodTimeLock = new Object();
+    /** First time when all hubs have sent a hit */
+    private long firstGoodTime;
+    /** Last time when all hubs have sent a hit */
+    private long lastGoodTime;
+    /** Count the number of events sent before firstGoodTime was set */
+    private long numUnknownBeforeFirst;
+    /** Count the number of events dropped once firstGoodTime was set */
+    private long numDroppedBeforeFirst;
+    /** Count the number of events sent before lastGoodTime was set */
+    private long numUnknownBeforeLast;
+    /** Count the number of valid events seen once lastGoodTime was set */
+    private long numKnownBeforeLast;
+    /** Count the number of events dropped once lastGoodTime was set */
+    private long numDroppedAfterLast;
+    /** Count the total possible events */
+    private long totalPossible;
 
     /**
      * Constructor
@@ -452,6 +474,13 @@ public class EventBuilderBackEnd
         runData.put(runNumber,
                     new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
                                      getLastOutputTime()));
+
+        LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
+                  "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
+                  "  UnknownBeforeLast: " + numUnknownBeforeLast +
+                  "  KnownBeforeLast: " + numKnownBeforeLast +
+                  "  DroppedAfterLast: " + numDroppedAfterLast +
+                  "  TotalPossible: " + totalPossible);
 
         totStopsSent++;
     }
@@ -966,6 +995,12 @@ public class EventBuilderBackEnd
             return null;
         }
 
+        if (runNumber < 0 && !reportedBadRunNumber) {
+            LOG.error("Run number has not yet been set");
+            reportedBadRunNumber = true;
+            return null;
+        }
+
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
         final int uid = req.getUID();
@@ -977,14 +1012,34 @@ public class EventBuilderBackEnd
             return null;
         }
 
-        if (uid == 1 && switchNumber > 0) {
-            switchRun();
+        long tmpFirstGood;
+        long tmpLastGood;
+        synchronized (goodTimeLock) {
+            tmpFirstGood = firstGoodTime;
+            tmpLastGood = lastGoodTime;
         }
 
-        if (runNumber < 0 && !reportedBadRunNumber) {
-            LOG.error("Run number has not yet been set");
-            reportedBadRunNumber = true;
-            return null;
+        totalPossible++;
+        if (tmpFirstGood == 0) {
+            numUnknownBeforeFirst++;
+        } else if (startTime.longValue() < tmpFirstGood) {
+            numDroppedBeforeFirst++;
+            if (DROP_NOT_GOOD) {
+                return DROPPED_PAYLOAD;
+            }
+        } else if (tmpLastGood == 0) {
+            numUnknownBeforeLast++;
+        } else if (endTime.longValue() <= tmpLastGood) {
+            numKnownBeforeLast++;
+        } else {
+            numDroppedAfterLast++;
+            if (DROP_NOT_GOOD) {
+                return DROPPED_PAYLOAD;
+            }
+        }
+
+        if (uid == 1 && switchNumber > 0) {
+            switchRun();
         }
 
         if (year == 0 || startTime.longValue() < prevEventStart) {
@@ -1086,6 +1141,15 @@ public class EventBuilderBackEnd
 
             switchNumber = 0;
 
+            firstGoodTime = 0;
+            lastGoodTime = 0;
+            numUnknownBeforeFirst = 0;
+            numDroppedBeforeFirst = 0;
+            numUnknownBeforeLast = 0;
+            numKnownBeforeLast = 0;
+            numDroppedAfterLast = 0;
+            totalPossible = 0;
+
             if (outputQueue.size() > 0) {
                 if (LOG.isErrorEnabled()) {
                     LOG.error("Unwritten events queued at reset");
@@ -1169,6 +1233,30 @@ public class EventBuilderBackEnd
     public void setExecuteListLength(int execListLen)
     {
         this.execListLen = execListLen;
+    }
+
+    /**
+     * Set the first time when all hubs have sent a hit.
+     *
+     * @param firsttTime time of first good hit in run
+     */
+    public void setFirstGoodTime(long firstTime)
+    {
+        synchronized (goodTimeLock) {
+            firstGoodTime = firstTime;
+        }
+    }
+
+    /**
+     * Set the last time when all hubs have sent a hit.
+     *
+     * @param lastTime time of last good hit in run
+     */
+    public void setLastGoodTime(long lastTime)
+    {
+        synchronized (goodTimeLock) {
+            lastGoodTime = lastTime;
+        }
     }
 
     /**

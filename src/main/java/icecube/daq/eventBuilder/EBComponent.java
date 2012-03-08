@@ -339,7 +339,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 13401 2011-11-11 04:23:13Z dglo $";
+        return "$Id: EBComponent.java 13548 2012-03-08 21:57:35Z dglo $";
     }
 
     /**
@@ -401,6 +401,16 @@ public class EBComponent
     }
 
     /**
+     * Set the first time when all hubs have sent a hit.
+     *
+     * @param firstTime time of first good hit in run
+     */
+    public void setFirstGoodTime(long firstTime)
+    {
+        backEnd.setFirstGoodTime(firstTime);
+    }
+
+    /**
      * Set the directory where the global configuration files can be found.
      *
      * @param dirName The absolute path of the global configuration directory
@@ -431,6 +441,16 @@ public class EBComponent
         if (domRegistry != null) {
             backEnd.setDOMRegistry(domRegistry);
         }
+    }
+
+    /**
+     * Set the last time when all hubs have sent a hit.
+     *
+     * @param lastTime time of last good hit in run
+     */
+    public void setLastGoodTime(long lastTime)
+    {
+        backEnd.setLastGoodTime(lastTime);
     }
 
     /**
