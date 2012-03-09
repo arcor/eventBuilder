@@ -11,6 +11,7 @@ import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
+import icecube.daq.util.DeployedDOM;
 import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
@@ -39,6 +40,11 @@ public class EventBuilderBackEndTest
         }
 
         public short getChannelId(String mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public DeployedDOM getDom(short chanid)
         {
             throw new Error("Unimplemented");
         }
