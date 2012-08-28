@@ -14,7 +14,6 @@ import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
-import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
