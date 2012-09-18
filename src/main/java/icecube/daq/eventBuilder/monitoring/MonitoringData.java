@@ -147,6 +147,20 @@ public class MonitoringData
     }
 
     /**
+     * Get the amount of time the current event spent in the system.
+     *
+     * @return current latency
+     */
+    public double getLatency()
+    {
+        if (backEnd == null) {
+            return Long.MAX_VALUE;
+        }
+
+        return backEnd.getLatency();
+    }
+
+    /**
      * Get number of bad events for this run.
      *
      * @return number of bad events
@@ -193,7 +207,7 @@ public class MonitoringData
      *
      * @return the number of bytes written to disk by the event builder
      */
-    public long getNumBytesWritten() 
+    public long getNumBytesWritten()
     {
         if (backEnd == null) {
             return 0;

@@ -71,6 +71,13 @@ public interface BackEndMonitor
     String getInternalTiming();
 
     /**
+     * Get the amount of time the current event spent in the system.
+     *
+     * @return current latency
+     */
+    double getLatency();
+
+    /**
      * Get number of bad events for this run.
      *
      * @return number of bad events
