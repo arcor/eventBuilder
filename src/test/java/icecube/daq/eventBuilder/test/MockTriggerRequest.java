@@ -180,6 +180,11 @@ public class MockTriggerRequest
             (int) (endTime.longValue() % (long) Integer.MAX_VALUE);
     }
 
+    public boolean isMerged()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public void loadPayload()
         throws IOException, DataFormatException
     {
