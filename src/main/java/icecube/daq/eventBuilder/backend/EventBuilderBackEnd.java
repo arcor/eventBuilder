@@ -194,7 +194,7 @@ public class EventBuilderBackEnd
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
     /** If <tt>true</tt>, drop events outside firstGoodTime and lastGoodTime */
-    private static final boolean DROP_NOT_GOOD = false;
+    private static final boolean DROP_NOT_GOOD = true;
 
     private Splicer splicer;
     private SPDataAnalysis analysis;
