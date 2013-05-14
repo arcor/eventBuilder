@@ -102,7 +102,7 @@ if(DEBUG)System.err.println("ALO*"+bytes+"(#"+bufsAlloc+"*"+bytesAlloc+")");
         returnBuffer(buf.capacity());
     }
 
-    public void returnBuffer(int bytes)
+    public synchronized void returnBuffer(int bytes)
     {
         bufsAlloc--;
         bytesAlloc -= bytes;
