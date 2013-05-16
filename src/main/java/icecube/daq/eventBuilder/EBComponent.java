@@ -172,6 +172,8 @@ public class EBComponent
 
     /**
      * Close all open files, sockets, etc.
+     *
+     * @throws IOException if there is a problem
      */
     public void closeAll()
         throws IOException
@@ -186,6 +188,8 @@ public class EBComponent
             LOG.error("Cannot close dispatcher", de);
             throw new IOException("Cannot close dispatcher: " + de);
         }
+
+        super.closeAll();
     }
 
     /**
@@ -339,7 +343,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 13548 2012-03-08 21:57:35Z dglo $";
+        return "$Id: EBComponent.java 14506 2013-05-16 19:23:08Z dglo $";
     }
 
     /**
