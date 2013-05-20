@@ -165,6 +165,7 @@ public class EventBuilderBackEndTest
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
         backEnd.prepareSubrun(badNum);
 
+        waitForLogMessages(1);
         assertEquals("Bad number of log messages",
                      1, appender.getNumberOfMessages());
 
@@ -205,6 +206,7 @@ public class EventBuilderBackEndTest
 
         backEnd.makeDataPayload(null, null);
 
+        waitForLogMessages(1);
         assertEquals("Bad number of log messages",
                      1, appender.getNumberOfMessages());
 
@@ -298,17 +300,12 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             (IEventPayload) backEnd.makeDataPayload(req, hitList);
         validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req, hitList);
 
-        if (appender.getNumberOfMessages() > 0) {
-            assertEquals("Bad number of log messages",
-                         0, appender.getNumberOfMessages());
-        }
+        waitForLogMessages(0);
     }
 
     /** Test the proper subrun numbering when making data payloads */
     public void testMakeDataPayloadSubruns()
     {
-        //appender.setVerbose(true);
-
         MockBufferCache bufCache = new MockBufferCache("MakeSub");
 
         SPDataAnalysis analysis = new SPDataAnalysis();
@@ -432,6 +429,16 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             assertEquals("Bad number of events for subrun " + nextSubrun,
                          numEvents, backEnd.getSubrunTotalEvents(nextSubrun));
         }
+
+        waitForDispatcher(dispatcher);
+        waitForLogMessages(1);
+        assertNotNull("Null log message ", appender.getMessage(0));
+
+        final String logMsg = appender.getMessage(0).toString();
+        assertTrue("Bad log message " + logMsg,
+                   logMsg.startsWith("GoodTime Stats"));
+
+        appender.clear();
     }
 
     /**
@@ -440,17 +447,15 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
      * Regression for issue #2318
      */
     public void testShortSubruns() {
-        //System.out.println("Entering testShortSubruns():");
-        //appender.setVerbose(true);
-        //appender.setLevel(org.apache.log4j.Level.INFO);
-
         // Create a backend
         MockBufferCache     bufCache   = new MockBufferCache("ShortSub");
         SPDataAnalysis      analysis   = new SPDataAnalysis();
         MockSplicer         splicer    = new MockSplicer();
         MockDispatcher      dispatcher = new MockDispatcher();
+
         EventBuilderBackEnd backEnd    =
             new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setDOMRegistry(new MockDOMRegistry());
 
         final int runNum = 123456;
         backEnd.setRunNumber(runNum);
@@ -551,10 +556,14 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                          subrun, backEnd.getSubrunNumber());
         }
 
-        //appender.setVerbose(false);
-        //appender.setLevel(org.apache.log4j.Level.WARN);
+        waitForDispatcher(dispatcher);
+
+        waitForLogMessages(1);
+        final String expMsg = "Preparing for subrun -2, though current" +
+            " subrun is -1. (Expected next subrun to be 1)";
+        assertEquals("Bad log message", expMsg, appender.getMessage(0));
+
         appender.clear();
-        //System.out.println("Exiting testShortSubruns():");
     }
 
     public void testReadOnlyFilesystem()
@@ -678,8 +687,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             fail("Caught " + ioe);
         }
 
-        assertEquals("Bad number of log messages",
-                     4, appender.getNumberOfMessages());
+        waitForLogMessages(4);
 
         final String badMsg = "Output thread has failed";
         for (int i = 0; i < 4; i++) {
@@ -749,10 +757,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                           hitList);
 
             if (expMessage == null) {
-                if (appender.getNumberOfMessages() > 0) {
-                    assertEquals("Bad number of log messages",
-                                 0, appender.getNumberOfMessages());
-                }
+                waitForLogMessages(0);
             } else {
                 assertEquals("Bad number of log messages",
                              1, appender.getNumberOfMessages());
@@ -768,6 +773,39 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             trUID++;
             rdUID++;
         }
+    }
+
+    private static void waitForDispatcher(MockDispatcher dispatcher)
+    {
+        for (int i = 0; i < 100 && dispatcher.isStarted(); i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+        assertFalse("Dispatcher has not stopped", dispatcher.isStarted());
+    }
+
+    private void waitForLogMessages(int numMsgs)
+    {
+        for (int i = 0; i < 100 && appender.getNumberOfMessages() < numMsgs;
+             i++)
+        {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        if (appender.getNumberOfMessages() > numMsgs){
+            for (int i = 0; i < appender.getNumberOfMessages(); i++) {
+                System.out.println("MSG#" + i + ": " + appender.getMessage(i));
+            }
+        }
+        assertEquals("Bad number of log messages",
+                     numMsgs, appender.getNumberOfMessages());
     }
 
     public static void main(String[] args)
