@@ -432,8 +432,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         waitForDispatcher(dispatcher);
         waitForLogMessages(1);
-        assertNotNull("Null log message ", appender.getMessage(0));
 
+        assertNotNull("Null log message ", appender.getMessage(0));
         final String logMsg = appender.getMessage(0).toString();
         assertTrue("Bad log message " + logMsg,
                    logMsg.startsWith("GoodTime Stats"));
@@ -446,7 +446,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
      * incorrect numbering of subruns.
      * Regression for issue #2318
      */
-    public void testShortSubruns() {
+    public void testShortSubruns()
+    {
         // Create a backend
         MockBufferCache     bufCache   = new MockBufferCache("ShortSub");
         SPDataAnalysis      analysis   = new SPDataAnalysis();
@@ -687,12 +688,18 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             fail("Caught " + ioe);
         }
 
-        waitForLogMessages(4);
+        waitForDispatcher(dispatcher);
+        waitForLogMessages(5);
 
         final String badMsg = "Output thread has failed";
         for (int i = 0; i < 4; i++) {
             assertEquals("Bad log message", badMsg, appender.getMessage(i));
         }
+
+        assertNotNull("Null log message ", appender.getMessage(4));
+        final String logMsg = appender.getMessage(4).toString();
+        assertTrue("Bad log message " + logMsg,
+                   logMsg.startsWith("GoodTime Stats"));
 
         appender.clear();
     }
