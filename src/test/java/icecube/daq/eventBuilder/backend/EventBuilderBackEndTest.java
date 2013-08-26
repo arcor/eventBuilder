@@ -782,6 +782,136 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         }
     }
 
+    public void testDispatchFailure()
+    {
+        MockBufferCache bufCache = new MockBufferCache("MakeSub");
+
+        SPDataAnalysis analysis = new SPDataAnalysis();
+        MockSplicer splicer = new MockSplicer();
+
+        MockDispatcher dispatcher = new MockDispatcher();
+
+        EventBuilderBackEnd backEnd =
+            new EventBuilderBackEnd(bufCache, splicer, analysis, dispatcher);
+        backEnd.setCurrentYear();
+        backEnd.setDOMRegistry(new MockDOMRegistry());
+
+        backEnd.reset();
+        backEnd.setMaximumOutputFailures(5);
+
+        assertEquals("Bad subrun number", 0, backEnd.getSubrunNumber());
+
+        final long timeStep = 10000L;
+
+        final int runNum = 4;
+        backEnd.setRunNumber(runNum);
+
+        final int cfgId = 444;
+
+        int numEvts = 0;
+
+        long firstTime = timeStep;
+        long lastTime = firstTime + timeStep;
+
+        short recNum = 777;
+
+        int numGood = 5;
+        boolean dispatchError = false;
+
+        backEnd.startDispatcher();
+
+        for (int i = 0; i < 10; i++) {
+            int uid = 888 + numEvts;
+
+            if (i == numGood) {
+                dispatcher.setDispatchError(true);
+            } else if (i == numGood + 1) {
+                dispatchError = true;
+            }
+
+            MockTriggerRequest req =
+                new MockTriggerRequest(uid, 999, cfgId, firstTime, lastTime);
+
+            ArrayList hitList = new ArrayList();
+            if (EventVersion.VERSION < 5) {
+                hitList.add(new MockReadoutData(111, 222, firstTime + 1L,
+                                                lastTime - 1L));
+            } else {
+                MockHitRecordList recList = new MockHitRecordList(uid);
+                recList.addRecord(recNum, firstTime + 1);
+                recNum++;
+
+                hitList.add(recList);
+            }
+
+            IEventPayload evt =
+                (IEventPayload) backEnd.makeDataPayload(req, hitList);
+
+            numEvts++;
+
+            validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req,
+                          hitList);
+
+            boolean outputSent = backEnd.sendOutput(evt);
+            if (!outputSent && !dispatchError) {
+                throw new Error("Send failed for evt#" + numEvts);
+            }
+
+            for (int o = 0; o < 10 && backEnd.getNumOutputsQueued() > 0;
+                 o++)
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+            }
+            assertEquals("Still have " + backEnd.getNumOutputsQueued() +
+                         " outputs queued",
+                         0, backEnd.getNumOutputsQueued());
+
+            for (int o = 0;
+                 o < 10 && dispatcher.getNumDispatchedEvents() < numEvts;
+                 o++)
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+            }
+
+            int expEvts = numEvts;
+
+            assertEquals("Bad number of dispatched events",
+                         expEvts, dispatcher.getNumDispatchedEvents());
+
+            firstTime = lastTime;
+            lastTime += timeStep;
+        }
+
+        try {
+            backEnd.stopThread();
+        } catch (IOException ioe) {
+            fail("Caught " + ioe);
+        }
+
+        waitForDispatcher(dispatcher);
+        waitForLogMessages(5);
+
+        final String badMsg = "Could not dispatch event";
+        for (int i = 0; i < 4; i++) {
+            assertEquals("Bad log message", badMsg, appender.getMessage(i));
+        }
+
+        assertNotNull("Null log message ", appender.getMessage(4));
+        final String logMsg = appender.getMessage(4).toString();
+        assertTrue("Bad log message " + logMsg,
+                   logMsg.startsWith("GoodTime Stats"));
+
+        appender.clear();
+    }
+
     private static void waitForDispatcher(MockDispatcher dispatcher)
     {
         for (int i = 0; i < 100 && dispatcher.isStarted(); i++) {

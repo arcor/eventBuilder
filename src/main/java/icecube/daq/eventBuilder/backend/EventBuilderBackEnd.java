@@ -1532,7 +1532,14 @@ public class EventBuilderBackEnd
     class OutputThread
         implements Runnable
     {
+        /** consecutive number of dispatch errors to allow */
+        private static final int MAX_CONSECUTIVE_ERRORS = 5;
+        /** total number of dispatch errors to allow */
+        private static final int MAX_TOTAL_ERRORS = 20;
+
         private Thread thread;
+        private int dispatchErrs;
+        private int totalDispatchErrs;
         private boolean failed;
 
         /**
@@ -1544,7 +1551,6 @@ public class EventBuilderBackEnd
         {
             thread = new Thread(this);
             thread.setName(name);
-            failed = false;
         }
 
         /**
@@ -1626,6 +1632,7 @@ public class EventBuilderBackEnd
             boolean eventSent = false;
             try {
                 dispatcher.dispatchEvent(tmpEvent);
+                dispatchErrs = 0;
                 eventSent = true;
             } catch (DispatchException de) {
                 Throwable cause = de.getCause();
@@ -1638,7 +1645,14 @@ public class EventBuilderBackEnd
                     throw new Error("Read-only filesystem for " + tmpEvent);
                 }
 
-                if (LOG.isErrorEnabled()) {
+                dispatchErrs++;
+                totalDispatchErrs++;
+
+                if (dispatchErrs == MAX_CONSECUTIVE_ERRORS ||
+                    totalDispatchErrs == MAX_TOTAL_ERRORS)
+                {
+                    failed = true;
+                } else if (LOG.isErrorEnabled()) {
                     LOG.error("Could not dispatch event", de);
                 }
             }

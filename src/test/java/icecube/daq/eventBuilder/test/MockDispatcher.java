@@ -15,7 +15,7 @@ public class MockDispatcher
 {
     private int numSeen;
     private int numBad;
-    private int readOnlyTrigger;
+    private boolean dispatchError;
     private boolean readOnly;
     private boolean started;
 
@@ -64,17 +64,18 @@ public class MockDispatcher
     {
         numSeen++;
 
-        if (readOnlyTrigger > 0 && numSeen >= readOnlyTrigger) {
-            readOnly = true;
-        }
-
         if (!PayloadChecker.validateEvent((IEventPayload) pay, true)) {
             numBad++;
         }
 
         if (readOnly) {
-            throw new DispatchException("Could not dispatch event",
-                                        new IOException("Read-only file system"));
+            IOException ioe = new IOException("Read-only file system");
+            throw new DispatchException("Could not dispatch event", ioe);
+        }
+
+        if (dispatchError) {
+            IOException ioe = new IOException("Bad file channel");
+            throw new DispatchException("Could not dispatch event", ioe);
         }
     }
 
@@ -135,6 +136,11 @@ public class MockDispatcher
         // do nothing
     }
 
+    public void setDispatchError(boolean dispatchError)
+    {
+        this.dispatchError = dispatchError;
+    }
+
     public void setMaxFileSize(long x0)
     {
         throw new Error("Unimplemented");
@@ -143,16 +149,6 @@ public class MockDispatcher
     public void setReadOnly(boolean readOnly)
     {
         this.readOnly = readOnly;
-    }
-
-    /**
-     * Trigger a read-only filesystem event after <tt>eventCount</tt> events.
-     *
-     * @param eventCount number of events needed to trigger a read-only filesystem
-     */
-    public void setReadOnlyTrigger(int eventCount)
-    {
-        this.readOnlyTrigger = eventCount;
     }
 
     public String toString()
