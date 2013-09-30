@@ -113,6 +113,13 @@ public interface BackEndMonitor
     long getNumEmptyLoops();
 
     /**
+     * Get the number of events written to disk by the dispatcher.
+     *
+     * @return num events dispatched
+     */
+    long getNumEventsDispatched();
+
+    /**
      * Get the number of events which could not be delivered for this run.
      *
      * @return number of events which could not be delivered for this run

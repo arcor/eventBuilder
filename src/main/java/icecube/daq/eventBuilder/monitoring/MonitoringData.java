@@ -231,6 +231,20 @@ public class MonitoringData
     }
 
     /**
+     * Get the number of events written to disk by the dispatcher.
+     *
+     * @return num events dispatched
+     */
+    public long getNumEventsDispatched()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumEventsDispatched();
+    }
+
+    /**
      * Get the number of events which could not be delivered for this run.
      *
      * @return num events failed

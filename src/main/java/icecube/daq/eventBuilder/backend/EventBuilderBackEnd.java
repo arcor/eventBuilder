@@ -516,16 +516,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Returns the number of bytes written to disk by the event builder
-     *
-     * @return the number of bytes written to disk by the event builder
-     */
-    public long getNumBytesWritten()
-    {
-        return dispatcher.getNumBytesWritten();
-    }
-
-    /**
      * Returns the total number of units in the disk (measured in MB).
      * If it fails to check the disk space, then it returns -1.
      *
@@ -610,6 +600,26 @@ public class EventBuilderBackEnd
     public long getNumBadTriggerRequests()
     {
         return getNumBadRequests();
+    }
+
+    /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    public long getNumBytesWritten()
+    {
+        return dispatcher.getNumBytesWritten();
+    }
+
+    /**
+     * Get number of events written by the dispatcher.
+     *
+     * @return number of events written to file
+     */
+    public long getNumEventsDispatched()
+    {
+        return dispatcher.getNumDispatchedEvents();
     }
 
     /**
