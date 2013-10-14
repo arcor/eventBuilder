@@ -57,7 +57,7 @@ public class MockHit
 
     public int getPayloadLength()
     {
-        return LENGTH;
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -88,6 +88,11 @@ public class MockHit
     public long getUTCTime()
     {
         throw new Error("Unimplemented");
+    }
+
+    public int length()
+    {
+        return LENGTH;
     }
 
     public void loadPayload()

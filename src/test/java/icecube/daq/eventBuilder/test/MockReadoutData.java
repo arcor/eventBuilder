@@ -81,7 +81,7 @@ public class MockReadoutData
 
     public int getPayloadLength()
     {
-        return 0;
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -133,6 +133,11 @@ public class MockReadoutData
     public boolean isLastPayloadOfGroup()
     {
         throw new Error("Unimplemented");
+    }
+
+    public int length()
+    {
+        return 0;
     }
 
     public void loadPayload()

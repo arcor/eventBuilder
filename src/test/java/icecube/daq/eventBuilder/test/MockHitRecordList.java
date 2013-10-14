@@ -102,7 +102,7 @@ public class MockHitRecordList
 
     public int getPayloadLength()
     {
-        throw new Error("Unimplemented");
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -128,6 +128,11 @@ public class MockHitRecordList
     public Iterator<IEventHitRecord> iterator()
     {
         return recList.iterator();
+    }
+
+    public int length()
+    {
+        throw new Error("Unimplemented");
     }
 
     public void loadPayload()

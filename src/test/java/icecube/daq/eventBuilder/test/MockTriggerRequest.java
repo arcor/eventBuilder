@@ -119,7 +119,7 @@ public class MockTriggerRequest
 
     public int getPayloadLength()
     {
-        return LENGTH;
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -183,6 +183,11 @@ public class MockTriggerRequest
     public boolean isMerged()
     {
         throw new Error("Unimplemented");
+    }
+
+    public int length()
+    {
+        return LENGTH;
     }
 
     public void loadPayload()
