@@ -13,20 +13,6 @@ public interface MonitoringDataMBean
     //long getAverageReadoutsPerEvent();
 
     /**
-     * Get back-end state.
-     *
-     * @return back end state
-     */
-    //String getBackEndState();
-
-    /**
-     * Get back-end timing profile.
-     *
-     * @return back end timing
-     */
-    //String getBackEndTiming();
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return current execute list length
@@ -50,11 +36,46 @@ public interface MonitoringDataMBean
     long getDiskSize();
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    long[] getEventData();
+
+    /**
      * Get current rate of events per second.
      *
      * @return events per second
      */
     //double getEventsPerSecond();
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    long getFirstEventTime();
+
+    /**
+     * Get internal state.
+     *
+     * @return internal state
+     */
+    //String getInternalState();
+
+    /**
+     * Get internal timing profile.
+     *
+     * @return internal timing
+     */
+    //String getInternalTiming();
+
+    /**
+     * Get the amount of time the current event spent in the system.
+     *
+     * @return current latency
+     */
+    double getLatency();
 
     /**
      * Get number of bad events for this run.
@@ -78,11 +99,25 @@ public interface MonitoringDataMBean
     //long getNumBadTriggerRequests();
 
     /**
+     * Returns the number of bytes written to disk
+     *
+     * @return the total number of bytes written to disk
+     */
+    long getNumBytesWritten();
+
+    /**
      * Get number of passes through the main loop without a trigger request.
      *
      * @return num empty loops
      */
     //long getNumEmptyLoops();
+
+    /**
+     * Get the number of events written to disk by the dispatcher.
+     *
+     * @return num events dispatched
+     */
+    long getNumEventsDispatched();
 
     /**
      * Get the number of events which could not be delivered for this run.

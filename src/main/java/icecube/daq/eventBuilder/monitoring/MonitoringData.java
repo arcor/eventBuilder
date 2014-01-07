@@ -33,34 +33,6 @@ public class MonitoringData
     }
 
     /**
-     * Get back-end state.
-     *
-     * @return back end state
-     */
-    public String getBackEndState()
-    {
-        if (backEnd == null) {
-            return "<NO BACKEND>";
-        }
-
-        return backEnd.getBackEndState();
-    }
-
-    /**
-     * Get back-end timing profile.
-     *
-     * @return back end timing
-     */
-    public String getBackEndTiming()
-    {
-        if (backEnd == null) {
-            return "<NO BACKEND>";
-        }
-
-        return backEnd.getBackEndTiming();
-    }
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return current execute list length
@@ -105,6 +77,20 @@ public class MonitoringData
     }
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    public long[] getEventData()
+    {
+        if (backEnd == null) {
+            return new long[] {-1L, -1L };
+        }
+
+        return backEnd.getEventData();
+    }
+
+    /**
      * Get current rate of events per second.
      *
      * @return events per second
@@ -116,6 +102,62 @@ public class MonitoringData
         }
 
         return backEnd.getEventsPerSecond();
+    }
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    public long getFirstEventTime()
+    {
+        if (backEnd == null) {
+            return -1L;
+        }
+
+        return backEnd.getFirstEventTime();
+    }
+
+    /**
+     * Get internal state.
+     *
+     * @return internal state
+     */
+    public String getInternalState()
+    {
+        if (backEnd == null) {
+            return "<NO BACKEND>";
+        }
+
+        return backEnd.getInternalState();
+    }
+
+    /**
+     * Get internal timing profile.
+     *
+     * @return internal timing
+     */
+    public String getInternalTiming()
+    {
+        if (backEnd == null) {
+            return "<NO BACKEND>";
+        }
+
+        return backEnd.getInternalTiming();
+    }
+
+    /**
+     * Get the amount of time the current event spent in the system.
+     *
+     * @return current latency
+     */
+    public double getLatency()
+    {
+        if (backEnd == null) {
+            return Long.MAX_VALUE;
+        }
+
+        return backEnd.getLatency();
     }
 
     /**
@@ -161,6 +203,20 @@ public class MonitoringData
     }
 
     /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    public long getNumBytesWritten()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumBytesWritten();
+    }
+
+    /**
      * Get number of passes through the main loop without a trigger request.
      *
      * @return num empty loops
@@ -172,6 +228,20 @@ public class MonitoringData
         }
 
         return backEnd.getNumEmptyLoops();
+    }
+
+    /**
+     * Get the number of events written to disk by the dispatcher.
+     *
+     * @return num events dispatched
+     */
+    public long getNumEventsDispatched()
+    {
+        if (backEnd == null) {
+            return 0;
+        }
+
+        return backEnd.getNumEventsDispatched();
     }
 
     /**
@@ -623,8 +693,8 @@ public class MonitoringData
         } else {
             buf.append("\n  averageReadoutsPerEvt ").
                 append(getAverageReadoutsPerEvent());
-            buf.append("\n  backEndState ").append(getBackEndState());
-            buf.append("\n  backEndTiming ").append(getBackEndTiming());
+            buf.append("\n  backEndState ").append(getInternalState());
+            buf.append("\n  backEndTiming ").append(getInternalTiming());
             buf.append("\n  curExecuteListLength ").
                 append(getCurrentExecuteListLength());
             buf.append("\n  diskAvailable ").

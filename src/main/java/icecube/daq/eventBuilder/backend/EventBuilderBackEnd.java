@@ -1,26 +1,32 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.common.EventVersion;
 import icecube.daq.eventBuilder.SPDataAnalysis;
 import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
-import icecube.daq.eventbuilder.IEventPayload;
-import icecube.daq.eventbuilder.IReadoutDataPayload;
-import icecube.daq.eventbuilder.impl.EventPayload_v4Factory;
+import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IEventFactory;
+import icecube.daq.payload.IEventHitRecord;
+import icecube.daq.payload.IEventPayload;
+import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadChecker;
+import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.impl.EventFactory;
 import icecube.daq.reqFiller.RequestFiller;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.Splicer;
-import icecube.daq.trigger.ITriggerRequestPayload;
+import icecube.daq.util.IDOMRegistry;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
@@ -133,6 +139,51 @@ public class EventBuilderBackEnd
         }
     }
 
+    /**
+     * Event totals for a run.
+     */
+    class EventRunData
+    {
+        private long numEvents;
+        private long firstEventTime;
+        private long lastEventTime;
+
+        /**
+         * Create an object holding the event totals for a run.
+         *
+         * @param numEvents - number of physics events dispatched
+         * @param firstEventTime - starting time of first event
+         * @param lastEventTime - ending time of last event
+         */
+        EventRunData(long numEvents, long firstEventTime, long lastEventTime)
+        {
+            this.numEvents = numEvents;
+            this.firstEventTime = firstEventTime;
+            this.lastEventTime = lastEventTime;
+        }
+
+        /**
+         * Return run data as an array of <tt>long</tt> values.
+         *
+         * @return array of <tt>long</tt> values
+         */
+        public long[] toArray()
+        {
+            return new long[] { numEvents, firstEventTime, lastEventTime };
+        }
+
+        /**
+         * Return string representation of run data.
+         *
+         * @return string
+         */
+        public String toString()
+        {
+            return "EventRunData[evts " + numEvents + ",first " +
+                firstEventTime + ", last " + lastEventTime + "]";
+        }
+    }
+
     /** Message logger. */
     private static final Log LOG =
         LogFactory.getLog(EventBuilderBackEnd.class);
@@ -142,12 +193,15 @@ public class EventBuilderBackEnd
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
+    /** If <tt>true</tt>, drop events outside firstGoodTime and lastGoodTime */
+    private static final boolean DROP_NOT_GOOD = true;
+
     private Splicer splicer;
     private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
 
     // Factory to make EventPayloads.
-    private EventPayload_v4Factory eventFactory;
+    private IEventFactory eventFactory;
 
     /** list of payloads to be deleted after back end has stopped */
     private ArrayList finalData;
@@ -199,6 +253,35 @@ public class EventBuilderBackEnd
     /** Output thread. */
     private OutputThread outputThread;
 
+    /** DOM registry used to map each hit's DOM ID to the channel ID */
+    private IDOMRegistry domRegistry;
+
+    /** New run number to be used when switching runs mid-stream */
+    private int switchNumber;
+
+    /** Map used to track start/stop/count data for each run */
+    private HashMap<Integer, EventRunData> runData =
+        new HashMap<Integer, EventRunData>();
+
+    /** An object for synchronizing good time changes */
+    private Object goodTimeLock = new Object();
+    /** First time when all hubs have sent a hit */
+    private long firstGoodTime;
+    /** Last time when all hubs have sent a hit */
+    private long lastGoodTime;
+    /** Count the number of events sent before firstGoodTime was set */
+    private long numUnknownBeforeFirst;
+    /** Count the number of events dropped once firstGoodTime was set */
+    private long numDroppedBeforeFirst;
+    /** Count the number of events sent before lastGoodTime was set */
+    private long numUnknownBeforeLast;
+    /** Count the number of valid events seen once lastGoodTime was set */
+    private long numKnownBeforeLast;
+    /** Count the number of events dropped once lastGoodTime was set */
+    private long numDroppedAfterLast;
+    /** Count the total possible events */
+    private long totalPossible;
+
     /**
      * Constructor
      *
@@ -238,8 +321,12 @@ public class EventBuilderBackEnd
         analysis.setDataProcessor(this);
 
         //get factory object for event payloads
-        eventFactory = new EventPayload_v4Factory();
-        eventFactory.setByteBufferCache(eventCache);
+        try {
+            eventFactory = new EventFactory(eventCache, EventVersion.VERSION);
+        } catch (PayloadException pe) {
+            throw new Error("Cannot create factory for Event V" +
+                            EventVersion.VERSION);
+        }
     }
 
     /**
@@ -275,6 +362,24 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Extract hit records from separate HitRecordPayloads into a single list.
+     * @param dataList list of HitRecordPayloads
+     * @return unified list
+     */
+    private static List<IEventHitRecord> buildHitRecordList(List dataList)
+    {
+        List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
+        for (Object obj : dataList) {
+            IHitRecordList list = (IHitRecordList) obj;
+
+            for (IEventHitRecord rec : list) {
+                hitRecList.add(rec);
+            }
+        }
+        return hitRecList;
+    }
+
+    /**
      * Do a simple comparison of the request and data payloads.
      *
      * @param reqPayload request payload
@@ -287,35 +392,33 @@ public class EventBuilderBackEnd
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
-        IReadoutDataPayload data = (IReadoutDataPayload) dataPayload;
 
-        final int uid;
-        if (data == null) {
-            uid = Integer.MAX_VALUE;
+        final long reqFirst, reqLast;
+        if (req == null) {
+            reqFirst = Integer.MAX_VALUE;
+            reqLast = Integer.MAX_VALUE;
         } else {
-            uid = data.getRequestUID();
+            reqFirst = req.getFirstTimeUTC().longValue();
+            reqLast = req.getLastTimeUTC().longValue();
         }
 
-        if (uid < req.getUID()) {
-            return -1;
-        } else if (uid == req.getUID()) {
-            return 0;
+        final long time;
+        if (dataPayload == null) {
+            time = Long.MIN_VALUE;
         } else {
-            return 1;
+            time = ((IPayload) dataPayload).getUTCTime();
         }
-    }
 
-    /**
-     * Mark data boundary between runs.
-     *
-     * @param message run message
-     *
-     * @throws DispatchException if there is a problem changing the run
-     */
-    public void dataBoundary(String message)
-        throws DispatchException
-    {
-        dispatcher.dataBoundary(message);
+        int rtnval;
+        if (time < reqFirst) {
+            rtnval = -1;
+        } else if (time > reqLast) {
+            rtnval = 1;
+        } else {
+            rtnval = 0;
+        }
+
+        return rtnval;
     }
 
     /**
@@ -348,7 +451,36 @@ public class EventBuilderBackEnd
      */
     public void finishThreadCleanup()
     {
-        analysis.stopDispatcher();
+        if (runNumber < 0) {
+            if (!reportedBadRunNumber) {
+                LOG.error("Run number has not been set");
+                reportedBadRunNumber = true;
+            }
+            return;
+        }
+
+        String message = Dispatcher.STOP_PREFIX + runNumber;
+        try {
+            dispatcher.dataBoundary(message);
+        } catch (DispatchException de) {
+            LOG.error("Couldn't stop dispatcher (" + message + ")", de);
+        }
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Stopped dispatcher");
+        }
+
+        // save run data for later retrieval
+        runData.put(runNumber,
+                    new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
+                                     getLastOutputTime()));
+
+        LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
+                  "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
+                  "  UnknownBeforeLast: " + numUnknownBeforeLast +
+                  "  KnownBeforeLast: " + numKnownBeforeLast +
+                  "  DroppedAfterLast: " + numDroppedAfterLast +
+                  "  TotalPossible: " + totalPossible);
+
         totStopsSent++;
     }
 
@@ -395,6 +527,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    public long[] getEventData()
+    {
+        return new long[] {getNumOutputsSent(), getLastOutputTime() };
+    }
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
@@ -402,6 +544,16 @@ public class EventBuilderBackEnd
     public double getEventsPerSecond()
     {
         return getOutputsPerSecond();
+    }
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    public long getFirstEventTime()
+    {
+        return getFirstOutputTime();
     }
 
     /**
@@ -448,6 +600,26 @@ public class EventBuilderBackEnd
     public long getNumBadTriggerRequests()
     {
         return getNumBadRequests();
+    }
+
+    /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    public long getNumBytesWritten()
+    {
+        return dispatcher.getNumBytesWritten();
+    }
+
+    /**
+     * Get number of events written by the dispatcher.
+     *
+     * @return number of events written to file
+     */
+    public long getNumEventsDispatched()
+    {
+        return dispatcher.getNumDispatchedEvents();
     }
 
     /**
@@ -575,7 +747,8 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
-    public int getNumTriggerRequestsQueued() {
+    public int getNumTriggerRequestsQueued()
+    {
         return getNumRequestsQueued();
     }
 
@@ -585,7 +758,8 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
-    public long getNumTriggerRequestsReceived() {
+    public long getNumTriggerRequestsReceived()
+    {
         return getNumRequestsReceived();
     }
 
@@ -607,6 +781,37 @@ public class EventBuilderBackEnd
     public double getReadoutsPerSecond()
     {
         return getDataPayloadsPerSecond();
+    }
+
+    /**
+     * Get the run data for the specified run.
+     *
+     * @return array of <tt>long</tt> values:<ol>
+     *    <li>number of events
+     *    <li>starting time of first event in run
+     *    <li>ending time of last event in run
+     *    </ol>
+     *
+     * @throw EventBuilderException if no data is found for the run
+     */
+    public long[] getRunData(int runNum)
+        throws EventBuilderException
+    {
+        if (!runData.containsKey(runNum)) {
+            LOG.error("No data found for run " + runNum);
+            throw new EventBuilderException("No data found for run " + runNum);
+        }
+
+        LOG.error("Run " + runNum + " EB data is " + runData.get(runNum));
+        return runData.get(runNum).toArray();
+    }
+
+    /**
+     * Get the current run number.
+     */
+    public int getRunNumber()
+    {
+        return runNumber;
     }
 
     /**
@@ -735,7 +940,8 @@ public class EventBuilderBackEnd
      *
      * @return total number of trigger requests received
      */
-    public long getTotalTriggerRequestsReceived() {
+    public long getTotalTriggerRequestsReceived()
+    {
         return getTotalRequestsReceived();
     }
 
@@ -806,26 +1012,61 @@ public class EventBuilderBackEnd
 
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
-        IUTCTime startTime = req.getFirstTimeUTC();
-        IUTCTime endTime = req.getLastTimeUTC();
+        final int uid = req.getUID();
+        final IUTCTime startTime = req.getFirstTimeUTC();
+        final IUTCTime endTime = req.getLastTimeUTC();
 
         if (startTime == null || endTime == null) {
             LOG.error("Request may have been recycled; cannot send data");
             return null;
         }
 
+        long tmpFirstGood;
+        long tmpLastGood;
+        synchronized (goodTimeLock) {
+            tmpFirstGood = firstGoodTime;
+            tmpLastGood = lastGoodTime;
+        }
+
+        totalPossible++;
+        if (tmpFirstGood == 0) {
+            numUnknownBeforeFirst++;
+        } else if (startTime.longValue() < tmpFirstGood) {
+            numDroppedBeforeFirst++;
+            if (DROP_NOT_GOOD) {
+                return DROPPED_PAYLOAD;
+            }
+        } else if (tmpLastGood == 0) {
+            numUnknownBeforeLast++;
+        } else if (endTime.longValue() <= tmpLastGood) {
+            numKnownBeforeLast++;
+        } else {
+            numDroppedAfterLast++;
+            if (DROP_NOT_GOOD) {
+                return DROPPED_PAYLOAD;
+            }
+        }
+
+        if (uid == 1 && switchNumber > 0) {
+            switchRun();
+        }
+
         if (year == 0 || startTime.longValue() < prevEventStart) {
-            GregorianCalendar cal = new GregorianCalendar();
-            year = (short) cal.get(GregorianCalendar.YEAR);
+            final short oldYear = year;
+            setCurrentYear();
+            if (oldYear != 0) {
+                LOG.error("Changed year from " + oldYear + " to " + year);
+            }
             prevEventStart = startTime.longValue();
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + startTime + " - " + endTime);
+            LOG.debug("Closing Event " + uid + " [" + startTime + " - " +
+                      endTime + "]");
         }
-        if (LOG.isWarnEnabled() && dataList.size() == 0) {
-            LOG.info("Sending empty event for window [" + startTime + " - " +
-                     endTime + "]");
+        if (LOG.isInfoEnabled() && dataList.size() == 0) {
+            LOG.info("Sending empty event " + uid + " window [" + startTime +
+                     " - " + endTime + "]");
         }
 
         int subnum;
@@ -838,12 +1079,28 @@ public class EventBuilderBackEnd
             subnum = subrunNumber;
         }
 
-        Payload event =
-            eventFactory.createPayload(req.getUID(), ME, startTime, endTime,
-                                       year, runNumber, subnum, req,
-                                       dataList);
+        ILoadablePayload evt;
+        if (EventVersion.VERSION < 5) {
+            evt = eventFactory.createPayload(uid, ME, startTime, endTime, year,
+                                             runNumber, subnum, req, dataList);
+        } else {
+            if (domRegistry == null) {
+                LOG.error("Cannot create event #" + uid +
+                          ": DOM registry has not been set");
+            }
 
-        return event;
+            try {
+                evt = eventFactory.createPayload(uid, startTime, endTime,
+                                                 year, runNumber, subnum, req,
+                                                 buildHitRecordList(dataList),
+                                                 domRegistry);
+            } catch (PayloadException pe) {
+                LOG.error("Cannot create event #" + uid, pe);
+                evt = null;
+            }
+        }
+
+        return evt;
     }
 
     /**
@@ -855,7 +1112,7 @@ public class EventBuilderBackEnd
     {
         Iterator iter = payloadList.iterator();
         while (iter.hasNext()) {
-            Payload payload = (Payload) iter.next();
+            ILoadablePayload payload = (ILoadablePayload) iter.next();
             payload.recycle();
         }
     }
@@ -891,6 +1148,17 @@ public class EventBuilderBackEnd
             runNumber = Integer.MIN_VALUE;
             reportedBadRunNumber = false;
 
+            switchNumber = 0;
+
+            firstGoodTime = 0;
+            lastGoodTime = 0;
+            numUnknownBeforeFirst = 0;
+            numDroppedBeforeFirst = 0;
+            numUnknownBeforeLast = 0;
+            numKnownBeforeLast = 0;
+            numDroppedAfterLast = 0;
+            totalPossible = 0;
+
             if (outputQueue.size() > 0) {
                 if (LOG.isErrorEnabled()) {
                     LOG.error("Unwritten events queued at reset");
@@ -903,6 +1171,7 @@ public class EventBuilderBackEnd
 
             if (outputThread == null) {
                 outputThread = new OutputThread("EventWriter");
+                outputThread.start();
             }
 
             isReset = true;
@@ -936,12 +1205,33 @@ public class EventBuilderBackEnd
      */
     public boolean sendOutput(ILoadablePayload output)
     {
+        if (outputThread == null) {
+            throw new Error("Output thread is not running");
+        } else if (outputThread.hasFailed()) {
+            //LOG.error("Output thread has failed");
+            try {
+                throw new Error("Output thread has failed");
+            } catch (Error err) {
+                LOG.error("Output thread has failed", err);
+            }
+            return false;
+        }
+
         synchronized (outputQueue) {
             outputQueue.add(output);
             outputQueue.notify();
         }
 
         return true;
+    }
+
+    /**
+     * Set the DOM registry used to translate hit DOM IDs to channel IDs
+     * @param domRegistry DOM registry
+     */
+    public void setDOMRegistry(IDOMRegistry domRegistry)
+    {
+        this.domRegistry = domRegistry;
     }
 
     /**
@@ -955,18 +1245,37 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Set the first time when all hubs have sent a hit.
+     *
+     * @param firsttTime time of first good hit in run
+     */
+    public void setFirstGoodTime(long firstTime)
+    {
+        synchronized (goodTimeLock) {
+            firstGoodTime = firstTime;
+        }
+    }
+
+    /**
+     * Set the last time when all hubs have sent a hit.
+     *
+     * @param lastTime time of last good hit in run
+     */
+    public void setLastGoodTime(long lastTime)
+    {
+        synchronized (goodTimeLock) {
+            lastGoodTime = lastTime;
+        }
+    }
+
+    /**
      * Set the start and end times from the current request.
      *
      * @param payload request payload
      */
     public void setRequestTimes(IPayload payload)
     {
-        if (LOG.isDebugEnabled()) {
-            final ITriggerRequestPayload req = (ITriggerRequestPayload) payload;
-
-            LOG.debug("Filling trigger#" + req.getUID() + " [" +
-                      req.getFirstTimeUTC() + "-" + req.getLastTimeUTC() + "]");
-        }
+        // do nothing (required by RequestFiller)
     }
 
     /**
@@ -977,6 +1286,78 @@ public class EventBuilderBackEnd
     public void setRunNumber(int runNumber)
     {
         this.runNumber = runNumber;
+    }
+
+    /**
+     * Set the current year.
+     */
+    public void setCurrentYear()
+    {
+        GregorianCalendar cal = new GregorianCalendar();
+        year = (short) cal.get(GregorianCalendar.YEAR);
+    }
+
+    /**
+     * Inform the dispatcher that a new run is starting.
+     */
+    public void startDispatcher()
+    {
+        if (runNumber < 0) {
+            if (!reportedBadRunNumber) {
+                LOG.error("Run number has not been set");
+                reportedBadRunNumber = true;
+            }
+            return;
+        }
+
+        LOG.info("Splicer entered STARTING state");
+        String message = Dispatcher.START_PREFIX + runNumber;
+        try {
+            dispatcher.dataBoundary(message);
+        } catch (DispatchException de) {
+            LOG.error("Couldn't start dispatcher (" + message + ")", de);
+        }
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Started dispatcher");
+        }
+    }
+
+    /**
+     * Switch to new run.
+     */
+    private void switchRun()
+    {
+        if (LOG.isErrorEnabled()) {
+            LOG.error("Switching from run " + runNumber + " to " +
+                      switchNumber);
+        }
+
+        try {
+            dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + runNumber);
+        } catch (DispatchException de) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Could not inform dispatcher of run stop" +
+                          " (switch from " + runNumber + " to " +
+                          switchNumber + ")", de);
+            }
+        }
+
+        long[] tmpData = resetOutputData();
+        runData.put(runNumber,
+                    new EventRunData(tmpData[0], tmpData[1], tmpData[2]));
+
+        try {
+            dispatcher.dataBoundary(Dispatcher.START_PREFIX + switchNumber);
+        } catch (DispatchException de) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Could not inform dispatcher of run start" +
+                          " (switch from " + runNumber + " to " +
+                          switchNumber + ")", de);
+            }
+        }
+
+        runNumber = switchNumber;
+        switchNumber = 0;
     }
 
     /**
@@ -1028,12 +1409,13 @@ public class EventBuilderBackEnd
         synchronized (subrunLock) {
             int tmpNum = getNextSubrunNumber(this.subrunNumber);
             if (subrunNumber != tmpNum) {
-                throw new RuntimeException("Provided subrun # " + subrunNumber +
-                                           " does not follow subrun: " +
-                                           this.subrunNumber);
+                throw new RuntimeException("Provided subrun # " +
+                    subrunNumber + " does not follow subrun: " +
+                        this.subrunNumber);
             }
             if (newSubrunStartTime) {
-                throw new RuntimeException("subrun already has start time set.");
+                throw new RuntimeException(
+                    "subrun already has start time set.");
             }
             newSubrunStartTime = true;
             this.subrunStart = startTime;
@@ -1049,18 +1431,8 @@ public class EventBuilderBackEnd
      * @param newSubrunNumber the subrun number of the new subrun
      */
     private void rollSubRun(int oldSubrunNumber, int newSubrunNumber)
-        throws DispatchException
     {
         synchronized (subrunLock) {
-            String message =
-                new String(DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG +
-                           newSubrunNumber);
-            dispatcher.dataBoundary(message);
-            if (LOG.isInfoEnabled()) {
-                LOG.info("called dataBoundary for subrun with the message: " +
-                         message);
-            }
-
             // save event count from ending subrun
             SubrunEventCount newData =
                 new SubrunEventCount(oldSubrunNumber, subrunEventCount);
@@ -1071,6 +1443,22 @@ public class EventBuilderBackEnd
                 subrunEventCountMap.put(newData, newData);
             }
             subrunEventCount = 0;
+
+            String message = Dispatcher.SUBRUN_START_PREFIX + newSubrunNumber;
+            if (LOG.isInfoEnabled()) {
+                LOG.info("calling dataBoundary for subrun with the message: " +
+                         message);
+            }
+
+            try {
+                dispatcher.dataBoundary(message);
+            } catch (DispatchException de) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not inform dispatcher of subrun change" +
+                              " (" + oldSubrunNumber + " to " +
+                              newSubrunNumber + ")", de);
+                }
+            }
         }
     }
 
@@ -1089,18 +1477,56 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Set the run number to be used when we start receiving
+     * reset trigger UIDs.
+     *
+     * @param num run number for next run
+     */
+    public void setSwitchRunNumber(int num)
+    {
+        if (num < 0) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Ignoring invalid switch run number " + num);
+            }
+            return;
+        }
+
+        if (switchNumber > 0) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Overriding previous switch run " + switchNumber +
+                          " with new value " + num);
+            }
+        }
+
+        switchNumber = num;
+    }
+
+    /**
      * Inform back-end processor that the splicer has stopped.
      */
     public void splicerStopped()
     {
-        addDataStop();
+        if (isRunning()) {
+            try {
+                addDataStop();
+            } catch (IOException ioe) {
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Cannot send final data stop" +
+                              " after splicer stopped", ioe);
+                }
+            }
+        }
     }
 
     /**
      * If the thread is running, stop it.
      */
     public void stopThread()
+        throws IOException
     {
+        // run parent method first so any added data is processed
+        super.stopThread();
+
         if (outputThread != null) {
             outputThread = null;
 
@@ -1108,8 +1534,6 @@ public class EventBuilderBackEnd
                 outputQueue.notify();
             }
         }
-
-        super.stopThread();
     }
 
     /**
@@ -1118,6 +1542,16 @@ public class EventBuilderBackEnd
     class OutputThread
         implements Runnable
     {
+        /** consecutive number of dispatch errors to allow */
+        private static final int MAX_CONSECUTIVE_ERRORS = 5;
+        /** total number of dispatch errors to allow */
+        private static final int MAX_TOTAL_ERRORS = 20;
+
+        private Thread thread;
+        private int dispatchErrs;
+        private int totalDispatchErrs;
+        private boolean failed;
+
         /**
          * Create and start output thread.
          *
@@ -1125,9 +1559,18 @@ public class EventBuilderBackEnd
          */
         OutputThread(String name)
         {
-            Thread tmpThread = new Thread(this);
-            tmpThread.setName(name);
-            tmpThread.start();
+            thread = new Thread(this);
+            thread.setName(name);
+        }
+
+        /**
+         * Has the output thread failed?
+         *
+         * @return true if the output thread died due to internal problems
+         */
+        boolean hasFailed()
+        {
+            return failed;
         }
 
         /**
@@ -1142,8 +1585,9 @@ public class EventBuilderBackEnd
                         try {
                             outputQueue.wait();
                         } catch (InterruptedException ie) {
-                            LOG.error("Interrupt while waiting for output queue",
-                                      ie);
+                            LOG.error(
+                                "Interrupt while waiting for output queue",
+                                    ie);
                         }
                     }
 
@@ -1171,52 +1615,77 @@ public class EventBuilderBackEnd
         {
             IEventPayload tmpEvent = (IEventPayload) event;
 
-            boolean eventSent = false;
-
             int eventSubrunNumber = tmpEvent.getSubrunNumber();
+            if (eventSubrunNumber != lastDispSubrunNumber) {
+                rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
+                lastDispSubrunNumber = eventSubrunNumber;
+            }
+
+            if (validateEvents) {
+                if (!PayloadChecker.validatePayload(tmpEvent, true)) {
+                    numBadEvents++;
+                } else if (prevLastTime >
+                           tmpEvent.getFirstTimeUTC().longValue())
+                {
+                    LOG.error("Previous event time interval [" +
+                              prevFirstTime + "-" + prevLastTime +
+                              "] overlaps current event interval [" +
+                              tmpEvent.getFirstTimeUTC() + "-" +
+                              tmpEvent.getLastTimeUTC() + "]");
+                    numBadEvents++;
+                }
+
+                prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
+                prevLastTime = tmpEvent.getLastTimeUTC().longValue();
+            }
+
+            boolean eventSent = false;
             try {
-                if (eventSubrunNumber != lastDispSubrunNumber) {
-                    rollSubRun(lastDispSubrunNumber, eventSubrunNumber);
-                    lastDispSubrunNumber = eventSubrunNumber;
-                }
-
-                if (validateEvents) {
-                    if (!PayloadChecker.validatePayload(tmpEvent, true)) {
-                        numBadEvents++;
-                    } else if (prevLastTime >
-                               tmpEvent.getFirstTimeUTC().longValue())
-                    {
-                        LOG.error("Previous event time interval [" +
-                                  prevFirstTime + "-" + prevLastTime +
-                                  "] overlaps current event interval [" +
-                                  tmpEvent.getFirstTimeUTC() + "-" +
-                                  tmpEvent.getLastTimeUTC() + "]");
-                        numBadEvents++;
-                    }
-
-                    prevFirstTime = tmpEvent.getFirstTimeUTC().longValue();
-                    prevLastTime = tmpEvent.getLastTimeUTC().longValue();
-                }
-
                 dispatcher.dispatchEvent(tmpEvent);
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
-                              tmpEvent.getLastTimeUTC() +
-                              " written to daq-dispatch");
+                dispatchErrs = 0;
+                eventSent = true;
+            } catch (DispatchException de) {
+                Throwable cause = de.getCause();
+                if (cause != null &&
+                    cause instanceof IOException &&
+                    cause.getMessage() != null &&
+                    cause.getMessage().equals("Read-only file system"))
+                {
+                    failed = true;
+                    throw new Error("Read-only filesystem for " + tmpEvent);
                 }
 
-                subrunEventCount++;
-                eventSent = true;
-            } catch (DispatchException ex) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not dispatch event", ex);
+                dispatchErrs++;
+                totalDispatchErrs++;
+
+                if (dispatchErrs == MAX_CONSECUTIVE_ERRORS ||
+                    totalDispatchErrs == MAX_TOTAL_ERRORS)
+                {
+                    failed = true;
+                } else if (LOG.isErrorEnabled()) {
+                    LOG.error("Could not dispatch event", de);
                 }
             }
+
+            if (eventSent && LOG.isDebugEnabled()) {
+                LOG.debug("Event " + tmpEvent.getFirstTimeUTC() + "-" +
+                          tmpEvent.getLastTimeUTC() +
+                          " written to daq-dispatch");
+            }
+
+            subrunEventCount++;
 
             tmpEvent.recycle();
 
             return eventSent;
+        }
+
+        /**
+         * Start the thread.
+         */
+        public void start()
+        {
+            thread.start();
         }
     }
 }

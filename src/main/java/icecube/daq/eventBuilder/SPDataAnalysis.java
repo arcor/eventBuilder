@@ -1,15 +1,13 @@
 package icecube.daq.eventBuilder;
 
-import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.eventBuilder.backend.SPDataProcessor;
-import icecube.daq.io.DispatchException;
 import icecube.daq.splicer.Spliceable;
-import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.SplicedAnalysis;
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerChangedEvent;
 import icecube.daq.splicer.SplicerListener;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -23,26 +21,16 @@ public class SPDataAnalysis
 {
     private static final Log LOG = LogFactory.getLog(SPDataAnalysis.class);
 
-    /** Factory used to build spliceable objects. */
-    private SpliceableFactory factory;
     /** Interface for event builder back end. */
     private SPDataProcessor dataProc;
     /** Track progress through splicer data. */
     private int listOffset;
 
-    /** Current run number. */
-    private int runNumber;
-    /** Have we reported a bad run number yet? */
-    private boolean reportedBadRunNumber;
-
     /**
      * Create splicer analysis.
-     *
-     * @param factory spliceable factory
      */
-    public SPDataAnalysis(SpliceableFactory factory)
+    public SPDataAnalysis()
     {
-        this.factory = factory;
     }
 
     /**
@@ -72,7 +60,12 @@ public class SPDataAnalysis
 
         int addIndex = listOffset - decrement;
         if (listLen > addIndex) {
-            dataProc.addData(list, addIndex);
+            try {
+                dataProc.addData(list, addIndex);
+            } catch (IOException ioe) {
+                LOG.error("Could not add data (len=" + list.size() + ", dec=" +
+                          decrement + ")", ioe);
+            }
         }
 
         listOffset = listLen;
@@ -99,16 +92,6 @@ public class SPDataAnalysis
     }
 
     /**
-     * Set the current run number.
-     *
-     * @param runNumber current run number
-     */
-    public void setRunNumber(int runNumber)
-    {
-        this.runNumber = runNumber;
-    }
-
-    /**
      * Called when the {@link Splicer Splicer} enters the started state.
      *
      * @param event the event encapsulating this state change.
@@ -125,26 +108,7 @@ public class SPDataAnalysis
      */
     public void starting(SplicerChangedEvent event)
     {
-        if (runNumber < 0) {
-            if (!reportedBadRunNumber) {
-                LOG.error("Run number has not been set");
-                reportedBadRunNumber = true;
-            }
-            return;
-        }
-
-        LOG.info("Splicer entered STARTING state");
-        String message =
-            DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + runNumber;
-        try {
-            dataProc.dataBoundary(message);
-        } catch (DispatchException de) {
-            LOG.error("Couldn't start dispatcher (" + message + ")", de);
-        }
-        if (LOG.isInfoEnabled()) {
-            LOG.info("called dataBoundary on STARTING with the message: " +
-                     message);
-        }
+        dataProc.startDispatcher();
     }
 
     /**
@@ -156,31 +120,6 @@ public class SPDataAnalysis
     {
         dataProc.splicerStopped();
         LOG.info("Splicer entered STOPPED state");
-    }
-
-    /**
-     * Notify dispatcher that we've stopped.
-     */
-    public void stopDispatcher()
-    {
-        if (runNumber < 0) {
-            LOG.error("Run number has not been set");
-            return;
-        }
-
-        String message = DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG + runNumber;
-        try {
-            dataProc.dataBoundary(message);
-        } catch (DispatchException de) {
-            LOG.error("Couldn't stop dispatcher (" + message + ")", de);
-        }
-        if (LOG.isInfoEnabled()) {
-            LOG.info("called dataBoundary on STOPPED with the message: " +
-                     message);
-        }
-
-        runNumber = Integer.MIN_VALUE;
-        reportedBadRunNumber = false;
     }
 
     /**

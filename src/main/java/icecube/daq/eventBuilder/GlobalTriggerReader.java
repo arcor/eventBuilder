@@ -5,8 +5,8 @@ import icecube.daq.eventBuilder.monitoring.GlobalTriggerInputMonitor;
 import icecube.daq.io.PushPayloadReader;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
-import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.trigger.ITriggerRequestPayload;
+import icecube.daq.payload.ITriggerRequestPayload;
+import icecube.daq.payload.impl.TriggerRequestFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -25,8 +25,6 @@ public class GlobalTriggerReader
     private EventBuilderBackEnd backEnd;
 
     /** main buffer cache. */
-    private IByteBufferCache bufMgr;
-
     /**
      * The Engine that does the actual demultiplexing
      * of the trigger requests to the SPs.
@@ -34,13 +32,13 @@ public class GlobalTriggerReader
     private EventBuilderTriggerRequestDemultiplexer demuxer;
 
     /** standalone trigger/readout request factory. */
-    private MasterPayloadFactory trFactory;
+    private TriggerRequestFactory trFactory;
 
     /**
      * Create an instance of this class.
      */
     public GlobalTriggerReader(String name, EventBuilderBackEnd backEnd,
-                               MasterPayloadFactory trigReqFactory,
+                               TriggerRequestFactory trigReqFactory,
                                IByteBufferCache bufMgr)
         throws IOException
     {
@@ -56,8 +54,8 @@ public class GlobalTriggerReader
             throw new IllegalArgumentException("Trigger request factory" +
                                                " cannot be null");
         }
+
         this.trFactory = trigReqFactory;
-        this.bufMgr = bufMgr;
     }
 
     public long getReceivedMessages()
@@ -73,25 +71,12 @@ public class GlobalTriggerReader
     public void pushBuffer(ByteBuffer buf)
         throws IOException
     {
-        // make a standalone copy of the original ByteBuffer
-/*
-        ByteBuffer newBuf = ByteBuffer.allocate(buf.limit());
-        buf.position(0);
-        newBuf.put(buf);
-        bufMgr.returnBuffer(buf);
-        newBuf.position(newBuf.capacity());
-*/
-ByteBuffer newBuf = buf;
         ITriggerRequestPayload pay;
         try {
-            pay = (ITriggerRequestPayload) trFactory.createPayload(0, newBuf);
+            pay = trFactory.createPayload(buf, 0);
         } catch (Exception ex) {
             LOG.error("Cannot create trigger request", ex);
             throw new IOException("Cannot create trigger request");
-        }
-
-        if (pay == null) {
-            return;
         }
 
         try {
@@ -108,14 +93,19 @@ ByteBuffer newBuf = buf;
         backEnd.addRequest(pay);
     }
 
-    public void registerDemultiplexer(EventBuilderTriggerRequestDemultiplexer demuxer)
+    public void registerDemultiplexer
+        (EventBuilderTriggerRequestDemultiplexer demuxer)
     {
         this.demuxer = demuxer;
     }
 
     public void sendStop()
     {
-        backEnd.addRequestStop();
+        try {
+            backEnd.addRequestStop();
+        } catch (IOException ioe) {
+            LOG.error("Cannot add stop to backend request queue");
+        }
 
         demuxer.sendStopMessage();
     }

@@ -1,9 +1,10 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.eventbuilder.impl.ReadoutDataPayloadFactory;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
+import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.eventBuilder.monitoring.MonitoringData;
+import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
 import icecube.daq.io.SpliceablePayloadReader;
@@ -14,17 +15,25 @@ import icecube.daq.juggler.component.DAQConnector;
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.MasterPayloadFactory;
 import icecube.daq.payload.PayloadChecker;
-import icecube.daq.payload.VitreousBufferCache;
+import icecube.daq.payload.impl.PayloadFactory;
+import icecube.daq.payload.impl.ReadoutRequestFactory;
+import icecube.daq.payload.impl.TriggerRequestFactory;
+import icecube.daq.payload.impl.VitreousBufferCache;
 import icecube.daq.splicer.HKN1Splicer;
 import icecube.daq.splicer.Splicer;
+import icecube.daq.util.DOMRegistry;
+import icecube.daq.util.IDOMRegistry;
 
 import java.io.File;
 import java.io.IOException;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.xml.sax.SAXException;
 
 /**
  * Event builder component.
@@ -84,21 +93,18 @@ public class EBComponent
 
         final int compId = 0;
 
-        rdoutDataMgr = new VitreousBufferCache("EBRdOut", 250000000);
+        rdoutDataMgr = new VitreousBufferCache("EBRdOut", 2000000000);
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
-        ReadoutDataPayloadFactory rdoutDataFactory =
-            new ReadoutDataPayloadFactory();
-        rdoutDataFactory.setByteBufferCache(rdoutDataMgr);
 
-        trigBufMgr = new VitreousBufferCache("EBTrig");
+        trigBufMgr = new VitreousBufferCache("EBTrig", 1500000000);
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
-        MasterPayloadFactory trigFactory =
-            new MasterPayloadFactory(trigBufMgr);
+        TriggerRequestFactory trigFactory =
+            new TriggerRequestFactory(trigBufMgr);
 
-        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent");
+        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent", 400000000);
         addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
 
-        IByteBufferCache genMgr = new VitreousBufferCache("EBGen");
+        IByteBufferCache genMgr = new VitreousBufferCache("EBGen", 400000000);
         addCache(genMgr);
 
         addMBean("jvm", new MemoryStatistics());
@@ -107,7 +113,7 @@ public class EBComponent
         monData = new MonitoringData();
         addMBean("backEnd", monData);
 
-        splicedAnalysis = new SPDataAnalysis(rdoutDataFactory);
+        splicedAnalysis = new SPDataAnalysis();
         splicer = new HKN1Splicer(splicedAnalysis);
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
@@ -118,28 +124,33 @@ public class EBComponent
             new EventBuilderBackEnd(evtDataMgr, splicer, splicedAnalysis,
                                     dispatcher, validateEvents);
 
+        ReadoutRequestFactory rdoutReqFactory = new ReadoutRequestFactory(null);
+
         EventBuilderTriggerRequestDemultiplexer demuxer =
-            new EventBuilderTriggerRequestDemultiplexer(trigFactory);
+            new EventBuilderTriggerRequestDemultiplexer(rdoutReqFactory);
 
         try {
             gtInputProcess =
-                new GlobalTriggerReader(COMPONENT_NAME, backEnd, trigFactory,
-                                        trigBufMgr);
+                new GlobalTriggerReader(COMPONENT_NAME + "*GlblTrig", backEnd,
+                                        trigFactory, trigBufMgr);
         } catch (IOException ioe) {
             throw new Error("Couldn't create GlobalTriggerReader", ioe);
         }
         addMonitoredEngine(DAQConnector.TYPE_GLOBAL_TRIGGER, gtInputProcess);
 
         spReqOutputProcess =
-            new EventBuilderSPreqPayloadOutputEngine(COMPONENT_NAME, compId,
-                                                     "spReqOutput");
+            new EventBuilderSPreqPayloadOutputEngine(COMPONENT_NAME + "*Req",
+                                                     compId, "spReqOutput");
         addMonitoredEngine(DAQConnector.TYPE_READOUT_REQUEST,
                            spReqOutputProcess, true);
 
+        PayloadFactory hitRecFactory =
+            new PayloadFactory(rdoutDataMgr);
+
         try {
             rdoutDataInputProcess =
-                new SpliceablePayloadReader(COMPONENT_NAME, 50000, splicer,
-                                            rdoutDataFactory);
+                new SpliceablePayloadReader(COMPONENT_NAME + "*RdoutData",
+                                            50000, splicer, hitRecFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
@@ -157,6 +168,28 @@ public class EBComponent
         monData.setBackEndMonitor(backEnd);
 
         this.validateEvents = validateEvents;
+    }
+
+    /**
+     * Close all open files, sockets, etc.
+     *
+     * @throws IOException if there is a problem
+     */
+    public void closeAll()
+        throws IOException
+    {
+        splicer.dispose();
+        gtInputProcess.destroyProcessor();
+        spReqOutputProcess.destroyProcessor();
+        rdoutDataInputProcess.destroyProcessor();
+        try {
+            dispatcher.close();
+        } catch (DispatchException de) {
+            LOG.error("Cannot close dispatcher", de);
+            throw new IOException("Cannot close dispatcher: " + de);
+        }
+
+        super.closeAll();
     }
 
     /**
@@ -185,6 +218,11 @@ public class EBComponent
         if (validateEvents) {
             PayloadChecker.configure(configDir, configName);
         }
+    }
+
+    public EventBuilderBackEnd getBackEnd()
+    {
+        return backEnd;
     }
 
     public IByteBufferCache getDataCache()
@@ -229,7 +267,7 @@ public class EBComponent
 
     public long getEventsSent()
     {
-        return dispatcher.getTotalDispatchedEvents();
+        return dispatcher.getNumDispatchedEvents();
     }
 
     public MonitoringData getMonitoringData()
@@ -252,6 +290,37 @@ public class EBComponent
         return spReqOutputProcess.getTotalRecordsSent();
     }
 
+    /**
+     * Get the run data for the specified run.
+     *
+     * @return array of <tt>long</tt> values:<ol>
+     *    <li>number of events
+     *    <li>starting time of first event in run
+     *    <li>ending time of last event in run
+     *    </ol>
+     *
+     * @throw EventBuilderException if no data is found for the run
+     */
+    public long[] getRunData(int runNum)
+        throws DAQCompException
+    {
+        try {
+            return backEnd.getRunData(runNum);
+        } catch (EventBuilderException ebe) {
+            throw new DAQCompException("Cannot get run data", ebe);
+        }
+    }
+
+    /**
+     * Get the current run number.
+     *
+     * @return current run number
+     */
+    public int getRunNumber()
+    {
+        return backEnd.getRunNumber();
+    }
+
     public IByteBufferCache getTriggerCache()
     {
         return trigBufMgr;
@@ -262,6 +331,11 @@ public class EBComponent
         return gtInputProcess;
     }
 
+    public long getTriggerRequestsReceived()
+    {
+        return backEnd.getNumTriggerRequestsReceived();
+    }
+
     /**
      * Return this component's svn version id as a String.
      *
@@ -269,7 +343,15 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 4431 2009-07-20 16:41:10Z dglo $";
+        return "$Id: EBComponent.java 14760 2014-01-07 18:49:37Z dglo $";
+    }
+
+    /**
+     * Is the back end thread still processing data?
+     */
+    public boolean isBackEndRunning()
+    {
+        return backEnd.isRunning();
     }
 
     /**
@@ -298,7 +380,8 @@ public class EBComponent
      * @param dirName The absolute path of directory where the dispatch files
      *                will be stored.
      */
-    public void setDispatchDestStorage(String dirName) {
+    public void setDispatchDestStorage(String dirName)
+    {
         dispatcher.setDispatchDestStorage(dirName);
     }
 
@@ -309,8 +392,26 @@ public class EBComponent
      */
     public void setDispatcher(Dispatcher dispatcher)
     {
+        if (this.dispatcher != null) {
+            try {
+                this.dispatcher.close();
+            } catch (DispatchException de) {
+                LOG.error("Cannot close previous dispatcher", de);
+            }
+        }
+
         this.dispatcher = dispatcher;
         backEnd.setDispatcher(dispatcher);
+    }
+
+    /**
+     * Set the first time when all hubs have sent a hit.
+     *
+     * @param firstTime time of first good hit in run
+     */
+    public void setFirstGoodTime(long firstTime)
+    {
+        backEnd.setFirstGoodTime(firstTime);
     }
 
     /**
@@ -326,6 +427,34 @@ public class EBComponent
             throw new Error("Configuration directory \"" + configDir +
                             "\" does not exist");
         }
+
+        IDOMRegistry domRegistry;
+        try {
+            domRegistry = DOMRegistry.loadRegistry(dirName);
+        } catch (ParserConfigurationException pce) {
+            LOG.error("Cannot load DOM registry", pce);
+            domRegistry = null;
+        } catch (SAXException se) {
+            LOG.error("Cannot load DOM registry", se);
+            domRegistry = null;
+        } catch (IOException ioe) {
+            LOG.error("Cannot load DOM registry", ioe);
+            domRegistry = null;
+        }
+
+        if (domRegistry != null) {
+            backEnd.setDOMRegistry(domRegistry);
+        }
+    }
+
+    /**
+     * Set the last time when all hubs have sent a hit.
+     *
+     * @param lastTime time of last good hit in run
+     */
+    public void setLastGoodTime(long lastTime)
+    {
+        backEnd.setLastGoodTime(lastTime);
     }
 
     /**
@@ -333,7 +462,8 @@ public class EBComponent
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
-    public void setMaxFileSize(long maxFileSize) {
+    public void setMaxFileSize(long maxFileSize)
+    {
         dispatcher.setMaxFileSize(maxFileSize);
     }
 
@@ -346,7 +476,23 @@ public class EBComponent
     {
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
-        splicedAnalysis.setRunNumber(runNumber);
+    }
+
+    /**
+     * Perform any actions related to switching to a new run.
+     *
+     * @param runNumber new run number
+     *
+     * @throws DAQCompException if there is a problem switching the component
+     */
+    public void switching(int runNumber)
+        throws DAQCompException
+    {
+        if (LOG.isInfoEnabled()){
+            LOG.info("Setting runNumber = " + runNumber);
+        }
+
+        backEnd.setSwitchRunNumber(runNumber);
     }
 
     /**
@@ -368,7 +514,7 @@ public class EBComponent
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);
-            return; // without this, compiler whines about uninitialized 'srvr'
+            return;
         }
         srvr.startServing();
     }

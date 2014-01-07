@@ -1,7 +1,8 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.daq.eventbuilder.IReadoutDataPayload;
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestination;
+import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import java.io.IOException;
@@ -63,6 +64,11 @@ public class MockReadoutData
         return endTime;
     }
 
+    public int getNumHits()
+    {
+        return 0;
+    }
+
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
@@ -75,7 +81,7 @@ public class MockReadoutData
 
     public int getPayloadLength()
     {
-        return 0;
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -91,7 +97,7 @@ public class MockReadoutData
     public List getPayloads()
         throws DataFormatException
     {
-        throw new DataFormatException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int getReadoutDataPayloadNumber()
@@ -119,9 +125,19 @@ public class MockReadoutData
         throw new Error("Unimplemented");
     }
 
+    public long getUTCTime()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public boolean isLastPayloadOfGroup()
     {
         throw new Error("Unimplemented");
+    }
+
+    public int length()
+    {
+        return 0;
     }
 
     public void loadPayload()
@@ -139,15 +155,20 @@ public class MockReadoutData
         recycled = true;
     }
 
+    public void setCache(IByteBufferCache cache)
+    {
+        throw new Error("Unimplemented");
+    }
+
     public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 }

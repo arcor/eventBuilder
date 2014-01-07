@@ -13,20 +13,6 @@ public interface BackEndMonitor
     long getAverageReadoutsPerEvent();
 
     /**
-     * Get back-end state.
-     *
-     * @return state string
-     */
-    String getBackEndState();
-
-    /**
-     * Get back-end timing profile.
-     *
-     * @return back-end timing profile
-     */
-    String getBackEndTiming();
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return most recent splicer.execute() list length
@@ -50,11 +36,46 @@ public interface BackEndMonitor
     long getDiskSize();
 
     /**
+     * Return the number of events and the last event time as a list.
+     *
+     * @return event data
+     */
+    long[] getEventData();
+
+    /**
      * Get current rate of events per second.
      *
      * @return events/second
      */
     double getEventsPerSecond();
+
+    /**
+     * Return the first event time.
+     *
+     * @return first event time
+     */
+    long getFirstEventTime();
+
+    /**
+     * Get internal state.
+     *
+     * @return state string
+     */
+    String getInternalState();
+
+    /**
+     * Get internal timing profile.
+     *
+     * @return internal timing profile
+     */
+    String getInternalTiming();
+
+    /**
+     * Get the amount of time the current event spent in the system.
+     *
+     * @return current latency
+     */
+    double getLatency();
 
     /**
      * Get number of bad events for this run.
@@ -78,11 +99,25 @@ public interface BackEndMonitor
     long getNumBadTriggerRequests();
 
     /**
+     * Returns the number of bytes written to disk by the event builder
+     *
+     * @return the number of bytes written to disk by the event builder
+     */
+    long getNumBytesWritten();
+
+    /**
      * Get number of passes through the main loop without a trigger request.
      *
      * @return number of empty loops
      */
     long getNumEmptyLoops();
+
+    /**
+     * Get the number of events written to disk by the dispatcher.
+     *
+     * @return num events dispatched
+     */
+    long getNumEventsDispatched();
 
     /**
      * Get the number of events which could not be delivered for this run.

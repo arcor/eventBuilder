@@ -1,21 +1,32 @@
 package icecube.daq.eventBuilder.test;
 
-import icecube.daq.eventbuilder.IEventPayload;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
+import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadChecker;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MockDispatcher
     implements Dispatcher
 {
-    private int numSeen = 0;
-    private int numBad = 0;
+    private int numSeen;
+    private int numBad;
+    private boolean dispatchError;
+    private boolean readOnly;
+    private boolean started;
 
     public MockDispatcher()
     {
+    }
+
+    public void close()
+        throws DispatchException
+    {
+        // do nothing
     }
 
     public void dataBoundary()
@@ -24,10 +35,22 @@ public class MockDispatcher
         throw new Error("Unimplemented");
     }
 
-    public void dataBoundary(String s0)
+    public void dataBoundary(String msg)
         throws DispatchException
     {
-        // ignored
+        if (msg.startsWith(START_PREFIX)) {
+            if (started) {
+                throw new Error("Dispatcher has already been started");
+            }
+
+            started = true;
+        } else if (msg.startsWith(STOP_PREFIX)) {
+            if (!started) {
+                throw new Error("Dispatcher is already stopped");
+            }
+
+            started = false;
+        }
     }
 
     public void dispatchEvent(ByteBuffer buf)
@@ -40,8 +63,19 @@ public class MockDispatcher
         throws DispatchException
     {
         numSeen++;
+
         if (!PayloadChecker.validateEvent((IEventPayload) pay, true)) {
             numBad++;
+        }
+
+        if (readOnly) {
+            IOException ioe = new IOException("Read-only file system");
+            throw new DispatchException("Could not dispatch event", ioe);
+        }
+
+        if (dispatchError) {
+            IOException ioe = new IOException("Bad file channel");
+            throw new DispatchException("Could not dispatch event", ioe);
         }
     }
 
@@ -57,6 +91,11 @@ public class MockDispatcher
         throw new Error("Unimplemented");
     }
 
+    public IByteBufferCache getByteBufferCache()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public long getDiskAvailable()
     {
         return 0;
@@ -65,6 +104,16 @@ public class MockDispatcher
     public long getDiskSize()
     {
         return 0;
+    }
+
+    public long getNumBytesWritten()
+    {
+        return 0;
+    }
+
+    public long getNumDispatchedEvents()
+    {
+        return numSeen;
     }
 
     public int getNumberOfBadEvents()
@@ -77,14 +126,29 @@ public class MockDispatcher
         return numSeen;
     }
 
-    public void setDispatchDestStorage(String s0)
+    public boolean isStarted()
     {
-        throw new Error("Unimplemented");
+        return started;
+    }
+
+    public void setDispatchDestStorage(String destDir)
+    {
+        // do nothing
+    }
+
+    public void setDispatchError(boolean dispatchError)
+    {
+        this.dispatchError = dispatchError;
     }
 
     public void setMaxFileSize(long x0)
     {
         throw new Error("Unimplemented");
+    }
+
+    public void setReadOnly(boolean readOnly)
+    {
+        this.readOnly = readOnly;
     }
 
     public String toString()

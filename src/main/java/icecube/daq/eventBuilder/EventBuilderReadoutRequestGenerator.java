@@ -2,22 +2,17 @@ package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IDOMID;
+import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IReadoutRequest;
+import icecube.daq.payload.IReadoutRequestElement;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
-import icecube.daq.trigger.IReadoutRequest;
-import icecube.daq.trigger.IReadoutRequestElement;
-import icecube.daq.trigger.impl.DOMID8B;
-import icecube.daq.trigger.impl.ReadoutRequestPayload;
-import icecube.daq.trigger.impl.ReadoutRequestPayloadFactory;
-import icecube.daq.trigger.impl.TriggerRequestPayloadFactory;
+import icecube.daq.payload.impl.ReadoutRequestFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -62,7 +57,7 @@ public class EventBuilderReadoutRequestGenerator
         LogFactory.getLog(EventBuilderReadoutRequestGenerator.class);
 
     //Factory object used to create readout requests.
-    private ReadoutRequestPayloadFactory readoutFactory;
+    private ReadoutRequestFactory factory;
 
     // collection of ISourceIDs of all InIce string procs.
     private Collection inIceSources;
@@ -76,17 +71,11 @@ public class EventBuilderReadoutRequestGenerator
     /**
      * Create a readout request generator.
      *
-     * @param master master payload factory
+     * @param factory readout request factory
      */
-    public EventBuilderReadoutRequestGenerator(MasterPayloadFactory master)
+    public EventBuilderReadoutRequestGenerator(ReadoutRequestFactory factory)
     {
-        if (master == null) {
-            throw new Error("Master payload factory is null");
-        }
-
-        final int reqType = PayloadRegistry.PAYLOAD_ID_READOUT_REQUEST;
-        readoutFactory =
-            (ReadoutRequestPayloadFactory) master.getPayloadFactory(reqType);
+        this.factory = factory;
     }
 
     /**
@@ -108,39 +97,21 @@ public class EventBuilderReadoutRequestGenerator
                                     IUTCTime lastTime,
                                     IUTCTime timeStamp)
     {
-        IReadoutRequestElement elem =
-            TriggerRequestPayloadFactory.createReadoutRequestElement
-            (DOM, firstTime, lastTime, domID, stringID);
-
-        Vector readoutElements = new Vector();
-        readoutElements.add(0, elem);
-
-        // so this gives me an IReadoutRequest
         IReadoutRequest req =
-            (IReadoutRequest) ReadoutRequestPayloadFactory.createReadoutRequest
-            (ME, eventId, readoutElements);
-
-        ReadoutRequestPayload payload = null;
-        try {
-            payload =
-                (ReadoutRequestPayload) readoutFactory.createPayload
-                (timeStamp, req);
-        } catch (Exception e) {
-            if (LOG.isWarnEnabled()) {
-                LOG.warn("Couldn't get ReadoutRequestPayload" +
-                         " from IReadoutRequest", e);
-            }
-        }
+            factory.createPayload(timeStamp.longValue(), eventId,
+                                  ME.getSourceID());
+        req.addElement(DOM, stringID.getSourceID(), firstTime.longValue(),
+                       lastTime.longValue(), domID.longValue());
 
         try {
-            payload.loadPayload();
+            ((ILoadablePayload) req).loadPayload();
         } catch (Exception e) {
             if (LOG.isWarnEnabled()) {
                 LOG.warn("ReadoutRequestGenerator", e);
             }
         }
 
-        requests.add(payload);
+        requests.add(req);
     }
 
     /**
@@ -198,7 +169,7 @@ public class EventBuilderReadoutRequestGenerator
      * Generate an all-string request for the string proc (or IDH)
      * specified by the source id.
      *
-     * @param stringid The source id of the String proc to send out create
+     * @param stringID The source id of the String proc to send out create
      *                 request.
      * @param rtype The readout type to be sent for current string.
      *
@@ -206,38 +177,19 @@ public class EventBuilderReadoutRequestGenerator
      */
     private void generateStringRequest(Collection requests,
                                        int eventId,
-                                       ISourceID stringid,
+                                       ISourceID stringID,
                                        IUTCTime firstUTC,
                                        IUTCTime lastUTC,
                                        IUTCTime timeStamp)
     {
-        //all string request
-        DOMID8B domId = new DOMID8B();
-
-        IReadoutRequestElement elem = (IReadoutRequestElement)
-            ReadoutRequestPayloadFactory.createReadoutRequestElement
-            (STRING, firstUTC, lastUTC, domId, stringid);
-
-        Vector readoutElements = new Vector();
-        readoutElements.add(elem);
-
-        // so this gives me an IReadoutRequest
         IReadoutRequest req =
-            (IReadoutRequest) ReadoutRequestPayloadFactory.createReadoutRequest
-            (ME, eventId, readoutElements);
+            factory.createPayload(timeStamp.longValue(), eventId,
+                                  ME.getSourceID());
+        req.addElement(STRING, stringID.getSourceID(), firstUTC.longValue(),
+                       lastUTC.longValue(), -1L);
 
-        ReadoutRequestPayload payload = null;
         try {
-            payload = (ReadoutRequestPayload)
-                readoutFactory.createPayload(timeStamp, req);
-        } catch (Exception e) {
-            if (LOG.isWarnEnabled()) {
-                LOG.warn("Couldn't get ReadoutRequestPayload" +
-                         " from IReadoutRequest", e);
-            }
-        }
-        try {
-            payload.loadPayload();
+            ((ILoadablePayload) req).loadPayload();
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("ReadoutRequestGenerator", e);
@@ -245,7 +197,7 @@ public class EventBuilderReadoutRequestGenerator
             return;
         }
 
-        requests.add(payload);
+        requests.add(req);
     }
 
     /**
