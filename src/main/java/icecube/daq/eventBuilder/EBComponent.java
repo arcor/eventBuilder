@@ -93,18 +93,18 @@ public class EBComponent
 
         final int compId = 0;
 
-        rdoutDataMgr = new VitreousBufferCache("EBRdOut", 250000000);
+        rdoutDataMgr = new VitreousBufferCache("EBRdOut", 2000000000);
         addCache(DAQConnector.TYPE_READOUT_DATA, rdoutDataMgr);
 
-        trigBufMgr = new VitreousBufferCache("EBTrig");
+        trigBufMgr = new VitreousBufferCache("EBTrig", 1500000000);
         addCache(DAQConnector.TYPE_GLOBAL_TRIGGER, trigBufMgr);
         TriggerRequestFactory trigFactory =
             new TriggerRequestFactory(trigBufMgr);
 
-        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent");
+        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent", 400000000);
         addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
 
-        IByteBufferCache genMgr = new VitreousBufferCache("EBGen");
+        IByteBufferCache genMgr = new VitreousBufferCache("EBGen", 400000000);
         addCache(genMgr);
 
         addMBean("jvm", new MemoryStatistics());
@@ -343,7 +343,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 14506 2013-05-16 19:23:08Z dglo $";
+        return "$Id: EBComponent.java 14760 2014-01-07 18:49:37Z dglo $";
     }
 
     /**
