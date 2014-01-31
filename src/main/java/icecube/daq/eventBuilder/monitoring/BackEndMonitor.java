@@ -19,6 +19,8 @@ public interface BackEndMonitor
      */
     long getCurrentExecuteListLength();
 
+    String getDebugMsg();
+
     /**
      * Returns the number of units still available in the disk (measured in MB).
      * If it fails to check the disk space, then it returns -1.
