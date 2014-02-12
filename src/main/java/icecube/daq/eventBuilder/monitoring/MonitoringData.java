@@ -46,15 +46,6 @@ public class MonitoringData
         return backEnd.getCurrentExecuteListLength();
     }
 
-    public String getDebugMsg()
-    {
-        if (backEnd == null) {
-            return null;
-        }
-
-        return backEnd.getDebugMsg();
-    }
-
     /**
      * Returns the number of units still available in the disk (measured in MB)
      * If it fails to check the disk space, then it returns -1.
