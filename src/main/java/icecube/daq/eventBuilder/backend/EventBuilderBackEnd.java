@@ -252,6 +252,8 @@ public class EventBuilderBackEnd
         new LinkedList<ILoadablePayload>();
     /** Output thread. */
     private OutputThread outputThread;
+    /** Truncate thread. */
+    private TruncateThread truncThread;
 
     /** DOM registry used to map each hit's DOM ID to the channel ID */
     private IDOMRegistry domRegistry;
@@ -428,7 +430,9 @@ public class EventBuilderBackEnd
      */
     public void disposeData(ILoadablePayload data)
     {
-        splicer.truncate((Spliceable) data);
+        if (truncThread != null) {
+            truncThread.truncate((Spliceable) data);
+        }
     }
 
     /**
@@ -438,11 +442,13 @@ public class EventBuilderBackEnd
      */
     public void disposeDataList(List dataList)
     {
-        // if we truncate the final data payload,
-        // all the others will also be removed
-        if (dataList.size() > 0) {
-            Object obj = dataList.get(dataList.size() - 1);
-            splicer.truncate((Spliceable) obj);
+        if (truncThread != null) {
+            // if we truncate the final data payload,
+            // all the others will also be removed
+            if (dataList.size() > 0) {
+                Object obj = dataList.get(dataList.size() - 1);
+                truncThread.truncate((Spliceable) obj);
+            }
         }
     }
 
@@ -1170,6 +1176,11 @@ public class EventBuilderBackEnd
             }
 
             if (outputThread == null) {
+                if (truncThread == null) {
+                    truncThread = new TruncateThread("EventTruncate");
+                    truncThread.start();
+                }
+
                 outputThread = new OutputThread("EventWriter");
                 outputThread.start();
             }
@@ -1585,9 +1596,8 @@ public class EventBuilderBackEnd
                         try {
                             outputQueue.wait();
                         } catch (InterruptedException ie) {
-                            LOG.error(
-                                "Interrupt while waiting for output queue",
-                                    ie);
+                            LOG.error("Interrupt while waiting for output" +
+                                      " queue", ie);
                         }
                     }
 
@@ -1601,6 +1611,11 @@ public class EventBuilderBackEnd
                 if (event != null) {
                     sendToDaqDispatch(event);
                 }
+            }
+
+            if (truncThread != null) {
+                truncThread.stop();
+                truncThread = null;
             }
         }
 
@@ -1686,6 +1701,87 @@ public class EventBuilderBackEnd
         public void start()
         {
             thread.start();
+        }
+    }
+
+    /**
+     * Thread which truncates the splicer's "rope"
+     * (copied from icecube.daq.trigger.control.TriggerCollector)
+     */
+    class TruncateThread
+        implements Runnable
+    {
+        private Thread thread;
+        private Object threadLock = new Object();
+        private Spliceable nextTrunc;
+        private boolean stopping;
+
+        TruncateThread(String name)
+        {
+            thread = new Thread(this);
+            thread.setName(name);
+        }
+
+        public void run()
+        {
+            if (splicer == null) {
+                LOG.error("Splicer has not been set");
+                return;
+            }
+
+            while (!stopping) {
+                Spliceable spl;
+                synchronized (threadLock) {
+                    if (nextTrunc == null) {
+                        try {
+                            threadLock.wait();
+                        } catch (InterruptedException ie) {
+                            // ignore interrupts
+                            continue;
+                        }
+                    }
+
+                    spl = nextTrunc;
+                    nextTrunc = null;
+                }
+
+                // XXX I'm not sure why, but 'spl' will occasionally be
+                // set to null
+                if (spl != null) {
+                    // let the splicer know it's safe to recycle
+                    // everything before the end of this request
+                    try {
+                        splicer.truncate(spl);
+                    } catch (Throwable thr) {
+                        LOG.error("Truncate failed for " + spl, thr);
+                    }
+                }
+            }
+        }
+
+        public void start()
+        {
+            thread.start();
+        }
+
+        public void stop()
+        {
+            synchronized (threadLock) {
+                stopping = true;
+                threadLock.notify();
+            }
+        }
+
+        public void truncate(Spliceable spl)
+        {
+            if (spl == null) {
+                LOG.error("Cannot truncate null spliceable");
+            } else {
+                synchronized (threadLock) {
+                    nextTrunc = spl;
+                    threadLock.notify();
+                }
+            }
         }
     }
 }
