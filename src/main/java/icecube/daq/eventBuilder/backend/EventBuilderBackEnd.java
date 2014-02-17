@@ -1219,11 +1219,22 @@ public class EventBuilderBackEnd
         if (outputThread == null) {
             throw new Error("Output thread is not running");
         } else if (outputThread.hasFailed()) {
-            //LOG.error("Output thread has failed");
+            String errmsg;
+            if (outputThread.hasMaxConsecutiveErrors()) {
+                errmsg = "Output thread has failed after " +
+                    outputThread.getNumConsecutiveErrors() +
+                    " consecutive payload errors";
+            } else if (outputThread.hasMaxTotalErrors()) {
+                errmsg = "Output thread has failed after " +
+                    outputThread.getNumTotalErrors() +
+                    " total payload errors";
+            } else {
+                errmsg = "Output thread has failed";
+            }
             try {
-                throw new Error("Output thread has failed");
+                throw new Error(errmsg);
             } catch (Error err) {
-                LOG.error("Output thread has failed", err);
+                LOG.error("Stack Trace", err);
             }
             return false;
         }
@@ -1575,6 +1586,26 @@ public class EventBuilderBackEnd
         }
 
         /**
+         * Get the number of consecutive payload errors
+         *
+         * @return number of errors
+         */
+        boolean getNumConsecutiveErrors()
+        {
+            return dispatchErrs;
+        }
+
+        /**
+         * Get the total number of payload errors
+         *
+         * @return number of errors
+         */
+        boolean getNumTotalErrors()
+        {
+            return totalDispatchErrs;
+        }
+
+        /**
          * Has the output thread failed?
          *
          * @return true if the output thread died due to internal problems
@@ -1582,6 +1613,26 @@ public class EventBuilderBackEnd
         boolean hasFailed()
         {
             return failed;
+        }
+
+        /**
+         * Have we reached the maximum number of consecutive payload errors?
+         *
+         * @return <tt>true</tt> if we've seen the maximum number of errors
+         */
+        boolean hasMaxConsecutiveErrors()
+        {
+            return dispatchErrs == MAX_CONSECUTIVE_ERRORS;
+        }
+
+        /**
+         * Have we reached the maximum number of payload errors?
+         *
+         * @return <tt>true</tt> if we've seen the maximum number of errors
+         */
+        boolean hasMaxTotalErrors()
+        {
+            return totalDispatchErrs == MAX_TOTAL_ERRORS;
         }
 
         /**
@@ -1673,9 +1724,7 @@ public class EventBuilderBackEnd
                 dispatchErrs++;
                 totalDispatchErrs++;
 
-                if (dispatchErrs == MAX_CONSECUTIVE_ERRORS ||
-                    totalDispatchErrs == MAX_TOTAL_ERRORS)
-                {
+                if (hasMaxConsecutiveErrors() || hasMaxTotalErrors()) {
                     failed = true;
                 } else if (LOG.isErrorEnabled()) {
                     LOG.error("Could not dispatch event", de);
