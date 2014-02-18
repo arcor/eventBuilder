@@ -1590,7 +1590,7 @@ public class EventBuilderBackEnd
          *
          * @return number of errors
          */
-        boolean getNumConsecutiveErrors()
+        int getNumConsecutiveErrors()
         {
             return dispatchErrs;
         }
@@ -1600,7 +1600,7 @@ public class EventBuilderBackEnd
          *
          * @return number of errors
          */
-        boolean getNumTotalErrors()
+        int getNumTotalErrors()
         {
             return totalDispatchErrs;
         }

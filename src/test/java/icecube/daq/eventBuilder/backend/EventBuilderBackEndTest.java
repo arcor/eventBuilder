@@ -691,7 +691,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         waitForDispatcher(dispatcher);
         waitForLogMessages(5);
 
-        final String badMsg = "Output thread has failed";
+        final String badMsg = "Stack Trace";
         for (int i = 0; i < 4; i++) {
             assertEquals("Bad log message", badMsg, appender.getMessage(i));
         }
