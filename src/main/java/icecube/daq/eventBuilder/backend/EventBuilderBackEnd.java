@@ -245,7 +245,7 @@ public class EventBuilderBackEnd
 
     /** Current year. */
     private short year;
-    private long prevEventStart;
+    private long prevYearTime;
 
     /** Output queue  -- ACCESS MUST BE SYNCHRONIZED. */
     private List<ILoadablePayload> outputQueue =
@@ -1019,13 +1019,15 @@ public class EventBuilderBackEnd
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
 
         final int uid = req.getUID();
-        final IUTCTime startTime = req.getFirstTimeUTC();
-        final IUTCTime endTime = req.getLastTimeUTC();
+        final IUTCTime startUTC = req.getFirstTimeUTC();
+        final IUTCTime endUTC = req.getLastTimeUTC();
 
-        if (startTime == null || endTime == null) {
+        if (startUTC == null || endUTC == null) {
             LOG.error("Request may have been recycled; cannot send data");
             return null;
         }
+
+        final long startTime = startUTC.longValue();
 
         long tmpFirstGood;
         long tmpLastGood;
@@ -1037,14 +1039,14 @@ public class EventBuilderBackEnd
         totalPossible++;
         if (tmpFirstGood == 0) {
             numUnknownBeforeFirst++;
-        } else if (startTime.longValue() < tmpFirstGood) {
+        } else if (startTime < tmpFirstGood) {
             numDroppedBeforeFirst++;
             if (DROP_NOT_GOOD) {
                 return DROPPED_PAYLOAD;
             }
         } else if (tmpLastGood == 0) {
             numUnknownBeforeLast++;
-        } else if (endTime.longValue() <= tmpLastGood) {
+        } else if (endUTC.longValue() <= tmpLastGood) {
             numKnownBeforeLast++;
         } else {
             numDroppedAfterLast++;
@@ -1057,27 +1059,27 @@ public class EventBuilderBackEnd
             switchRun();
         }
 
-        if (year == 0 || startTime.longValue() < prevEventStart) {
+        if (year == 0 || startTime < prevYearTime) {
             final short oldYear = year;
             setCurrentYear();
             if (oldYear != 0) {
                 LOG.error("Changed year from " + oldYear + " to " + year);
             }
-            prevEventStart = startTime.longValue();
+            prevYearTime = startTime;
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Closing Event " + uid + " [" + startTime + " - " +
-                      endTime + "]");
+            LOG.debug("Closing Event " + uid + " [" + startUTC + " - " +
+                      endUTC + "]");
         }
         if (LOG.isInfoEnabled() && dataList.size() == 0) {
-            LOG.info("Sending empty event " + uid + " window [" + startTime +
-                     " - " + endTime + "]");
+            LOG.info("Sending empty event " + uid + " window [" + startUTC +
+                     " - " + endUTC + "]");
         }
 
         int subnum;
         synchronized (subrunLock) {
-            if (newSubrunStartTime && startTime.longValue() >= subrunStart) {
+            if (newSubrunStartTime && startTime >= subrunStart) {
                 // commitSubrun was called & that subrun is here
                 subrunNumber = getNextSubrunNumber(subrunNumber);
                 newSubrunStartTime = false;
@@ -1087,7 +1089,7 @@ public class EventBuilderBackEnd
 
         ILoadablePayload evt;
         if (EventVersion.VERSION < 5) {
-            evt = eventFactory.createPayload(uid, ME, startTime, endTime, year,
+            evt = eventFactory.createPayload(uid, ME, startUTC, endUTC, year,
                                              runNumber, subnum, req, dataList);
         } else {
             if (domRegistry == null) {
@@ -1096,7 +1098,7 @@ public class EventBuilderBackEnd
             }
 
             try {
-                evt = eventFactory.createPayload(uid, startTime, endTime,
+                evt = eventFactory.createPayload(uid, startUTC, endUTC,
                                                  year, runNumber, subnum, req,
                                                  buildHitRecordList(dataList),
                                                  domRegistry);
