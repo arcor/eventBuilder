@@ -147,6 +147,8 @@ public class EventBuilderBackEnd
         private long numEvents;
         private long firstEventTime;
         private long lastEventTime;
+        private long firstGoodTime;
+        private long lastGoodTime;
 
         /**
          * Create an object holding the event totals for a run.
@@ -154,12 +156,17 @@ public class EventBuilderBackEnd
          * @param numEvents - number of physics events dispatched
          * @param firstEventTime - starting time of first event
          * @param lastEventTime - ending time of last event
+         * @param firstGoodTime - starting time of first good event
+         * @param lastGoodTime - ending time of last good event
          */
-        EventRunData(long numEvents, long firstEventTime, long lastEventTime)
+        EventRunData(long numEvents, long firstEventTime, long lastEventTime,
+                     long firstGoodTime, long lastGoodTime)
         {
             this.numEvents = numEvents;
             this.firstEventTime = firstEventTime;
             this.lastEventTime = lastEventTime;
+            this.firstGoodTime = firstGoodTime;
+            this.lastGoodTime = lastGoodTime;
         }
 
         /**
@@ -169,7 +176,8 @@ public class EventBuilderBackEnd
          */
         public long[] toArray()
         {
-            return new long[] { numEvents, firstEventTime, lastEventTime };
+            return new long[] { numEvents, firstEventTime, lastEventTime,
+                                firstGoodTime, lastGoodTime };
         }
 
         /**
@@ -179,8 +187,9 @@ public class EventBuilderBackEnd
          */
         public String toString()
         {
-            return "EventRunData[evts " + numEvents + ",first " +
-                firstEventTime + ", last " + lastEventTime + "]";
+            return "EventRunData[evts " + numEvents + ", first " +
+                firstEventTime + ", last " + lastEventTime + ", firstGood" +
+                firstGoodTime + ", lastGood " + lastGoodTime + "]";
         }
     }
 
@@ -260,6 +269,9 @@ public class EventBuilderBackEnd
 
     /** New run number to be used when switching runs mid-stream */
     private int switchNumber;
+
+    /** Track last event end to be used as the last good time when switching */
+    private long prevEndTime;
 
     /** Map used to track start/stop/count data for each run */
     private HashMap<Integer, EventRunData> runData =
@@ -478,7 +490,8 @@ public class EventBuilderBackEnd
         // save run data for later retrieval
         runData.put(runNumber,
                     new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
-                                     getLastOutputTime()));
+                                     getLastOutputTime(), firstGoodTime,
+                                     lastGoodTime));
 
         LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
                   "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
@@ -1055,10 +1068,16 @@ public class EventBuilderBackEnd
             }
         }
 
+        // if this is the first event and we're supposed to switch to a
+        // new run number, do it now
         if (uid == 1 && switchNumber > 0) {
-            switchRun();
+            switchRun(prevEndTime, startTime);
         }
 
+        // remember this startTime in case we switch runs at the next event
+        prevEndTime = startTime;
+
+        // set the year if we haven't yet or if the time has wrapped
         if (year == 0 || startTime < prevYearTime) {
             final short oldYear = year;
             setCurrentYear();
@@ -1349,7 +1368,7 @@ public class EventBuilderBackEnd
     /**
      * Switch to new run.
      */
-    private void switchRun()
+    private void switchRun(long prevEventEnd, long thisEventStart)
     {
         if (LOG.isErrorEnabled()) {
             LOG.error("Switching from run " + runNumber + " to " +
@@ -1368,7 +1387,8 @@ public class EventBuilderBackEnd
 
         long[] tmpData = resetOutputData();
         runData.put(runNumber,
-                    new EventRunData(tmpData[0], tmpData[1], tmpData[2]));
+                    new EventRunData(tmpData[0], tmpData[1], tmpData[2],
+                                     firstGoodTime, prevEventEnd));
 
         try {
             dispatcher.dataBoundary(Dispatcher.START_PREFIX + switchNumber);
@@ -1382,6 +1402,8 @@ public class EventBuilderBackEnd
 
         runNumber = switchNumber;
         switchNumber = 0;
+        firstGoodTime = thisEventStart;
+        lastGoodTime = 0;
     }
 
     /**
