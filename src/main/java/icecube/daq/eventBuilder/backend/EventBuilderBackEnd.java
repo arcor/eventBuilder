@@ -169,6 +169,16 @@ public class EventBuilderBackEnd
             this.lastGoodTime = lastGoodTime;
         }
 
+        public void setLastGoodTime(int runNumber, long time)
+        {
+            if (lastGoodTime > 0 && lastGoodTime != time) {
+                LOG.error("Overwriting " + runNumber + " last good time " +
+                          lastGoodTime + " with new value " + time);
+            }
+
+            lastGoodTime = time;
+        }
+
         /**
          * Return run data as an array of <tt>long</tt> values.
          *
@@ -188,7 +198,7 @@ public class EventBuilderBackEnd
         public String toString()
         {
             return "EventRunData[evts " + numEvents + ", first " +
-                firstEventTime + ", last " + lastEventTime + ", firstGood" +
+                firstEventTime + ", last " + lastEventTime + ", firstGood " +
                 firstGoodTime + ", lastGood " + lastGoodTime + "]";
         }
     }
@@ -1308,6 +1318,11 @@ public class EventBuilderBackEnd
     {
         synchronized (goodTimeLock) {
             lastGoodTime = lastTime;
+        }
+
+        if (runData.containsKey(runNumber)) {
+            LOG.error("Last good time was set after the run finished!");
+            runData.get(runNumber).setLastGoodTime(runNumber, lastTime);
         }
     }
 
