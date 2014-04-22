@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 public class MockTriggerRequest
     implements Comparable, ITriggerRequestPayload
@@ -133,7 +132,6 @@ public class MockTriggerRequest
     }
 
     public List getPayloads()
-        throws DataFormatException
     {
         return new ArrayList();
     }
@@ -191,7 +189,6 @@ public class MockTriggerRequest
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
         // unneeded
     }

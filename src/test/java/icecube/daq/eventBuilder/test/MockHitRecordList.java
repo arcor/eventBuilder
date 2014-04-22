@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 class MockHitRecord
     implements IEventHitRecord
@@ -136,9 +135,8 @@ public class MockHitRecordList
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void recycle()

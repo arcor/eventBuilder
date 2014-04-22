@@ -9,7 +9,6 @@ import icecube.daq.payload.IUTCTime;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.zip.DataFormatException;
 
 public class MockHit
     implements IHitPayload
@@ -96,7 +95,6 @@ public class MockHit
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
         throw new Error("Unimplemented");
     }
