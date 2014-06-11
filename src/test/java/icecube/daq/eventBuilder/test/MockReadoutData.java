@@ -1,7 +1,6 @@
 package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
@@ -153,12 +152,6 @@ public class MockReadoutData
     }
 
     public void setCache(IByteBufferCache cache)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination x1)
-        throws IOException
     {
         throw new Error("Unimplemented");
     }

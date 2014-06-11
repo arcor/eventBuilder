@@ -5,7 +5,6 @@ import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IHitPayload;
 import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadException;
@@ -152,12 +151,6 @@ public class MockHitRecordList
     public void setCache(IByteBufferCache x0)
     {
         throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination x1)
-        throws IOException
-    {
-        throw new IOException("Unimplemented");
     }
 
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
