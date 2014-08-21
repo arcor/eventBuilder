@@ -216,7 +216,6 @@ public class EventBuilderBackEnd
     private static final boolean DROP_NOT_GOOD = true;
 
     private Splicer splicer;
-    private SPDataAnalysis analysis;
     private Dispatcher dispatcher;
 
     // Factory to make EventPayloads.
@@ -338,7 +337,6 @@ public class EventBuilderBackEnd
 
         this.dispatcher = dispatcher;
         this.splicer = splicer;
-        this.analysis = analysis;
         this.validateEvents = validateEvents;
 
         // register this object with splicer analysis
