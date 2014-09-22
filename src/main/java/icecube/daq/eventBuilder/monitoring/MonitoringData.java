@@ -686,7 +686,7 @@ public class MonitoringData
      */
     public String toString()
     {
-        StringBuffer buf = new StringBuffer("MonitoringData:");
+        StringBuilder buf = new StringBuilder("MonitoringData:");
 
         if (backEnd == null) {
             buf.append("\n  No backEnd monitoring data available");
