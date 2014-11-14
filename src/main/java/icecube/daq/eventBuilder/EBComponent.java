@@ -343,7 +343,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 14760 2014-01-07 18:49:37Z dglo $";
+        return "$Id: EBComponent.java 15256 2014-11-14 14:43:43Z dglo $";
     }
 
     /**
@@ -468,11 +468,11 @@ public class EBComponent
     }
 
     /**
-     * Set the run number inside this component.
+     * Set the run number at the start of the run.
      *
      * @param runNumber run number
      */
-    public void setRunNumber(int runNumber)
+    public void starting(int runNumber)
     {
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
