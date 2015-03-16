@@ -307,7 +307,9 @@ public class EBComponent
         try {
             return backEnd.getRunData(runNum);
         } catch (EventBuilderException ebe) {
-            throw new DAQCompException("Cannot get run data", ebe);
+            throw new DAQCompException("No final counts found for run " +
+                                       runNum + "; state is " + getState(),
+                                       ebe);
         }
     }
 
@@ -343,7 +345,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 15256 2014-11-14 14:43:43Z dglo $";
+        return "$Id: EBComponent.java 15474 2015-03-16 16:22:39Z dglo $";
     }
 
     /**
