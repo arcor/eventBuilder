@@ -232,10 +232,13 @@ public class EventBuilderBackEnd
 
     // lifetime monitoring counters
     private long prevRunTotalEvents;
+    private long totalEventsSent;
     private long totStopsSent;
 
     /** Current run number. */
     private int runNumber;
+    /** Previous run number. */
+    private int prevRunNumber;
     /** Have we reported a bad run number yet? */
     private boolean reportedBadRunNumber;
 
@@ -813,6 +816,8 @@ public class EventBuilderBackEnd
     /**
      * Get the run data for the specified run.
      *
+     * @param runNum run number
+     *
      * @return array of <tt>long</tt> values:<ol>
      *    <li>number of events
      *    <li>starting time of first event in run
@@ -1077,9 +1082,18 @@ public class EventBuilderBackEnd
         }
 
         // if this is the first event and we're supposed to switch to a
-        // new run number, do it now
+        // new run number, save the run data (but don't switch yet)
         if (uid == 1 && switchNumber > 0) {
-            switchRun(prevEndTime, startTime);
+            long[] tmpData = resetOutputData();
+            runData.put(runNumber,
+                        new EventRunData(tmpData[0], tmpData[1], tmpData[2],
+                                         firstGoodTime, prevEndTime));
+
+            prevRunNumber = runNumber;
+            runNumber = switchNumber;
+            switchNumber = 0;
+            firstGoodTime = startTime;
+            lastGoodTime = 0;
         }
 
         // remember this startTime in case we switch runs at the next event
@@ -1379,44 +1393,31 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Switch to new run.
+     * Switch to new file for events in switched run.
      */
-    private void switchRun(long prevEventEnd, long thisEventStart)
+    private void switchFile(int oldRun, int newRun)
     {
         if (LOG.isErrorEnabled()) {
-            LOG.error("Switching from run " + runNumber + " to " +
-                      switchNumber);
+            LOG.error("Switching from run " + oldRun + " to " + newRun);
         }
 
         try {
-            dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + runNumber);
+            dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + oldRun);
         } catch (DispatchException de) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Could not inform dispatcher of run stop" +
-                          " (switch from " + runNumber + " to " +
-                          switchNumber + ")", de);
+                LOG.error("Could not inform dispatcher of run stop (switch" +
+                          " from " + oldRun + " to " + newRun + ")", de);
             }
         }
-
-        long[] tmpData = resetOutputData();
-        runData.put(runNumber,
-                    new EventRunData(tmpData[0], tmpData[1], tmpData[2],
-                                     firstGoodTime, prevEventEnd));
 
         try {
-            dispatcher.dataBoundary(Dispatcher.START_PREFIX + switchNumber);
+            dispatcher.dataBoundary(Dispatcher.START_PREFIX + newRun);
         } catch (DispatchException de) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Could not inform dispatcher of run start" +
-                          " (switch from " + runNumber + " to " +
-                          switchNumber + ")", de);
+                LOG.error("Could not inform dispatcher of run start (switch" +
+                          " from " + oldRun + " to " + newRun + ")", de);
             }
         }
-
-        runNumber = switchNumber;
-        switchNumber = 0;
-        firstGoodTime = thisEventStart;
-        lastGoodTime = 0;
     }
 
     /**
@@ -1742,10 +1743,15 @@ public class EventBuilderBackEnd
                 prevLastTime = tmpEvent.getLastTimeUTC().longValue();
             }
 
+            if (tmpEvent.getEventUID() == 1 && totalEventsSent > 0) {
+                switchFile(prevRunNumber, runNumber);
+            }
+
             boolean eventSent = false;
             try {
                 dispatcher.dispatchEvent(tmpEvent);
                 dispatchErrs = 0;
+                totalEventsSent++;
                 eventSent = true;
             } catch (DispatchException de) {
                 Throwable cause = de.getCause();

@@ -754,8 +754,6 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
                 backEnd.setSwitchRunNumber(switchNum);
             } else if (i == 2) {
                 trUID = 1;
-                expMessage = "Switching from run " + runNum + " to " +
-                    switchNum;
                 runNum = switchNum;
             }
 
@@ -778,17 +776,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
             validateEvent(evt, runNum, 0, trUID, firstTime, lastTime, req,
                           hitList);
 
-            if (expMessage == null) {
-                waitForLogMessages(0);
-            } else {
-                assertEquals("Bad number of log messages",
-                             1, appender.getNumberOfMessages());
-
-                assertEquals("Bad log message",
-                             expMessage, appender.getMessage(0));
-
-                appender.clear();
-            }
+            waitForLogMessages(0);
 
             firstTime = lastTime + 1000L;
             lastTime = firstTime + 10000L;
