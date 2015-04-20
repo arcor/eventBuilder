@@ -34,12 +34,17 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
-        public double distanceBetweenDOMs(String mbid0, String mbid1)
+        public double distanceBetweenDOMs(long mbid0, long mbid1)
         {
             throw new Error("Unimplemented");
         }
 
-        public short getChannelId(String mbid)
+        public short getChannelId(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public DeployedDOM getDom(long mbId)
         {
             throw new Error("Unimplemented");
         }
@@ -49,12 +54,22 @@ public class EventBuilderBackEndTest
             throw new Error("Unimplemented");
         }
 
-        public int getStringMajor(String mbid)
+        public int getStringMajor(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<String> keys()
+        public int getStringMinor(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public Set<Long> keys()
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public int size()
         {
             throw new Error("Unimplemented");
         }
@@ -691,7 +706,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         waitForDispatcher(dispatcher);
         waitForLogMessages(5);
 
-        final String badMsg = "Output thread has failed";
+        final String badMsg = "Stack Trace";
         for (int i = 0; i < 4; i++) {
             assertEquals("Bad log message", badMsg, appender.getMessage(i));
         }

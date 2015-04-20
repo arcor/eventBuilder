@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>eventBuilder-prod</artifactId>
   <packaging>jar</packaging>
-  <name>eventBuilder-prod</name>
+  <name>Event builder</name>
   <description>The event building sub-system of the Surface Data Acquisition system for the IceCube Project.</description>
 
   <scm>
@@ -74,12 +74,6 @@
     <dependency>
       <groupId>edu.wisc.icecube</groupId>
       <artifactId>daq-request-filler</artifactId>
-    </dependency>
-
-    <!-- needed by SAXParser -->
-    <dependency>
-      <groupId>jaxen</groupId>
-      <artifactId>jaxen</artifactId>
     </dependency>
   </dependencies>
 

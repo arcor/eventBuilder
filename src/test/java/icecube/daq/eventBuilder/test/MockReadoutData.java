@@ -1,14 +1,12 @@
 package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 public class MockReadoutData
     implements IReadoutDataPayload
@@ -79,11 +77,6 @@ public class MockReadoutData
         throw new Error("Unimplemented");
     }
 
-    public int getPayloadLength()
-    {
-        return length();
-    }
-
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
@@ -95,7 +88,6 @@ public class MockReadoutData
     }
 
     public List getPayloads()
-        throws DataFormatException
     {
         throw new Error("Unimplemented");
     }
@@ -141,7 +133,6 @@ public class MockReadoutData
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
         // unneeded
     }
@@ -156,12 +147,6 @@ public class MockReadoutData
     }
 
     public void setCache(IByteBufferCache cache)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination x1)
-        throws IOException
     {
         throw new Error("Unimplemented");
     }

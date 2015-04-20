@@ -1,7 +1,6 @@
 package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.ITriggerRequestPayload;
@@ -12,7 +11,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 public class MockTriggerRequest
     implements Comparable, ITriggerRequestPayload
@@ -117,11 +115,6 @@ public class MockTriggerRequest
         throw new Error("Unimplemented");
     }
 
-    public int getPayloadLength()
-    {
-        return length();
-    }
-
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
@@ -133,7 +126,6 @@ public class MockTriggerRequest
     }
 
     public List getPayloads()
-        throws DataFormatException
     {
         return new ArrayList();
     }
@@ -191,7 +183,6 @@ public class MockTriggerRequest
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
         // unneeded
     }
@@ -216,12 +207,6 @@ public class MockTriggerRequest
      * @param uid new UID
      */
     public void setUID(int uid)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination x1)
-        throws IOException
     {
         throw new Error("Unimplemented");
     }

@@ -5,7 +5,6 @@ import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IHitPayload;
 import icecube.daq.payload.IHitRecordList;
 import icecube.daq.payload.ILoadablePayload;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadException;
@@ -16,7 +15,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 class MockHitRecord
     implements IEventHitRecord
@@ -100,11 +98,6 @@ public class MockHitRecordList
         throw new Error("Unimplemented");
     }
 
-    public int getPayloadLength()
-    {
-        return length();
-    }
-
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
@@ -136,9 +129,8 @@ public class MockHitRecordList
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void recycle()
@@ -154,12 +146,6 @@ public class MockHitRecordList
     public void setCache(IByteBufferCache x0)
     {
         throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination x1)
-        throws IOException
-    {
-        throw new IOException("Unimplemented");
     }
 
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
