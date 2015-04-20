@@ -299,7 +299,7 @@ public class EBComponent
      *    <li>ending time of last event in run
      *    </ol>
      *
-     * @throw EventBuilderException if no data is found for the run
+     * @throws DAQCompException if no data is found for the run
      */
     public long[] getRunData(int runNum)
         throws DAQCompException
@@ -345,7 +345,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 15474 2015-03-16 16:22:39Z dglo $";
+        return "$Id: EBComponent.java 15513 2015-04-20 19:02:50Z dglo $";
     }
 
     /**

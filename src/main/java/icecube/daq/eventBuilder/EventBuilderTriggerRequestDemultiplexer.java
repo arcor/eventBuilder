@@ -46,7 +46,7 @@ public class EventBuilderTriggerRequestDemultiplexer
     /**
      * Constructor
      *
-     * @param master master payload factory
+     * @param factory master payload factory
      */
     public EventBuilderTriggerRequestDemultiplexer
         (ReadoutRequestFactory factory)

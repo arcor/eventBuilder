@@ -819,7 +819,7 @@ public class EventBuilderBackEnd
      *    <li>ending time of last event in run
      *    </ol>
      *
-     * @throw EventBuilderException if no data is found for the run
+     * @throws EventBuilderException if no data is found for the run
      */
     public long[] getRunData(int runNum)
         throws EventBuilderException
@@ -1298,7 +1298,7 @@ public class EventBuilderBackEnd
     /**
      * Set the first time when all hubs have sent a hit.
      *
-     * @param firsttTime time of first good hit in run
+     * @param firstTime time of first good hit in run
      */
     public void setFirstGoodTime(long firstTime)
     {

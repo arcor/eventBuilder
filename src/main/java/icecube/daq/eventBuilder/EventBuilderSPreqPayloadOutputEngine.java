@@ -27,7 +27,6 @@ public class EventBuilderSPreqPayloadOutputEngine
     /**
      * Create string processor request output engine.
      *
-     * @param server MBean server
      * @param type engine type
      * @param id engine ID
      * @param fcn engine function

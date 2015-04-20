@@ -138,10 +138,10 @@ public class SPDataAnalysis
      * start from the frayed beginning of a "rope" or cutting the rope when
      * reaching the Stopped state. This is not only invoked as the result of
      * the {@link Splicer#truncate(Spliceable)} method being invoked.
-     * <p/>
+     * <p>
      * This enables the client to be notified as to which Spliceable are never
      * going to be accessed again by the Splicer.
-     * <p/>
+     * <p>
      * When entering the Stopped state the
      * {@link SplicerChangedEvent#getSpliceable()}
      * method will return the {@link Splicer#LAST_POSSIBLE_SPLICEABLE} object.
