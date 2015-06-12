@@ -21,7 +21,12 @@ import icecube.daq.payload.impl.ReadoutRequestFactory;
 import icecube.daq.payload.impl.TriggerRequestFactory;
 import icecube.daq.payload.impl.VitreousBufferCache;
 import icecube.daq.splicer.HKN1Splicer;
+import icecube.daq.splicer.PrioritySplicer;
+import icecube.daq.splicer.Spliceable;
+import icecube.daq.splicer.SpliceableComparator;
+import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.Splicer;
+import icecube.daq.splicer.SplicerException;
 import icecube.daq.util.DOMRegistry;
 import icecube.daq.util.IDOMRegistry;
 
@@ -52,6 +57,9 @@ public class EBComponent
     private static final String COMPONENT_NAME =
         DAQCmdInterface.DAQ_EVENTBUILDER;
 
+    private static final Spliceable LAST_SPLICEABLE =
+        SpliceableFactory.LAST_POSSIBLE_SPLICEABLE;
+
     /** Message logger. */
     private static final Log LOG = LogFactory.getLog(EBComponent.class);
 
@@ -67,7 +75,7 @@ public class EBComponent
 
     private EventBuilderBackEnd backEnd;
     private SPDataAnalysis splicedAnalysis;
-    private Splicer splicer;
+    private Splicer<Spliceable> splicer;
 
     private Dispatcher dispatcher;
 
@@ -76,8 +84,11 @@ public class EBComponent
 
     /**
      * Create an event builder component.
+     *
+     * @throws DAQCompException if component cannot be created
      */
     public EBComponent()
+        throws DAQCompException
     {
         this(false);
     }
@@ -86,8 +97,11 @@ public class EBComponent
      * Create an event builder component.
      *
      * @param validateEvents if <tt>true</tt>, use a validating dispatcher
+     *
+     * @throws DAQCompException if component cannot be created
      */
     public EBComponent(boolean validateEvents)
+        throws DAQCompException
     {
         super(COMPONENT_NAME, 0);
 
@@ -101,7 +115,8 @@ public class EBComponent
         TriggerRequestFactory trigFactory =
             new TriggerRequestFactory(trigBufMgr);
 
-        IByteBufferCache evtDataMgr = new VitreousBufferCache("EBEvent", 400000000);
+        IByteBufferCache evtDataMgr =
+            new VitreousBufferCache("EBEvent", 400000000);
         addCache(DAQConnector.TYPE_EVENT, evtDataMgr);
 
         IByteBufferCache genMgr = new VitreousBufferCache("EBGen", 400000000);
@@ -114,7 +129,26 @@ public class EBComponent
         addMBean("backEnd", monData);
 
         splicedAnalysis = new SPDataAnalysis();
-        splicer = new HKN1Splicer(splicedAnalysis);
+
+        SpliceableComparator splCmp =
+            new SpliceableComparator(LAST_SPLICEABLE);
+        if (System.getProperty("usePrioritySplicer") == null) {
+            splicer = new HKN1Splicer<Spliceable>(splicedAnalysis, splCmp,
+                                                  LAST_SPLICEABLE);
+        } else {
+            final int totChannels = DAQCmdInterface.DAQ_MAX_NUM_STRINGS +
+                DAQCmdInterface.DAQ_MAX_NUM_IDH;
+            try {
+                splicer = new PrioritySplicer<Spliceable>("EBSorter",
+                                                          splicedAnalysis,
+                                                          splCmp,
+                                                          LAST_SPLICEABLE,
+                                                          totChannels);
+            } catch (SplicerException se) {
+                throw new DAQCompException("Cannot create splicer", se);
+            }
+            addMBean("EBSorter", splicer);
+        }
         splicer.addSplicerListener(splicedAnalysis);
         addSplicer(splicer);
 
@@ -345,7 +379,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 15513 2015-04-20 19:02:50Z dglo $";
+        return "$Id: EBComponent.java 15570 2015-06-12 16:19:32Z dglo $";
     }
 
     /**
@@ -507,7 +541,7 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
-        boolean validateEvents =
+        final boolean validateEvents =
             System.getProperty(PROP_VALIDATE_EVENTS) != null;
 
         DAQCompServer srvr;

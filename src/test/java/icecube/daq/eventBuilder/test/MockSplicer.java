@@ -12,7 +12,7 @@ import java.nio.channels.SelectableChannel;
 import java.util.List;
 
 public class MockSplicer
-    implements Splicer
+    implements Splicer<Spliceable>
 {
     public MockSplicer()
     {
@@ -54,17 +54,7 @@ public class MockSplicer
         throw new Error("Unimplemented");
     }
 
-    public int getState()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public String getStateString()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public String getStateString(int i0)
+    public State getState()
     {
         throw new Error("Unimplemented");
     }
@@ -111,11 +101,6 @@ public class MockSplicer
 
     public void stop(Spliceable x0)
         throws OrderingException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void truncate(Spliceable x0)
     {
         throw new Error("Unimplemented");
     }

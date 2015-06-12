@@ -221,9 +221,6 @@ public class EventBuilderBackEnd
     // Factory to make EventPayloads.
     private IEventFactory eventFactory;
 
-    /** list of payloads to be deleted after back end has stopped */
-    private ArrayList finalData;
-
     // per-run monitoring counters
     private int execListLen;
     private long numBadEvents;
@@ -273,8 +270,6 @@ public class EventBuilderBackEnd
         new LinkedList<ILoadablePayload>();
     /** Output thread. */
     private OutputThread outputThread;
-    /** Truncate thread. */
-    private TruncateThread truncThread;
 
     /** DOM registry used to map each hit's DOM ID to the channel ID */
     private IDOMRegistry domRegistry;
@@ -363,30 +358,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Add data received while splicer is stopping.
-     *
-     * @param coll collection of final data payloads
-     */
-    public void addFinalData(Collection coll)
-    {
-        if (finalData == null) {
-            finalData = new ArrayList();
-        } else if (LOG.isWarnEnabled()) {
-            LOG.warn("Found existing list of final data");
-        }
-
-        finalData.addAll(coll);
-    }
-
-    /**
-     * Increment the count of splicer.truncate() calls.
-     */
-    public void addTruncateCall()
-    {
-        // XXX do nothing
-    }
-
-    /**
      * Extract hit records from separate HitRecordPayloads into a single list.
      * @param dataList list of HitRecordPayloads
      * @return unified list
@@ -453,9 +424,7 @@ public class EventBuilderBackEnd
      */
     public void disposeData(ILoadablePayload data)
     {
-        if (truncThread != null) {
-            truncThread.truncate((Spliceable) data);
-        }
+        data.recycle();
     }
 
     /**
@@ -465,13 +434,8 @@ public class EventBuilderBackEnd
      */
     public void disposeDataList(List dataList)
     {
-        if (truncThread != null) {
-            // if we truncate the final data payload,
-            // all the others will also be removed
-            if (dataList.size() > 0) {
-                Object obj = dataList.get(dataList.size() - 1);
-                truncThread.truncate((Spliceable) obj);
-            }
+        for (Object obj : dataList) {
+            disposeData((ILoadablePayload) obj);
         }
     }
 
@@ -1153,41 +1117,12 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Recycle all payloads in the list.
-     *
-     * @param payloadList list of payloads
-     */
-    public void recycleAll(Collection payloadList)
-    {
-        Iterator iter = payloadList.iterator();
-        while (iter.hasNext()) {
-            ILoadablePayload payload = (ILoadablePayload) iter.next();
-            payload.recycle();
-        }
-    }
-
-    /**
-     * Recycle payloads left after the final event.
-     */
-    public void recycleFinalData()
-    {
-        if (finalData != null) {
-            recycleAll(finalData);
-
-            // delete list once everything's been recycled
-            finalData = null;
-        }
-    }
-
-    /**
      * Reset the back end after it has been stopped.
      */
     public void reset()
     {
         if (!isReset) {
             prevRunTotalEvents = getNumOutputsSent();
-
-            recycleFinalData();
 
             execListLen = 0;
             numBadEvents = 0;
@@ -1219,11 +1154,6 @@ public class EventBuilderBackEnd
             }
 
             if (outputThread == null) {
-                if (truncThread == null) {
-                    truncThread = new TruncateThread("EventTruncate");
-                    truncThread.start();
-                }
-
                 outputThread = new OutputThread("EventWriter");
                 outputThread.start();
             }
@@ -1701,11 +1631,6 @@ public class EventBuilderBackEnd
                     sendToDaqDispatch(event);
                 }
             }
-
-            if (truncThread != null) {
-                truncThread.stop();
-                truncThread = null;
-            }
         }
 
         /**
@@ -1793,87 +1718,6 @@ public class EventBuilderBackEnd
         public void start()
         {
             thread.start();
-        }
-    }
-
-    /**
-     * Thread which truncates the splicer's "rope"
-     * (copied from icecube.daq.trigger.control.TriggerCollector)
-     */
-    class TruncateThread
-        implements Runnable
-    {
-        private Thread thread;
-        private Object threadLock = new Object();
-        private Spliceable nextTrunc;
-        private boolean stopping;
-
-        TruncateThread(String name)
-        {
-            thread = new Thread(this);
-            thread.setName(name);
-        }
-
-        public void run()
-        {
-            if (splicer == null) {
-                LOG.error("Splicer has not been set");
-                return;
-            }
-
-            while (!stopping) {
-                Spliceable spl;
-                synchronized (threadLock) {
-                    if (nextTrunc == null) {
-                        try {
-                            threadLock.wait();
-                        } catch (InterruptedException ie) {
-                            // ignore interrupts
-                            continue;
-                        }
-                    }
-
-                    spl = nextTrunc;
-                    nextTrunc = null;
-                }
-
-                // XXX I'm not sure why, but 'spl' will occasionally be
-                // set to null
-                if (spl != null) {
-                    // let the splicer know it's safe to recycle
-                    // everything before the end of this request
-                    try {
-                        splicer.truncate(spl);
-                    } catch (Throwable thr) {
-                        LOG.error("Truncate failed for " + spl, thr);
-                    }
-                }
-            }
-        }
-
-        public void start()
-        {
-            thread.start();
-        }
-
-        public void stop()
-        {
-            synchronized (threadLock) {
-                stopping = true;
-                threadLock.notify();
-            }
-        }
-
-        public void truncate(Spliceable spl)
-        {
-            if (spl == null) {
-                LOG.error("Cannot truncate null spliceable");
-            } else {
-                synchronized (threadLock) {
-                    nextTrunc = spl;
-                    threadLock.notify();
-                }
-            }
         }
     }
 }

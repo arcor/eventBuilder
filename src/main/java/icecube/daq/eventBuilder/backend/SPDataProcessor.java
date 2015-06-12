@@ -26,25 +26,6 @@ public interface SPDataProcessor
     void addExecuteCall();
 
     /**
-     * Add data received while splicer is stopping.
-     *
-     * @param coll collection of final data payloads
-     */
-    void addFinalData(Collection coll);
-
-    /**
-     * Increment the count of splicer.truncate() calls.
-     */
-    void addTruncateCall();
-
-    /**
-     * Recycle all payloads in the list.
-     *
-     * @param payloadList list of payloads
-     */
-    void recycleAll(Collection payloadList);
-
-    /**
      * Record the length of the list passed to splicedAnalysis.execute().
      *
      * @param execListLen list length
