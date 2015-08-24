@@ -271,9 +271,6 @@ public class EventBuilderBackEnd
     /** Output thread. */
     private OutputThread outputThread;
 
-    /** DOM registry used to map each hit's DOM ID to the channel ID */
-    private IDOMRegistry domRegistry;
-
     /** New run number to be used when switching runs mid-stream */
     private int switchNumber;
 
@@ -1097,16 +1094,10 @@ public class EventBuilderBackEnd
             evt = eventFactory.createPayload(uid, ME, startUTC, endUTC, year,
                                              runNumber, subnum, req, dataList);
         } else {
-            if (domRegistry == null) {
-                LOG.error("Cannot create event #" + uid +
-                          ": DOM registry has not been set");
-            }
-
             try {
                 evt = eventFactory.createPayload(uid, startUTC, endUTC,
                                                  year, runNumber, subnum, req,
-                                                 buildHitRecordList(dataList),
-                                                 domRegistry);
+                                                 buildHitRecordList(dataList));
             } catch (PayloadException pe) {
                 LOG.error("Cannot create event #" + uid, pe);
                 evt = null;
@@ -1226,7 +1217,7 @@ public class EventBuilderBackEnd
      */
     public void setDOMRegistry(IDOMRegistry domRegistry)
     {
-        this.domRegistry = domRegistry;
+        eventFactory.setDOMRegistry(domRegistry);
     }
 
     /**
