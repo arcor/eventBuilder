@@ -64,6 +64,16 @@ public class EventBuilderBackEndTest
             throw new Error("Unimplemented");
         }
 
+        public String getName(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public String getProductionId(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
         public int getStringMajor(long mbid)
         {
             throw new Error("Unimplemented");
