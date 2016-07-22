@@ -34,6 +34,11 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
+        public double distanceBetweenDOMs(DeployedDOM dom0, DeployedDOM dom1)
+        {
+            throw new Error("Unimplemented");
+        }
+
         public double distanceBetweenDOMs(long mbid0, long mbid1)
         {
             throw new Error("Unimplemented");
