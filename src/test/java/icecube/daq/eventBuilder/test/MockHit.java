@@ -28,6 +28,11 @@ public class MockHit
         throw new Error("Unimplemented");
     }
 
+    public short getChannelID()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public IDOMID getDOMID()
     {
         throw new Error("Unimplemented");
@@ -79,6 +84,11 @@ public class MockHit
     }
 
     public long getUTCTime()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public boolean hasChannelID()
     {
         throw new Error("Unimplemented");
     }
