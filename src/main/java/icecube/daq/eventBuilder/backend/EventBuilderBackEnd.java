@@ -1212,6 +1212,15 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Set the current year.
+     */
+    public void setCurrentYear()
+    {
+        GregorianCalendar cal = new GregorianCalendar();
+        year = (short) cal.get(GregorianCalendar.YEAR);
+    }
+
+    /**
      * Set the DOM registry used to translate hit DOM IDs to channel IDs
      * @param domRegistry DOM registry
      */
@@ -1277,15 +1286,6 @@ public class EventBuilderBackEnd
     public void setRunNumber(int runNumber)
     {
         this.runNumber = runNumber;
-    }
-
-    /**
-     * Set the current year.
-     */
-    public void setCurrentYear()
-    {
-        GregorianCalendar cal = new GregorianCalendar();
-        year = (short) cal.get(GregorianCalendar.YEAR);
     }
 
     /**
