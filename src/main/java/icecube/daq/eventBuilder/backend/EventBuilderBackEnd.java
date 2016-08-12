@@ -1289,6 +1289,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Should events be validated by PayloadChecker?
+     * NOTE: This should not be enabled on SPS!!!
+     * @param val <tt>true</tt> to enable event validation
+     */
+    public void setValidateEvents(boolean val)
+    {
+        validateEvents = val;
+    }
+
+    /**
      * Inform the dispatcher that a new run is starting.
      */
     public void startDispatcher()

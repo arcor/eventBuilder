@@ -77,10 +77,12 @@ public class EBComponent
     private SPDataAnalysis splicedAnalysis;
     private Splicer<Spliceable> splicer;
 
+    private String dispatcherDir;
     private Dispatcher dispatcher;
 
     private boolean validateEvents;
     private File configDir;
+    private IDOMRegistry domRegistry;
 
     /**
      * Create an event builder component.
@@ -90,21 +92,18 @@ public class EBComponent
     public EBComponent()
         throws DAQCompException
     {
-        this(false);
+        super(COMPONENT_NAME, 0);
+
+        validateEvents =
+            System.getProperty(PROP_VALIDATE_EVENTS) != null;
     }
 
     /**
-     * Create an event builder component.
-     *
-     * @param validateEvents if <tt>true</tt>, use a validating dispatcher
-     *
-     * @throws DAQCompException if component cannot be created
+     * Initialize event builder component
      */
-    public EBComponent(boolean validateEvents)
+    public void initialize()
         throws DAQCompException
     {
-        super(COMPONENT_NAME, 0);
-
         final int compId = 0;
 
         rdoutDataMgr = new VitreousBufferCache("EBRdOut", 2000000000);
@@ -153,10 +152,16 @@ public class EBComponent
         addSplicer(splicer);
 
         dispatcher = new FileDispatcher("physics", evtDataMgr);
+        if (dispatcherDir != null) {
+            dispatcher.setDispatchDestStorage(dispatcherDir);
+        }
 
         backEnd =
             new EventBuilderBackEnd(evtDataMgr, splicer, splicedAnalysis,
                                     dispatcher, validateEvents);
+        if (domRegistry != null) {
+            backEnd.setDOMRegistry(domRegistry);
+        }
 
         ReadoutRequestFactory rdoutReqFactory = new ReadoutRequestFactory(null);
 
@@ -200,8 +205,6 @@ public class EBComponent
 
         monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
-
-        this.validateEvents = validateEvents;
     }
 
     /**
@@ -250,6 +253,10 @@ public class EBComponent
     public void configuring(String configName) throws DAQCompException
     {
         if (validateEvents) {
+            if (configDir == null) {
+                throw new Error("Configuration directory has not been set");
+            }
+
             PayloadChecker.configure(configDir, configName);
         }
     }
@@ -379,7 +386,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 15570 2015-06-12 16:19:32Z dglo $";
+        return "$Id: EBComponent.java 16198 2016-08-12 20:48:03Z dglo $";
     }
 
     /**
@@ -418,7 +425,10 @@ public class EBComponent
      */
     public void setDispatchDestStorage(String dirName)
     {
-        dispatcher.setDispatchDestStorage(dirName);
+        dispatcherDir = dirName;
+        if (dispatcher != null) {
+            dispatcher.setDispatchDestStorage(dirName);
+        }
     }
 
     /**
@@ -464,7 +474,6 @@ public class EBComponent
                             "\" does not exist");
         }
 
-        IDOMRegistry domRegistry;
         try {
             domRegistry = DOMRegistry.loadRegistry(dirName);
         } catch (ParserConfigurationException pce) {
@@ -478,7 +487,7 @@ public class EBComponent
             domRegistry = null;
         }
 
-        if (domRegistry != null) {
+        if (backEnd != null && domRegistry != null) {
             backEnd.setDOMRegistry(domRegistry);
         }
     }
@@ -501,6 +510,19 @@ public class EBComponent
     public void setMaxFileSize(long maxFileSize)
     {
         dispatcher.setMaxFileSize(maxFileSize);
+    }
+
+    /**
+     * Should events be validated by PayloadChecker?
+     * NOTE: This should not be enabled on SPS!!!
+     * @param val <tt>true</tt> to enable event validation
+     */
+    public void setValidateEvents(boolean val)
+    {
+        validateEvents = val;
+        if (backEnd != null) {
+            backEnd.setValidateEvents(val);
+        }
     }
 
     /**
@@ -541,12 +563,9 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
-        final boolean validateEvents =
-            System.getProperty(PROP_VALIDATE_EVENTS) != null;
-
         DAQCompServer srvr;
         try {
-            srvr = new DAQCompServer(new EBComponent(validateEvents), args);
+            srvr = new DAQCompServer(new EBComponent(), args);
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);
