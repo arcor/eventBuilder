@@ -54,6 +54,11 @@ public class EventBuilderBackEndTest
             throw new Error("Unimplemented");
         }
 
+        public DeployedDOM getDom(int major, int minor)
+        {
+            throw new Error("Unimplemented");
+        }
+
         public DeployedDOM getDom(short chanid)
         {
             throw new Error("Unimplemented");
