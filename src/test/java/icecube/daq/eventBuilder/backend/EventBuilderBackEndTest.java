@@ -11,7 +11,7 @@ import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
-import icecube.daq.util.DeployedDOM;
+import icecube.daq.util.DOMInfo;
 import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
-        public double distanceBetweenDOMs(DeployedDOM dom0, DeployedDOM dom1)
+        public double distanceBetweenDOMs(DOMInfo dom0, DOMInfo dom1)
         {
             throw new Error("Unimplemented");
         }
@@ -49,27 +49,27 @@ public class EventBuilderBackEndTest
             throw new Error("Unimplemented");
         }
 
-        public DeployedDOM getDom(long mbId)
+        public DOMInfo getDom(long mbId)
         {
             throw new Error("Unimplemented");
         }
 
-        public DeployedDOM getDom(int major, int minor)
+        public DOMInfo getDom(int major, int minor)
         {
             throw new Error("Unimplemented");
         }
 
-        public DeployedDOM getDom(short chanid)
+        public DOMInfo getDom(short chanid)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<DeployedDOM> getDomsOnHub(int hubId)
+        public Set<DOMInfo> getDomsOnHub(int hubId)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<DeployedDOM> getDomsOnString(int string)
+        public Set<DOMInfo> getDomsOnString(int string)
         {
             throw new Error("Unimplemented");
         }
