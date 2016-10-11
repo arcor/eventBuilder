@@ -27,7 +27,8 @@ import icecube.daq.splicer.SpliceableComparator;
 import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerException;
-import icecube.daq.util.DOMRegistry;
+import icecube.daq.util.DOMRegistryException;
+import icecube.daq.util.DOMRegistryFactory;
 import icecube.daq.util.IDOMRegistry;
 
 import java.io.File;
@@ -386,7 +387,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 16198 2016-08-12 20:48:03Z dglo $";
+        return "$Id: EBComponent.java 16247 2016-10-11 14:26:24Z dglo $";
     }
 
     /**
@@ -475,15 +476,9 @@ public class EBComponent
         }
 
         try {
-            domRegistry = DOMRegistry.loadRegistry(dirName);
-        } catch (ParserConfigurationException pce) {
-            LOG.error("Cannot load DOM registry", pce);
-            domRegistry = null;
-        } catch (SAXException se) {
-            LOG.error("Cannot load DOM registry", se);
-            domRegistry = null;
-        } catch (IOException ioe) {
-            LOG.error("Cannot load DOM registry", ioe);
+            domRegistry = DOMRegistryFactory.load(dirName);
+        } catch (DOMRegistryException dre) {
+            LOG.error("Cannot load DOM registry", dre);
             domRegistry = null;
         }
 

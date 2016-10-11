@@ -34,71 +34,85 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
+        @Override
+        public Iterable<DOMInfo> allDOMs()
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
         public double distanceBetweenDOMs(DOMInfo dom0, DOMInfo dom1)
         {
             throw new Error("Unimplemented");
         }
 
-        public double distanceBetweenDOMs(long mbid0, long mbid1)
+        @Override
+        public double distanceBetweenDOMs(short chan0, short chan1)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public short getChannelId(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public DOMInfo getDom(long mbId)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public DOMInfo getDom(int major, int minor)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public DOMInfo getDom(short chanid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public Set<DOMInfo> getDomsOnHub(int hubId)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public Set<DOMInfo> getDomsOnString(int string)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public String getName(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public String getProductionId(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public int getStringMajor(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public int getStringMinor(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<Long> keys()
-        {
-            throw new Error("Unimplemented");
-        }
-
+        @Override
         public int size()
         {
             throw new Error("Unimplemented");
