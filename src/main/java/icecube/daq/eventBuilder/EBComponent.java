@@ -223,8 +223,7 @@ public class EBComponent
         try {
             dispatcher.close();
         } catch (DispatchException de) {
-            LOG.error("Cannot close dispatcher", de);
-            throw new IOException("Cannot close dispatcher: " + de);
+            throw new IOException("Cannot close dispatcher", de);
         }
 
         super.closeAll();
@@ -387,7 +386,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 16247 2016-10-11 14:26:24Z dglo $";
+        return "$Id: EBComponent.java 16302 2016-11-02 22:14:06Z dglo $";
     }
 
     /**
