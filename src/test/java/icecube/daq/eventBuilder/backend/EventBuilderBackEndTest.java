@@ -1,8 +1,8 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.EventVersion;
+import icecube.daq.common.MockAppender;
 import icecube.daq.eventBuilder.SPDataAnalysis;
-import icecube.daq.eventBuilder.test.MockAppender;
 import icecube.daq.eventBuilder.test.MockBufferCache;
 import icecube.daq.eventBuilder.test.MockDispatcher;
 import icecube.daq.eventBuilder.test.MockHitRecordList;
@@ -155,8 +155,7 @@ public class EventBuilderBackEndTest
     protected void tearDown()
         throws Exception
     {
-        assertEquals("Bad number of log messages",
-                     0, appender.getNumberOfMessages());
+        appender.assertNoLogMessages();
 
         super.tearDown();
     }
@@ -225,15 +224,12 @@ public class EventBuilderBackEndTest
         backEnd.prepareSubrun(badNum);
 
         waitForLogMessages(1);
-        assertEquals("Bad number of log messages",
-                     1, appender.getNumberOfMessages());
 
         final String badMsg =
-            "Preparing for subrun " + -badNum +
-            ", though current subrun is 0. (Expected next subrun to be -1)";
-        assertEquals("Bad log message", badMsg, appender.getMessage(0));
-
-        appender.clear();
+            "Preparing for subrun " + -badNum + ", though current" +
+            " subrun is 0. (Expected next subrun to be -1)";
+        appender.assertLogMessage(badMsg);
+        appender.assertNoLogMessages();
     }
 
     public void testSetSubrunNumber()
@@ -266,13 +262,9 @@ public class EventBuilderBackEndTest
         backEnd.makeDataPayload(null, null);
 
         waitForLogMessages(1);
-        assertEquals("Bad number of log messages",
-                     1, appender.getNumberOfMessages());
-
         final String expMsg = "No current request; cannot send data";
-        assertEquals("Bad log message", expMsg, appender.getMessage(0));
-
-        appender.clear();
+        appender.assertLogMessage(expMsg);
+        appender.assertNoLogMessages();
     }
 
     public void testMakeDataPayloadEmpty()
@@ -308,14 +300,16 @@ public class EventBuilderBackEndTest
 
         if (appender.getNumberOfMessages() > 0) {
 for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i+": "+appender.getMessage(i));
-            assertEquals("Bad number of log messages",
-                         1, appender.getNumberOfMessages());
+            try {
+                assertEquals("Bad number of log messages",
+                             1, appender.getNumberOfMessages());
 
-            final String expMsg = "Sending empty event for window [" +
-                firstTime + " - " + lastTime + "]";
-            assertEquals("Bad log message", expMsg, appender.getMessage(0));
-
-            appender.clear();
+                final String expMsg = "Sending empty event for window [" +
+                    firstTime + " - " + lastTime + "]";
+                assertEquals("Bad log message", expMsg, appender.getMessage(0));
+            } finally {
+                appender.clear();
+            }
         }
     }
 
