@@ -1,7 +1,6 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
-import icecube.daq.eventBuilder.monitoring.GlobalTriggerInputMonitor;
 import icecube.daq.io.PushPayloadReader;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
@@ -16,7 +15,6 @@ import org.apache.commons.logging.LogFactory;
 
 public class GlobalTriggerReader
     extends PushPayloadReader
-    implements GlobalTriggerInputMonitor
 {
     private static final Log LOG =
         LogFactory.getLog(GlobalTriggerReader.class);
@@ -61,11 +59,6 @@ public class GlobalTriggerReader
     public long getReceivedMessages()
     {
         return getDequeuedMessages();
-    }
-
-    public long getTotalGlobalTrigStopsReceived()
-    {
-        return getTotalStopsReceived();
     }
 
     public void pushBuffer(ByteBuffer buf)

@@ -230,7 +230,6 @@ public class EventBuilderBackEnd
     // lifetime monitoring counters
     private long prevRunTotalEvents;
     private long totalEventsSent;
-    private long totStopsSent;
 
     /** Current run number. */
     private int runNumber;
@@ -471,18 +470,6 @@ public class EventBuilderBackEnd
                   "  KnownBeforeLast: " + numKnownBeforeLast +
                   "  DroppedAfterLast: " + numDroppedAfterLast +
                   "  TotalPossible: " + totalPossible);
-
-        totStopsSent++;
-    }
-
-    /**
-     * Get average number of readouts per event.
-     *
-     * @return readouts/event
-     */
-    public long getAverageReadoutsPerEvent()
-    {
-        return getAverageOutputDataPayloads();
     }
 
     /**
@@ -496,8 +483,8 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
+     * Returns the number of units still available in the disk (measured
+     * in MB).  If it fails to check the disk space, then it returns -1.
      *
      * @return the number of units still available in the disk.
      */
@@ -525,16 +512,6 @@ public class EventBuilderBackEnd
     public long[] getEventData()
     {
         return new long[] {getNumOutputsSent(), getLastOutputTime() };
-    }
-
-    /**
-     * Get current rate of events per second.
-     *
-     * @return events/second
-     */
-    public double getEventsPerSecond()
-    {
-        return getOutputsPerSecond();
     }
 
     /**
@@ -574,26 +551,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get number of readouts which could not be loaded.
-     *
-     * @return number of bad readouts received
-     */
-    public long getNumBadReadouts()
-    {
-        return getNumBadDataPayloads();
-    }
-
-    /**
-     * Number of trigger requests which could not be loaded.
-     *
-     * @return number of bad trigger requests
-     */
-    public long getNumBadTriggerRequests()
-    {
-        return getNumBadRequests();
-    }
-
-    /**
      * Returns the number of bytes written to disk by the event builder
      *
      * @return the number of bytes written to disk by the event builder
@@ -611,26 +568,6 @@ public class EventBuilderBackEnd
     public long getNumEventsDispatched()
     {
         return dispatcher.getNumDispatchedEvents();
-    }
-
-    /**
-     * Get number of events which could not be sent.
-     *
-     * @return number of failed events
-     */
-    public long getNumEventsFailed()
-    {
-        return getNumOutputsFailed();
-    }
-
-    /**
-     * Get number of empty events which were ignored.
-     *
-     * @return number of ignored events
-     */
-    public long getNumEventsIgnored()
-    {
-        return getNumOutputsIgnored();
     }
 
     /**
@@ -654,26 +591,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get number of readouts thrown away.
-     *
-     * @return number of readouts thrown away
-     */
-    public long getNumReadoutsDiscarded()
-    {
-        return getNumDataPayloadsDiscarded();
-    }
-
-    /**
-     * Get number of readouts dropped while stopping.
-     *
-     * @return number of readouts dropped
-     */
-    public long getNumReadoutsDropped()
-    {
-        return getNumDataPayloadsDropped();
-    }
-
-    /**
      * Get number of readouts queued for processing.
      *
      * @return number of readouts queued
@@ -694,26 +611,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get number of events which could not be created.
-     *
-     * @return number of null events
-     */
-    public long getNumNullEvents()
-    {
-        return getNumNullOutputs();
-    }
-
-    /**
-     * Get number of null readouts received.
-     *
-     * @return number of null readouts received
-     */
-    public long getNumNullReadouts()
-    {
-        return getNumNullDataPayloads();
-    }
-
-    /**
      * Get number of events queued for output.
      *
      * @return number of events queued
@@ -721,16 +618,6 @@ public class EventBuilderBackEnd
     public int getNumOutputsQueued()
     {
         return outputQueue.size();
-    }
-
-    /**
-     * Number of trigger requests dropped while stopping.
-     *
-     * @return number of trigger requests dropped
-     */
-    public long getNumTriggerRequestsDropped()
-    {
-        return getNumRequestsDropped();
     }
 
     /**
@@ -762,16 +649,6 @@ public class EventBuilderBackEnd
     public long getPreviousRunTotalEvents()
     {
         return prevRunTotalEvents;
-    }
-
-    /**
-     * Get current rate of readouts per second.
-     *
-     * @return readouts/second
-     */
-    public double getReadoutsPerSecond()
-    {
-        return getDataPayloadsPerSecond();
     }
 
     /**
@@ -848,66 +725,6 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get current rate of trigger requests per second.
-     *
-     * @return trigger requests/second
-     */
-    public double getTriggerRequestsPerSecond()
-    {
-        return getRequestsPerSecond();
-    }
-
-    /**
-     * Get total number of readouts which could not be loaded since last reset.
-     *
-     * @return total number of bad readouts since last reset
-     */
-    public long getTotalBadReadouts()
-    {
-        return getTotalBadDataPayloads();
-    }
-
-    /**
-     * Total number of events since last reset which could not be sent.
-     *
-     * @return total number of failed events
-     */
-    public long getTotalEventsFailed()
-    {
-        return getTotalOutputsFailed();
-    }
-
-    /**
-     * Total number of empty events which were ignored since last reset.
-     *
-     * @return total number of ignored events
-     */
-    public long getTotalEventsIgnored()
-    {
-        return getTotalOutputsIgnored();
-    }
-
-    /**
-     * Total number of events sent since last reset.
-     *
-     * @return total number of events sent since last reset.
-     */
-    public long getTotalEventsSent()
-    {
-        return getTotalOutputsSent();
-    }
-
-    /**
-     * Total number of readouts thrown away since last reset.
-     *
-     * @return total number of readouts thrown away since last reset
-     */
-    public long getTotalReadoutsDiscarded()
-    {
-        return getTotalDataPayloadsDiscarded();
-    }
-
-    /**
      * Total number of readouts received since last reset.
      *
      * @return total number of readouts received since last reset
@@ -915,47 +732,6 @@ public class EventBuilderBackEnd
     public long getTotalReadoutsReceived()
     {
         return getTotalDataPayloadsReceived();
-    }
-
-    /**
-     * Total number of stop messages received from the splicer.
-     *
-     * @return total number of received stop messages
-     */
-    public long getTotalSplicerStopsReceived()
-    {
-        return getTotalDataStopsReceived();
-    }
-
-    /**
-     * Get total number of trigger requests received from the global trigger
-     * since the program began executing.
-     *
-     * @return total number of trigger requests received
-     */
-    public long getTotalTriggerRequestsReceived()
-    {
-        return getTotalRequestsReceived();
-    }
-
-    /**
-     * Total number of stop messages received from the global trigger.
-     *
-     * @return total number of received stop messages
-     */
-    public long getTotalTriggerStopsReceived()
-    {
-        return getTotalRequestStopsReceived();
-    }
-
-    /**
-     * Total number of stop messages sent to the string processors
-     *
-     * @return total number of sent stop messages
-     */
-    public long getTotalStopsSent()
-    {
-        return totStopsSent;
     }
 
     /**

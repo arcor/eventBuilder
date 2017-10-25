@@ -204,7 +204,6 @@ public class EBComponent
 
         spReqOutputProcess.registerBufferManager(genMgr);
 
-        monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
     }
 
@@ -386,7 +385,7 @@ public class EBComponent
      */
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 16302 2016-11-02 22:14:06Z dglo $";
+        return "$Id: EBComponent.java 16788 2017-10-25 18:06:22Z dglo $";
     }
 
     /**
