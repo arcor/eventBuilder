@@ -7,6 +7,7 @@ import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
+import icecube.daq.io.StreamMetaData;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventFactory;
 import icecube.daq.payload.IEventHitRecord;
@@ -459,9 +460,10 @@ public class EventBuilderBackEnd
         }
 
         // save run data for later retrieval
+        StreamMetaData meta = getMetaData();
         runData.put(runNumber,
-                    new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
-                                     getLastOutputTime(), firstGoodTime,
+                    new EventRunData(meta.getCount(), getFirstOutputTime(),
+                                     meta.getTicks(), firstGoodTime,
                                      lastGoodTime));
 
         LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
@@ -511,7 +513,8 @@ public class EventBuilderBackEnd
      */
     public long[] getEventData()
     {
-        return new long[] {getNumOutputsSent(), getLastOutputTime() };
+        StreamMetaData metadata = getMetaData();
+        return new long[] { metadata.getCount(), metadata.getTicks() };
     }
 
     /**
