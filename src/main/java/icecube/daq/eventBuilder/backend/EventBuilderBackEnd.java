@@ -948,6 +948,9 @@ public class EventBuilderBackEnd
             lastDispSubrunNumber = 0;
         }
         reset();
+
+        // get the current year during startup
+        setCurrentYear();
     }
 
     /**
