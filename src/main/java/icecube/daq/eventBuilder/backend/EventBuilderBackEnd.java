@@ -913,6 +913,9 @@ public class EventBuilderBackEnd
             numDroppedAfterLast = 0;
             totalPossible = 0;
 
+            // clear the current year so it's set by the first event
+            year = 0;
+
             if (outputQueue.size() > 0) {
                 if (LOG.isErrorEnabled()) {
                     LOG.error("Unwritten events queued at reset");
@@ -948,9 +951,6 @@ public class EventBuilderBackEnd
             lastDispSubrunNumber = 0;
         }
         reset();
-
-        // get the current year during startup
-        setCurrentYear();
     }
 
     /**
