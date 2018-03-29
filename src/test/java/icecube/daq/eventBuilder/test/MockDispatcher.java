@@ -126,6 +126,11 @@ public class MockDispatcher
         return numBad;
     }
 
+    public int getRunNumber()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public long getTotalDispatchedEvents()
     {
         return numSeen;

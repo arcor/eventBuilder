@@ -514,7 +514,9 @@ public class EventBuilderBackEnd
     public long[] getEventData()
     {
         StreamMetaData metadata = getMetaData();
-        return new long[] { metadata.getCount(), metadata.getTicks() };
+        return new long[] {
+            runNumber, metadata.getCount(), metadata.getTicks()
+        };
     }
 
     /**
