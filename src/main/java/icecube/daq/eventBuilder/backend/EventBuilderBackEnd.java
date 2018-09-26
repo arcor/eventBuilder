@@ -586,6 +586,16 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    public int getNumOutputsQueued()
+    {
+        return outputQueue.size();
+    }
+
+    /**
      * Get number of readouts cached for event being built
      *
      * @return number of cached readouts
@@ -613,16 +623,6 @@ public class EventBuilderBackEnd
     public long getNumReadoutsReceived()
     {
         return getNumDataPayloadsReceived();
-    }
-
-    /**
-     * Get number of events queued for output.
-     *
-     * @return number of events queued
-     */
-    public int getNumOutputsQueued()
-    {
-        return outputQueue.size();
     }
 
     /**

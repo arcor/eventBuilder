@@ -33,16 +33,6 @@ public class SPDataAnalysis
     }
 
     /**
-     * Called when the {@link Splicer Splicer} enters the disposed state.
-     *
-     * @param event the event encapsulating this state change.
-     */
-    public void disposed(SplicerChangedEvent<Spliceable> event)
-    {
-        // ignored
-    }
-
-    /**
      * Called by the {@link Splicer Splicer} to analyze the
      * List of Spliceable objects provided.
      *
@@ -58,6 +48,16 @@ public class SPDataAnalysis
         } catch (IOException ioe) {
             LOG.error("Could not add data (len=" + list.size() + ")", ioe);
         }
+    }
+
+    /**
+     * Called when the {@link Splicer Splicer} enters the disposed state.
+     *
+     * @param event the event encapsulating this state change.
+     */
+    public void disposed(SplicerChangedEvent<Spliceable> event)
+    {
+        // ignored
     }
 
     /**
