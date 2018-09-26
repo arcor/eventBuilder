@@ -136,6 +136,7 @@ public class EventBuilderBackEndTest
         super(name);
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -150,6 +151,7 @@ public class EventBuilderBackEndTest
         return new TestSuite(EventBuilderBackEndTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

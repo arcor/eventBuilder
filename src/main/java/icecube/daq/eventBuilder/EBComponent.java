@@ -102,6 +102,7 @@ public class EBComponent
     /**
      * Initialize event builder component
      */
+    @Override
     public void initialize()
         throws DAQCompException
     {
@@ -212,6 +213,7 @@ public class EBComponent
      *
      * @throws IOException if there is a problem
      */
+    @Override
     public void closeAll()
         throws IOException
     {
@@ -234,6 +236,7 @@ public class EBComponent
      * @param subrunNumber subrun number
      * @param startTime time of first good hit in subrun
      */
+    @Override
     public void commitSubrun(int subrunNumber, long startTime)
     {
         if (subrunNumber == 0) {
@@ -249,6 +252,7 @@ public class EBComponent
         backEnd.commitSubrun(subrunNumber, startTime);
     }
 
+    @Override
     public void configuring(String configName) throws DAQCompException
     {
         if (validateEvents) {
@@ -295,6 +299,7 @@ public class EBComponent
      *
      * @throws DAQCompException if the subrun number is not valid
      */
+    @Override
     public long getEvents(int subrun)
         throws DAQCompException
     {
@@ -341,6 +346,7 @@ public class EBComponent
      *
      * @throws DAQCompException if no data is found for the run
      */
+    @Override
     public long[] getRunData(int runNum)
         throws DAQCompException
     {
@@ -358,6 +364,7 @@ public class EBComponent
      *
      * @return current run number
      */
+    @Override
     public int getRunNumber()
     {
         return backEnd.getRunNumber();
@@ -383,9 +390,10 @@ public class EBComponent
      *
      * @return svn version id as a String
      */
+    @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 16788 2017-10-25 18:06:22Z dglo $";
+        return "$Id: EBComponent.java 17114 2018-09-26 09:51:56Z dglo $";
     }
 
     /**
@@ -401,6 +409,7 @@ public class EBComponent
      *
      * @param subrunNumber subrun number
      */
+    @Override
     public void prepareSubrun(int subrunNumber)
     {
         if (subrunNumber == 0) {
@@ -422,6 +431,7 @@ public class EBComponent
      * @param dirName The absolute path of directory where the dispatch files
      *                will be stored.
      */
+    @Override
     public void setDispatchDestStorage(String dirName)
     {
         dispatcherDir = dirName;
@@ -454,6 +464,7 @@ public class EBComponent
      *
      * @param firstTime time of first good hit in run
      */
+    @Override
     public void setFirstGoodTime(long firstTime)
     {
         backEnd.setFirstGoodTime(firstTime);
@@ -464,6 +475,7 @@ public class EBComponent
      *
      * @param dirName The absolute path of the global configuration directory
      */
+    @Override
     public void setGlobalConfigurationDir(String dirName)
     {
         configDir = new File(dirName);
@@ -490,6 +502,7 @@ public class EBComponent
      *
      * @param lastTime time of last good hit in run
      */
+    @Override
     public void setLastGoodTime(long lastTime)
     {
         backEnd.setLastGoodTime(lastTime);
@@ -500,6 +513,7 @@ public class EBComponent
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
+    @Override
     public void setMaxFileSize(long maxFileSize)
     {
         dispatcher.setMaxFileSize(maxFileSize);
@@ -523,6 +537,7 @@ public class EBComponent
      *
      * @param runNumber run number
      */
+    @Override
     public void starting(int runNumber)
     {
         backEnd.reset();
@@ -536,6 +551,7 @@ public class EBComponent
      *
      * @throws DAQCompException if there is a problem switching the component
      */
+    @Override
     public void switching(int runNumber)
         throws DAQCompException
     {

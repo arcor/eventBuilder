@@ -61,6 +61,7 @@ public class GlobalTriggerReader
         return getDequeuedMessages();
     }
 
+    @Override
     public void pushBuffer(ByteBuffer buf)
         throws IOException
     {
@@ -92,6 +93,7 @@ public class GlobalTriggerReader
         this.demuxer = demuxer;
     }
 
+    @Override
     public void sendStop()
     {
         try {
@@ -103,6 +105,7 @@ public class GlobalTriggerReader
         demuxer.sendStopMessage();
     }
 
+    @Override
     public void startProcessing()
     {
         super.startProcessing();

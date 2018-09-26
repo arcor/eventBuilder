@@ -78,6 +78,7 @@ public class EventBuilderBackEnd
          *
          * @return the usual comparison results
          */
+        @Override
         public int compareTo(Object obj)
         {
             if (obj == null) {
@@ -114,6 +115,7 @@ public class EventBuilderBackEnd
          *
          * @return <tt>true</tt> if the compared object is equal to this object
          */
+        @Override
         public boolean equals(Object obj)
         {
             return compareTo(obj) == 0;
@@ -134,6 +136,7 @@ public class EventBuilderBackEnd
          *
          * @return subrun number
          */
+        @Override
         public int hashCode()
         {
             return num;
@@ -196,6 +199,7 @@ public class EventBuilderBackEnd
          *
          * @return string
          */
+        @Override
         public String toString()
         {
             return "EventRunData[evts " + numEvents + ", first " +
@@ -349,6 +353,7 @@ public class EventBuilderBackEnd
     /**
      * Increment the count of splicer.execute() calls.
      */
+    @Override
     public void addExecuteCall()
     {
         // XXX do nothing
@@ -382,6 +387,7 @@ public class EventBuilderBackEnd
      *         <tt>0</tt> if data is "within" request
      *         <tt>1</tt> if data is "later than" request
      */
+    @Override
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
@@ -419,6 +425,7 @@ public class EventBuilderBackEnd
      *
      * @param data payload
      */
+    @Override
     public void disposeData(ILoadablePayload data)
     {
         data.recycle();
@@ -429,6 +436,7 @@ public class EventBuilderBackEnd
      *
      * @param dataList list of data payload
      */
+    @Override
     public void disposeDataList(List dataList)
     {
         for (Object obj : dataList) {
@@ -439,6 +447,7 @@ public class EventBuilderBackEnd
     /**
      * Finish any tasks to be done just before the thread exits.
      */
+    @Override
     public void finishThreadCleanup()
     {
         if (runNumber < 0) {
@@ -479,6 +488,7 @@ public class EventBuilderBackEnd
      *
      * @return most recent splicer.execute() list length
      */
+    @Override
     public long getCurrentExecuteListLength()
     {
         return execListLen;
@@ -490,6 +500,7 @@ public class EventBuilderBackEnd
      *
      * @return the number of units still available in the disk.
      */
+    @Override
     public long getDiskAvailable()
     {
         return dispatcher.getDiskAvailable();
@@ -501,6 +512,7 @@ public class EventBuilderBackEnd
      *
      * @return the total number of units in the disk.
      */
+    @Override
     public long getDiskSize()
     {
         return dispatcher.getDiskSize();
@@ -511,6 +523,7 @@ public class EventBuilderBackEnd
      *
      * @return event data
      */
+    @Override
     public long[] getEventData()
     {
         StreamMetaData metadata = getMetaData();
@@ -524,6 +537,7 @@ public class EventBuilderBackEnd
      *
      * @return first event time
      */
+    @Override
     public long getFirstEventTime()
     {
         return getFirstOutputTime();
@@ -550,6 +564,7 @@ public class EventBuilderBackEnd
      *
      * @return number of bad events
      */
+    @Override
     public long getNumBadEvents()
     {
         return numBadEvents;
@@ -560,6 +575,7 @@ public class EventBuilderBackEnd
      *
      * @return the number of bytes written to disk by the event builder
      */
+    @Override
     public long getNumBytesWritten()
     {
         return dispatcher.getNumBytesWritten();
@@ -570,6 +586,7 @@ public class EventBuilderBackEnd
      *
      * @return number of events written to file
      */
+    @Override
     public long getNumEventsDispatched()
     {
         return dispatcher.getNumDispatchedEvents();
@@ -580,6 +597,7 @@ public class EventBuilderBackEnd
      *
      * @return number of events sent
      */
+    @Override
     public long getNumEventsSent()
     {
         return getNumOutputsSent();
@@ -590,6 +608,7 @@ public class EventBuilderBackEnd
      *
      * @return number of events queued
      */
+    @Override
     public int getNumOutputsQueued()
     {
         return outputQueue.size();
@@ -600,6 +619,7 @@ public class EventBuilderBackEnd
      *
      * @return number of cached readouts
      */
+    @Override
     public int getNumReadoutsCached()
     {
         return getNumDataPayloadsCached();
@@ -610,6 +630,7 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts queued
      */
+    @Override
     public int getNumReadoutsQueued()
     {
         return getNumDataPayloadsQueued();
@@ -620,6 +641,7 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts received
      */
+    @Override
     public long getNumReadoutsReceived()
     {
         return getNumDataPayloadsReceived();
@@ -630,6 +652,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
+    @Override
     public int getNumTriggerRequestsQueued()
     {
         return getNumRequestsQueued();
@@ -641,6 +664,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
+    @Override
     public long getNumTriggerRequestsReceived()
     {
         return getNumRequestsReceived();
@@ -651,6 +675,7 @@ public class EventBuilderBackEnd
      *
      * @return total number of events sent during the previous run
      */
+    @Override
     public long getPreviousRunTotalEvents()
     {
         return prevRunTotalEvents;
@@ -694,6 +719,7 @@ public class EventBuilderBackEnd
      *
      * @return current subrun number
      */
+    @Override
     public int getSubrunNumber()
     {
         return subrunNumber;
@@ -734,6 +760,7 @@ public class EventBuilderBackEnd
      *
      * @return total number of readouts received since last reset
      */
+    @Override
     public long getTotalReadoutsReceived()
     {
         return getTotalDataPayloadsReceived();
@@ -748,6 +775,7 @@ public class EventBuilderBackEnd
      * @return <tt>true</tt> if the data payload is part of the
      *         current request
      */
+    @Override
     public boolean isRequested(IPayload reqPayload, IPayload dataPayload)
     {
         return true;
@@ -762,6 +790,7 @@ public class EventBuilderBackEnd
      *
      * @return The EventPayload created for the current TriggerRequest.
      */
+    @Override
     public ILoadablePayload makeDataPayload(IPayload reqPayload,
                                             List dataList)
     {
@@ -891,6 +920,7 @@ public class EventBuilderBackEnd
     /**
      * Reset the back end after it has been stopped.
      */
+    @Override
     public void reset()
     {
         if (!isReset) {
@@ -962,6 +992,7 @@ public class EventBuilderBackEnd
      *
      * @return <tt>true</tt> if event was sent
      */
+    @Override
     public boolean sendOutput(ILoadablePayload output)
     {
         if (outputThread == null) {
@@ -1018,6 +1049,7 @@ public class EventBuilderBackEnd
      *
      * @param execListLen list length
      */
+    @Override
     public void setExecuteListLength(int execListLen)
     {
         this.execListLen = execListLen;
@@ -1057,6 +1089,7 @@ public class EventBuilderBackEnd
      *
      * @param payload request payload
      */
+    @Override
     public void setRequestTimes(IPayload payload)
     {
         // do nothing (required by RequestFiller)
@@ -1085,6 +1118,7 @@ public class EventBuilderBackEnd
     /**
      * Inform the dispatcher that a new run is starting.
      */
+    @Override
     public void startDispatcher()
     {
         if (runNumber < 0) {
@@ -1279,6 +1313,7 @@ public class EventBuilderBackEnd
     /**
      * Inform back-end processor that the splicer has stopped.
      */
+    @Override
     public void splicerStopped()
     {
         if (isRunning()) {
@@ -1296,6 +1331,7 @@ public class EventBuilderBackEnd
     /**
      * If the thread is running, stop it.
      */
+    @Override
     public void stopThread()
         throws IOException
     {
@@ -1391,6 +1427,7 @@ public class EventBuilderBackEnd
         /**
          * Main event dispatching loop.
          */
+        @Override
         public void run()
         {
             ILoadablePayload event;

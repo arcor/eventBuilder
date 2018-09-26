@@ -38,6 +38,7 @@ public class SPDataAnalysis
      *
      * @param list a List of Spliceable objects.
      */
+    @Override
     public void analyze(List list)
     {
         dataProc.addExecuteCall();
@@ -55,6 +56,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void disposed(SplicerChangedEvent<Spliceable> event)
     {
         // ignored
@@ -65,6 +67,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void failed(SplicerChangedEvent<Spliceable> event)
     {
         // ignored
@@ -85,6 +88,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void started(SplicerChangedEvent<Spliceable> event)
     {
         LOG.info("Splicer entered STARTED state");
@@ -95,6 +99,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void starting(SplicerChangedEvent<Spliceable> event)
     {
         dataProc.startDispatcher();
@@ -105,6 +110,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void stopped(SplicerChangedEvent<Spliceable> event)
     {
         dataProc.splicerStopped();
@@ -116,6 +122,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void stopping(SplicerChangedEvent<Spliceable> event)
     {
         LOG.info("Splicer entered STOPPING state");

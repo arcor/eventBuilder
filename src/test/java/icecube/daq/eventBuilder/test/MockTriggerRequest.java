@@ -56,6 +56,7 @@ public class MockTriggerRequest
         return (int) (a.longValue() - b.longValue());
     }
 
+    @Override
     public int compareTo(Object obj)
     {
         if (!(obj instanceof ITriggerRequestPayload)) {
@@ -74,97 +75,116 @@ public class MockTriggerRequest
         return val;
     }
 
+    @Override
     public Object deepCopy()
     {
         return new MockTriggerRequest(uid, type, cfgId, startTime.longValue(),
                                       endTime.longValue());
     }
 
+    @Override
     public void dispose()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public boolean equals(Object obj)
     {
         return compareTo(obj) == 0;
     }
 
+    @Override
     public IUTCTime getFirstTimeUTC()
     {
         return startTime;
     }
 
+    @Override
     public List getHitList()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getLastTimeUTC()
     {
         return endTime;
     }
 
+    @Override
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadInterfaceType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public List getPayloads()
     {
         return new ArrayList();
     }
 
+    @Override
     public IReadoutRequest getReadoutRequest()
     {
         return rdoutReq;
     }
 
+    @Override
     public ISourceID getSourceID()
     {
         return new MockSourceID(srcId);
     }
 
+    @Override
     public int getTriggerConfigID()
     {
         return cfgId;
     }
 
+    @Override
     public String getTriggerName()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getTriggerType()
     {
         return type;
     }
 
+    @Override
     public int getUID()
     {
         return uid;
     }
 
+    @Override
     public long getUTCTime()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int hashCode()
     {
         return uid + type +
@@ -172,21 +192,25 @@ public class MockTriggerRequest
             (int) (endTime.longValue() % (long) Integer.MAX_VALUE);
     }
 
+    @Override
     public boolean isMerged()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int length()
     {
         return LENGTH;
     }
 
+    @Override
     public void loadPayload()
     {
         // unneeded
     }
 
+    @Override
     public void recycle()
     {
         if (recycled) {
@@ -196,6 +220,7 @@ public class MockTriggerRequest
         recycled = true;
     }
 
+    @Override
     public void setCache(IByteBufferCache cache)
     {
         throw new Error("Unimplemented");
@@ -206,11 +231,13 @@ public class MockTriggerRequest
      *
      * @param uid new UID
      */
+    @Override
     public void setUID(int uid)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {
