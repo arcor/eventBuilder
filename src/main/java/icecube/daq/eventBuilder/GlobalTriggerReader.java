@@ -1,7 +1,7 @@
 package icecube.daq.eventBuilder;
 
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
-import icecube.daq.io.PushPayloadReader;
+import icecube.daq.io.PushStreamReader;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.ITriggerRequestPayload;
@@ -14,7 +14,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class GlobalTriggerReader
-    extends PushPayloadReader
+    extends PushStreamReader
 {
     private static final Log LOG =
         LogFactory.getLog(GlobalTriggerReader.class);

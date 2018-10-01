@@ -7,7 +7,7 @@ import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
-import icecube.daq.io.SpliceablePayloadReader;
+import icecube.daq.io.SpliceableStreamReader;
 import icecube.daq.juggler.component.DAQCompException;
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQComponent;
@@ -68,7 +68,7 @@ public class EBComponent
     private GlobalTriggerReader gtInputProcess;
 
     private IByteBufferCache rdoutDataMgr;
-    private SpliceablePayloadReader rdoutDataInputProcess;
+    private SpliceableStreamReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
 
@@ -190,7 +190,7 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new SpliceablePayloadReader(COMPONENT_NAME + "*RdoutData",
+                new SpliceableStreamReader(COMPONENT_NAME + "*RdoutData",
                                             50000, splicer, hitRecFactory);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
@@ -274,7 +274,7 @@ public class EBComponent
         return rdoutDataMgr;
     }
 
-    public SpliceablePayloadReader getDataReader()
+    public SpliceableStreamReader getDataReader()
     {
         return rdoutDataInputProcess;
     }
@@ -393,7 +393,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17114 2018-09-26 09:51:56Z dglo $";
+        return "$Id: EBComponent.java 17123 2018-10-01 22:09:41Z dglo $";
     }
 
     /**
