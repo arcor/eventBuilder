@@ -33,11 +33,16 @@ import icecube.daq.util.IDOMRegistry;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 
 import org.xml.sax.SAXException;
 
@@ -393,7 +398,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17123 2018-10-01 22:09:41Z dglo $";
+        return "$Id: EBComponent.java 17124 2018-10-04 15:56:01Z dglo $";
     }
 
     /**
@@ -572,6 +577,12 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
+        ConsoleAppender appender = new ConsoleAppender();
+        appender.setWriter(new PrintWriter(System.out));
+        appender.setLayout(new PatternLayout("%p[%t] %L - %m%n"));
+        appender.setName("console");
+        Logger.getRootLogger().addAppender(appender);
+        Logger.getRootLogger().setLevel(Level.INFO);
         DAQCompServer srvr;
         try {
             srvr = new DAQCompServer(new EBComponent(), args);
