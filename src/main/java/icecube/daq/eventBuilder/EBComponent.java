@@ -12,6 +12,7 @@ import icecube.daq.juggler.component.DAQCompException;
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
+import icecube.daq.juggler.component.DAQState;
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 import icecube.daq.payload.IByteBufferCache;
@@ -355,8 +356,10 @@ public class EBComponent
     public long[] getRunData(int runNum)
         throws DAQCompException
     {
+        final boolean forcedSave = getState() == DAQState.FORCING_STOP;
+
         try {
-            return backEnd.getRunData(runNum);
+            return backEnd.getRunData(runNum, forcedSave);
         } catch (EventBuilderException ebe) {
             throw new DAQCompException("No final counts found for run " +
                                        runNum + "; state is " + getState(),
@@ -398,7 +401,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17124 2018-10-04 15:56:01Z dglo $";
+        return "$Id: EBComponent.java 17126 2018-10-04 17:48:17Z dglo $";
     }
 
     /**

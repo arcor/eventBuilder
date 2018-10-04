@@ -469,11 +469,7 @@ public class EventBuilderBackEnd
         }
 
         // save run data for later retrieval
-        StreamMetaData meta = getMetaData();
-        runData.put(runNumber,
-                    new EventRunData(meta.getCount(), getFirstOutputTime(),
-                                     meta.getTicks(), firstGoodTime,
-                                     lastGoodTime));
+        saveRunData();
 
         LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
                   "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
@@ -685,6 +681,7 @@ public class EventBuilderBackEnd
      * Get the run data for the specified run.
      *
      * @param runNum run number
+     * @param forcedSave if <tt>true</tt>, use current data
      *
      * @return array of <tt>long</tt> values:<ol>
      *    <li>number of events
@@ -694,16 +691,21 @@ public class EventBuilderBackEnd
      *
      * @throws EventBuilderException if no data is found for the run
      */
-    public long[] getRunData(int runNum)
+    public long[] getRunData(int runNum, boolean forcedSave)
         throws EventBuilderException
     {
-        if (!runData.containsKey(runNum)) {
+        EventRunData evtData;
+        if (runData.containsKey(runNum)) {
+            evtData = runData.get(runNum);
+        } else if (forcedSave) {
+            evtData = saveRunData();
+        } else {
             LOG.error("No data found for run " + runNum);
             throw new EventBuilderException("No data found for run " + runNum);
         }
 
-        LOG.error("Run " + runNum + " EB data is " + runData.get(runNum));
-        return runData.get(runNum).toArray();
+        LOG.error("Run " + runNum + " EB data is " + evtData);
+        return evtData.toArray();
     }
 
     /**
@@ -983,6 +985,21 @@ public class EventBuilderBackEnd
             lastDispSubrunNumber = 0;
         }
         reset();
+    }
+
+    /**
+     * Save the important data regarding this run.
+     *
+     * @return saved event count/time data
+     */
+    private EventRunData saveRunData()
+    {
+        StreamMetaData meta = getMetaData();
+        EventRunData evtData =
+            new EventRunData(meta.getCount(), getFirstOutputTime(),
+                             meta.getTicks(), firstGoodTime, lastGoodTime);
+        runData.put(runNumber, evtData);
+        return evtData;
     }
 
     /**
