@@ -197,7 +197,8 @@ public class EBComponent
         try {
             rdoutDataInputProcess =
                 new SpliceableStreamReader(COMPONENT_NAME + "*RdoutData",
-                                            50000, splicer, hitRecFactory);
+                                            50000, splicer, hitRecFactory,
+                                            1000);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
@@ -401,7 +402,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17126 2018-10-04 17:48:17Z dglo $";
+        return "$Id: EBComponent.java 17131 2018-10-05 17:09:07Z dglo $";
     }
 
     /**
