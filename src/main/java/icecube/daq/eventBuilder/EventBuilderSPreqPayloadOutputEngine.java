@@ -24,6 +24,7 @@ public class EventBuilderSPreqPayloadOutputEngine
     extends SimpleDestinationOutputEngine
     implements RequestPayloadOutputEngine
 {
+    private static final int MAX_CHANNEL_DEPTH = 10000;
     /**
      * Create string processor request output engine.
      *
@@ -34,6 +35,6 @@ public class EventBuilderSPreqPayloadOutputEngine
     public EventBuilderSPreqPayloadOutputEngine(String type, int id,
                                                 String fcn)
     {
-        super(type, id, fcn);
+        super(type, id, fcn, MAX_CHANNEL_DEPTH);
     }
 }
