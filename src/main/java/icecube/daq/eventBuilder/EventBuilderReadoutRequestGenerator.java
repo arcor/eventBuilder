@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * User: nehar
@@ -53,8 +52,8 @@ public class EventBuilderReadoutRequestGenerator
         SourceIdRegistry.getISourceIDFromNameAndId
         (DAQCmdInterface.DAQ_EVENTBUILDER, 0);
 
-    private static final Log LOG =
-        LogFactory.getLog(EventBuilderReadoutRequestGenerator.class);
+    private static final Logger LOG =
+        Logger.getLogger(EventBuilderReadoutRequestGenerator.class);
 
     //Factory object used to create readout requests.
     private ReadoutRequestFactory factory;
@@ -106,9 +105,7 @@ public class EventBuilderReadoutRequestGenerator
         try {
             ((ILoadablePayload) req).loadPayload();
         } catch (Exception e) {
-            if (LOG.isWarnEnabled()) {
-                LOG.warn("ReadoutRequestGenerator", e);
-            }
+            LOG.warn("ReadoutRequestGenerator", e);
         }
 
         requests.add(req);
@@ -126,7 +123,7 @@ public class EventBuilderReadoutRequestGenerator
                                        IUTCTime lastTime,
                                        IUTCTime timeStamp)
     {
-        if (requests.size() > 0 && LOG.isErrorEnabled()) {
+        if (requests.size() > 0) {
             // TODO: this doesn't look right
             LOG.error("Throwing away " + requests.size() +
                       " requests when adding global request");
@@ -191,9 +188,7 @@ public class EventBuilderReadoutRequestGenerator
         try {
             ((ILoadablePayload) req).loadPayload();
         } catch (Exception e) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("ReadoutRequestGenerator", e);
-            }
+            LOG.error("ReadoutRequestGenerator", e);
             return;
         }
 
@@ -291,11 +286,8 @@ public class EventBuilderReadoutRequestGenerator
                 //-----------------------------------------------------
             default:
                 // weird DOM type, just ignore and go on
-
-                if (LOG.isWarnEnabled()) {
-                    LOG.warn("Got weird readout request " + elementType +
-                             " in current Trigger");
-                }
+                LOG.warn("Got weird readout request " + elementType +
+                         " in current Trigger");
 
                 break;
             }

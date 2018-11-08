@@ -10,14 +10,13 @@ import icecube.daq.payload.impl.TriggerRequestFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public class GlobalTriggerReader
     extends PushStreamReader
 {
-    private static final Log LOG =
-        LogFactory.getLog(GlobalTriggerReader.class);
+    private static final Logger LOG =
+        Logger.getLogger(GlobalTriggerReader.class);
 
     /** back-end processor which digests trigger requests. */
     private EventBuilderBackEnd backEnd;

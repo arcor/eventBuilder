@@ -38,8 +38,7 @@ import java.io.PrintWriter;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -68,7 +67,7 @@ public class EBComponent
         SpliceableFactory.LAST_POSSIBLE_SPLICEABLE;
 
     /** Message logger. */
-    private static final Log LOG = LogFactory.getLog(EBComponent.class);
+    private static final Logger LOG = Logger.getLogger(EBComponent.class);
 
     private IByteBufferCache trigBufMgr;
     private GlobalTriggerReader gtInputProcess;
@@ -402,7 +401,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17134 2018-10-09 15:10:23Z dglo $";
+        return "$Id: EBComponent.java 17207 2018-11-08 16:08:59Z dglo $";
     }
 
     /**

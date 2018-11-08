@@ -11,8 +11,7 @@ import icecube.daq.splicer.SplicerListener;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Splicer analysis of string processor data.
@@ -20,7 +19,7 @@ import org.apache.commons.logging.LogFactory;
 public class SPDataAnalysis
     implements SplicedAnalysis<Spliceable>, SplicerListener<Spliceable>
 {
-    private static final Log LOG = LogFactory.getLog(SPDataAnalysis.class);
+    private static final Logger LOG = Logger.getLogger(SPDataAnalysis.class);
 
     /** Interface for event builder back end. */
     private SPDataProcessor dataProc;
