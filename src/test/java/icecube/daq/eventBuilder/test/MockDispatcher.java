@@ -2,6 +2,7 @@ package icecube.daq.eventBuilder.test;
 
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
+import icecube.daq.io.StreamMetaData;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IWriteablePayload;
@@ -24,18 +25,21 @@ public class MockDispatcher
     {
     }
 
+    @Override
     public void close()
         throws DispatchException
     {
         // do nothing
     }
 
+    @Override
     public void dataBoundary()
         throws DispatchException
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void dataBoundary(String msg)
         throws DispatchException
     {
@@ -54,12 +58,14 @@ public class MockDispatcher
         }
     }
 
-    public void dispatchEvent(ByteBuffer buf)
+    @Override
+    public void dispatchEvent(ByteBuffer buf, long ticks)
         throws DispatchException
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void dispatchEvent(IWriteablePayload pay)
         throws DispatchException
     {
@@ -80,43 +86,49 @@ public class MockDispatcher
         }
     }
 
-    public void dispatchEvents(ByteBuffer buf, int[] il1)
-        throws DispatchException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void dispatchEvents(ByteBuffer buf, int[] il1, int i2)
-        throws DispatchException
-    {
-        throw new Error("Unimplemented");
-    }
-
+    @Override
     public IByteBufferCache getByteBufferCache()
     {
         throw new Error("Unimplemented");
     }
 
-    public File getDispatchDestStorage()
-    {
-        throw new Error("Unimplemented");
-    }
-
+    @Override
     public long getDiskAvailable()
     {
         return 0;
     }
 
+    @Override
     public long getDiskSize()
     {
         return 0;
     }
 
+    @Override
+    public File getDispatchDestStorage()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    @Override
+    public long getFirstDispatchedTime()
+    {
+        return Long.MIN_VALUE;
+    }
+
+    @Override
+    public StreamMetaData getMetaData()
+    {
+        return new StreamMetaData(0L, 0L);
+    }
+
+    @Override
     public long getNumBytesWritten()
     {
         return 0;
     }
 
+    @Override
     public long getNumDispatchedEvents()
     {
         return numSeen;
@@ -127,16 +139,25 @@ public class MockDispatcher
         return numBad;
     }
 
+    @Override
+    public int getRunNumber()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    @Override
     public long getTotalDispatchedEvents()
     {
         return numSeen;
     }
 
+    @Override
     public boolean isStarted()
     {
         return started;
     }
 
+    @Override
     public void setDispatchDestStorage(String destDir)
     {
         // do nothing
@@ -147,6 +168,7 @@ public class MockDispatcher
         this.dispatchError = dispatchError;
     }
 
+    @Override
     public void setMaxFileSize(long x0)
     {
         throw new Error("Unimplemented");
@@ -157,6 +179,7 @@ public class MockDispatcher
         this.readOnly = readOnly;
     }
 
+    @Override
     public String toString()
     {
         if (numBad == 0) {

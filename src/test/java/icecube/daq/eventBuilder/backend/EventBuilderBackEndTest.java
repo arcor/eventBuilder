@@ -1,8 +1,8 @@
 package icecube.daq.eventBuilder.backend;
 
 import icecube.daq.common.EventVersion;
+import icecube.daq.common.MockAppender;
 import icecube.daq.eventBuilder.SPDataAnalysis;
-import icecube.daq.eventBuilder.test.MockAppender;
 import icecube.daq.eventBuilder.test.MockBufferCache;
 import icecube.daq.eventBuilder.test.MockDispatcher;
 import icecube.daq.eventBuilder.test.MockHitRecordList;
@@ -11,7 +11,7 @@ import icecube.daq.eventBuilder.test.MockSplicer;
 import icecube.daq.eventBuilder.test.MockTriggerRequest;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
-import icecube.daq.util.DeployedDOM;
+import icecube.daq.util.DOMInfo;
 import icecube.daq.util.IDOMRegistry;
 
 import java.io.IOException;
@@ -34,51 +34,85 @@ public class EventBuilderBackEndTest
     class MockDOMRegistry
         implements IDOMRegistry
     {
-        public double distanceBetweenDOMs(long mbid0, long mbid1)
+        @Override
+        public Iterable<DOMInfo> allDOMs()
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
+        public double distanceBetweenDOMs(DOMInfo dom0, DOMInfo dom1)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
+        public double distanceBetweenDOMs(short chan0, short chan1)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
         public short getChannelId(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
-        public DeployedDOM getDom(long mbId)
+        @Override
+        public DOMInfo getDom(long mbId)
         {
             throw new Error("Unimplemented");
         }
 
-        public DeployedDOM getDom(short chanid)
+        @Override
+        public DOMInfo getDom(int major, int minor)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<DeployedDOM> getDomsOnHub(int hubId)
+        @Override
+        public DOMInfo getDom(short chanid)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<DeployedDOM> getDomsOnString(int string)
+        @Override
+        public Set<DOMInfo> getDomsOnHub(int hubId)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
+        public Set<DOMInfo> getDomsOnString(int string)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
+        public String getName(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
+        public String getProductionId(long mbid)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        @Override
         public int getStringMajor(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public int getStringMinor(long mbid)
         {
             throw new Error("Unimplemented");
         }
 
-        public Set<Long> keys()
-        {
-            throw new Error("Unimplemented");
-        }
-
+        @Override
         public int size()
         {
             throw new Error("Unimplemented");
@@ -102,12 +136,11 @@ public class EventBuilderBackEndTest
         super(name);
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
         super.setUp();
-
-        appender.clear();
 
         BasicConfigurator.resetConfiguration();
         BasicConfigurator.configure(appender);
@@ -118,11 +151,11 @@ public class EventBuilderBackEndTest
         return new TestSuite(EventBuilderBackEndTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {
-        assertEquals("Bad number of log messages",
-                     0, appender.getNumberOfMessages());
+        appender.assertNoLogMessages();
 
         super.tearDown();
     }
@@ -191,15 +224,11 @@ public class EventBuilderBackEndTest
         backEnd.prepareSubrun(badNum);
 
         waitForLogMessages(1);
-        assertEquals("Bad number of log messages",
-                     1, appender.getNumberOfMessages());
 
         final String badMsg =
-            "Preparing for subrun " + -badNum +
-            ", though current subrun is 0. (Expected next subrun to be -1)";
-        assertEquals("Bad log message", badMsg, appender.getMessage(0));
-
-        appender.clear();
+            "Preparing for subrun " + -badNum + ", though current" +
+            " subrun is 0. (Expected next subrun to be -1)";
+        appender.assertLogMessage(badMsg);
     }
 
     public void testSetSubrunNumber()
@@ -232,13 +261,9 @@ public class EventBuilderBackEndTest
         backEnd.makeDataPayload(null, null);
 
         waitForLogMessages(1);
-        assertEquals("Bad number of log messages",
-                     1, appender.getNumberOfMessages());
-
         final String expMsg = "No current request; cannot send data";
-        assertEquals("Bad log message", expMsg, appender.getMessage(0));
-
-        appender.clear();
+        appender.assertLogMessage(expMsg);
+        appender.assertNoLogMessages();
     }
 
     public void testMakeDataPayloadEmpty()
@@ -273,15 +298,9 @@ public class EventBuilderBackEndTest
         validateEvent(evt, runNum, 0, uid, firstTime, lastTime, req, hitList);
 
         if (appender.getNumberOfMessages() > 0) {
-for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i+": "+appender.getMessage(i));
-            assertEquals("Bad number of log messages",
-                         1, appender.getNumberOfMessages());
-
-            final String expMsg = "Sending empty event for window [" +
-                firstTime + " - " + lastTime + "]";
-            assertEquals("Bad log message", expMsg, appender.getMessage(0));
-
-            appender.clear();
+            appender.assertLogMessage("Sending empty event for window [" +
+                                      firstTime + " - " + lastTime + "]");
+            appender.assertNoLogMessages();
         }
     }
 
@@ -458,12 +477,8 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         waitForDispatcher(dispatcher);
         waitForLogMessages(1);
 
-        assertNotNull("Null log message ", appender.getMessage(0));
-        final String logMsg = appender.getMessage(0).toString();
-        assertTrue("Bad log message " + logMsg,
-                   logMsg.startsWith("GoodTime Stats"));
-
-        appender.clear();
+        appender.assertLogMessage("GoodTime Stats");
+        appender.assertNoLogMessages();
     }
 
     /**
@@ -585,11 +600,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
         waitForDispatcher(dispatcher);
 
         waitForLogMessages(1);
-        final String expMsg = "Preparing for subrun -2, though current" +
-            " subrun is -1. (Expected next subrun to be 1)";
-        assertEquals("Bad log message", expMsg, appender.getMessage(0));
-
-        appender.clear();
+        appender.assertLogMessage("Preparing for subrun -2, though current" +
+                                  " subrun is -1. (Expected next subrun" +
+                                  " to be 1)");
     }
 
     public void testReadOnlyFilesystem()
@@ -718,15 +731,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         final String badMsg = "Stack Trace";
         for (int i = 0; i < 4; i++) {
-            assertEquals("Bad log message", badMsg, appender.getMessage(i));
+            appender.assertLogMessage(badMsg);
         }
-
-        assertNotNull("Null log message ", appender.getMessage(4));
-        final String logMsg = appender.getMessage(4).toString();
-        assertTrue("Bad log message " + logMsg,
-                   logMsg.startsWith("GoodTime Stats"));
-
-        appender.clear();
+        appender.assertLogMessage("GoodTime Stats");
     }
 
     public void testMakeDataPayloadSwitchRun()
@@ -914,15 +921,9 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         final String badMsg = "Could not dispatch event";
         for (int i = 0; i < 4; i++) {
-            assertEquals("Bad log message", badMsg, appender.getMessage(i));
+            appender.assertLogMessage(badMsg);
         }
-
-        assertNotNull("Null log message ", appender.getMessage(4));
-        final String logMsg = appender.getMessage(4).toString();
-        assertTrue("Bad log message " + logMsg,
-                   logMsg.startsWith("GoodTime Stats"));
-
-        appender.clear();
+        appender.assertLogMessage("GoodTime Stats");
     }
 
     private static void waitForDispatcher(MockDispatcher dispatcher)
@@ -951,7 +952,7 @@ for (int i=0;i<appender.getNumberOfMessages();i++)System.err.println("LogMsg#"+i
 
         if (appender.getNumberOfMessages() > numMsgs){
             for (int i = 0; i < appender.getNumberOfMessages(); i++) {
-                System.out.println("MSG#" + i + ": " + appender.getMessage(i));
+                System.err.println("MSG#" + i + ": " + appender.getMessage(i));
             }
         }
         assertEquals("Bad number of log messages",

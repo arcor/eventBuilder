@@ -18,91 +18,121 @@ public class MockHit
     {
     }
 
+    @Override
     public Object deepCopy()
     {
         return new MockHit();
     }
 
+    @Override
     public void dispose()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
+    public short getChannelID()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    @Override
     public IDOMID getDOMID()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getHitTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public double getIntegratedCharge()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadInterfaceType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public ISourceID getSourceID()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getTriggerConfigID()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getTriggerType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public long getUTCTime()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
+    public boolean hasChannelID()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    @Override
     public int length()
     {
         return LENGTH;
     }
 
+    @Override
     public void loadPayload()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void recycle()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void setCache(IByteBufferCache cache)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {

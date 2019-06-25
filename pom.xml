@@ -78,7 +78,7 @@
 
     <dependency>
       <groupId>edu.wisc.icecube</groupId>
-      <artifactId>trigger-common</artifactId>
+      <artifactId>trigger</artifactId>
     </dependency>
   </dependencies>
 

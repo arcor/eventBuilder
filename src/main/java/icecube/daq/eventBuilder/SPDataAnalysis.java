@@ -33,21 +33,12 @@ public class SPDataAnalysis
     }
 
     /**
-     * Called when the {@link Splicer Splicer} enters the disposed state.
-     *
-     * @param event the event encapsulating this state change.
-     */
-    public void disposed(SplicerChangedEvent<Spliceable> event)
-    {
-        // ignored
-    }
-
-    /**
      * Called by the {@link Splicer Splicer} to analyze the
      * List of Spliceable objects provided.
      *
      * @param list a List of Spliceable objects.
      */
+    @Override
     public void analyze(List list)
     {
         dataProc.addExecuteCall();
@@ -61,10 +52,22 @@ public class SPDataAnalysis
     }
 
     /**
+     * Called when the {@link Splicer Splicer} enters the disposed state.
+     *
+     * @param event the event encapsulating this state change.
+     */
+    @Override
+    public void disposed(SplicerChangedEvent<Spliceable> event)
+    {
+        // ignored
+    }
+
+    /**
      * Called when the {@link Splicer Splicer} enters the failed state.
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void failed(SplicerChangedEvent<Spliceable> event)
     {
         // ignored
@@ -85,6 +88,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void started(SplicerChangedEvent<Spliceable> event)
     {
         LOG.info("Splicer entered STARTED state");
@@ -95,6 +99,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void starting(SplicerChangedEvent<Spliceable> event)
     {
         dataProc.startDispatcher();
@@ -105,6 +110,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void stopped(SplicerChangedEvent<Spliceable> event)
     {
         dataProc.splicerStopped();
@@ -116,6 +122,7 @@ public class SPDataAnalysis
      *
      * @param event the event encapsulating this state change.
      */
+    @Override
     public void stopping(SplicerChangedEvent<Spliceable> event)
     {
         LOG.info("Splicer entered STOPPING state");

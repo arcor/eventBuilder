@@ -28,26 +28,31 @@ class MockHitRecord
         this.hitTime = hitTime;
     }
 
+    @Override
     public short getChannelID()
     {
         return chanId;
     }
 
+    @Override
     public long getHitTime()
     {
         return hitTime;
     }
 
+    @Override
     public int length()
     {
         return 10;
     }
 
+    @Override
     public boolean matches(IDOMRegistry domRegistry, IHitPayload pay)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int writeRecord(ByteBuffer buf, int offset, long baseTime)
         throws PayloadException
     {
@@ -73,6 +78,7 @@ public class MockHitRecordList
         recList.add(new MockHitRecord(chanId, hitTime));
     }
 
+    @Override
     public Object deepCopy()
     {
         MockHitRecordList hrl = new MockHitRecordList(uid);
@@ -83,36 +89,43 @@ public class MockHitRecordList
         return hrl;
     }
 
+    @Override
     public void dispose()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadInterfaceType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getUID()
     {
         return uid;
     }
 
+    @Override
     public long getUTCTime()
     {
         throw new Error("Unimplemented");
@@ -123,16 +136,19 @@ public class MockHitRecordList
         return recList.iterator();
     }
 
+    @Override
     public int length()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void loadPayload()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void recycle()
     {
         uid = -1;
@@ -143,17 +159,20 @@ public class MockHitRecordList
         }
     }
 
+    @Override
     public void setCache(IByteBufferCache x0)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {
         throw new IOException("Unimplemented");
     }
 
+    @Override
     public String toString()
     {
         return "MockHitRecordList[uid " + uid + ", " +

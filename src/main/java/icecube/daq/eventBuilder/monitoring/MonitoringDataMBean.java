@@ -6,13 +6,6 @@ package icecube.daq.eventBuilder.monitoring;
 public interface MonitoringDataMBean
 {
     /**
-     * Get average number of readouts per event.
-     *
-     * @return average readouts per event
-     */
-    //long getAverageReadoutsPerEvent();
-
-    /**
      * Get most recent splicer.execute() list length for this run.
      *
      * @return current execute list length
@@ -43,32 +36,11 @@ public interface MonitoringDataMBean
     long[] getEventData();
 
     /**
-     * Get current rate of events per second.
-     *
-     * @return events per second
-     */
-    //double getEventsPerSecond();
-
-    /**
      * Return the first event time.
      *
      * @return first event time
      */
     long getFirstEventTime();
-
-    /**
-     * Get internal state.
-     *
-     * @return internal state
-     */
-    //String getInternalState();
-
-    /**
-     * Get internal timing profile.
-     *
-     * @return internal timing
-     */
-    //String getInternalTiming();
 
     /**
      * Get the amount of time the current event spent in the system.
@@ -85,32 +57,11 @@ public interface MonitoringDataMBean
     long getNumBadEvents();
 
     /**
-     * Get number of readouts which could not be loaded.
-     *
-     * @return num bad readouts
-     */
-    //long getNumBadReadouts();
-
-    /**
-     * Number of trigger requests which could not be loaded.
-     *
-     * @return num bad trigger requests
-     */
-    //long getNumBadTriggerRequests();
-
-    /**
      * Returns the number of bytes written to disk
      *
      * @return the total number of bytes written to disk
      */
     long getNumBytesWritten();
-
-    /**
-     * Get number of passes through the main loop without a trigger request.
-     *
-     * @return num empty loops
-     */
-    //long getNumEmptyLoops();
 
     /**
      * Get the number of events written to disk by the dispatcher.
@@ -120,39 +71,11 @@ public interface MonitoringDataMBean
     long getNumEventsDispatched();
 
     /**
-     * Get the number of events which could not be delivered for this run.
-     *
-     * @return num events failed
-     */
-    //long getNumEventsFailed();
-
-    /**
-     * Get number of empty events which were ignored.
-     *
-     * @return num events ignored
-     */
-    //long getNumEventsIgnored();
-
-    /**
      * Get the number of events delivered to daq-dispatch for this run.
      *
      * @return num events sent
      */
     long getNumEventsSent();
-
-    /**
-     * Get number of events which could not be created since last reset.
-     *
-     * @return num null events
-     */
-    //long getNumNullEvents();
-
-    /**
-     * Get number of null readouts received since last reset.
-     *
-     * @return num null readouts
-     */
-    //long getNumNullReadouts();
 
     /**
      * Get number of events queued for output.
@@ -169,20 +92,6 @@ public interface MonitoringDataMBean
     int getNumReadoutsCached();
 
     /**
-     * Get the number of readouts not included in any event for this run.
-     *
-     * @return num readouts discarded
-     */
-    //long getNumReadoutsDiscarded();
-
-    /**
-     * Get number of readouts dropped while stopping.
-     *
-     * @return num readouts dropped
-     */
-    //long getNumReadoutsDropped();
-
-    /**
      * Get number of readouts queued for processing.
      *
      * @return num readouts queued
@@ -196,13 +105,6 @@ public interface MonitoringDataMBean
      * @return num readouts received
      */
     long getNumReadoutsReceived();
-
-    /**
-     * Number of trigger requests dropped while stopping.
-     *
-     * @return num trigger requests dropped
-     */
-    //long getNumTriggerRequestsDropped();
 
     /**
      * Get number of trigger requests queued for the back end.
@@ -227,107 +129,9 @@ public interface MonitoringDataMBean
     long getPreviousRunTotalEvents();
 
     /**
-     * Get current rate of readouts per second.
-     *
-     * @return readouts per second
-     */
-    //double getReadoutsPerSecond();
-
-    /**
      * Get the current subrun number.
      *
      * @return current subrun number
      */
     int getSubrunNumber();
-
-    /**
-     * Get total number of readouts which could not be loaded since last reset.
-     *
-     * @return total bad readouts
-     */
-    //long getTotalBadReadouts();
-
-    /**
-     * Get the total number of events which could not be delivered since the
-     * program began executing.
-     *
-     * @return total events failed
-     */
-    //long getTotalEventsFailed();
-
-    /**
-     * Total number of empty events which were ignored since last reset.
-     *
-     * @return total events ignored
-     */
-    //long getTotalEventsIgnored();
-
-    /**
-     * Get the total number of events delivered to daq-dispatch since the
-     * program began executing.
-     *
-     * @return total events sent
-     */
-    //long getTotalEventsSent();
-
-    /**
-     * Get total number of stop messages received from the global trigger.
-     *
-     * @return total global trig stops received
-     */
-    //long getTotalGlobalTrigStopsReceived();
-
-    /**
-     * Get the total number of readouts not included in any event since the
-     * program began executing.
-     *
-     * @return total readouts discarded
-     */
-    //long getTotalReadoutsDiscarded();
-
-    /**
-     * Get the total number of readouts received from the string processors
-     * since the program began executing.
-     *
-     * @return total readouts received
-     */
-    //long getTotalReadoutsReceived();
-
-    /**
-     * Get total number of stop messages received from the splicer.
-     *
-     * @return total splicer stops received
-     */
-    //long getTotalSplicerStopsReceived();
-
-    /**
-     * Get total number of stop messages sent to the string processor cache
-     * output engine.
-     *
-     * @return total stops sent
-     */
-    //long getTotalStopsSent();
-
-    /**
-     * Get total number of trigger requests received from the global trigger
-     * since the program began executing.
-     *
-     * @return total trigger requests received
-     */
-    //long getTotalTriggerRequestsReceived();
-
-    /**
-     * Get total number of stop messages received from the global trigger input
-     * engine.
-     *
-     * @return total trigger stops received
-     */
-    //long getTotalTriggerStopsReceived();
-
-    /**
-     * Get current rate of trigger requests per second.
-     *
-     * @return trigger requests per second
-     */
-    //double getTriggerRequestsPerSecond();
 }

@@ -7,11 +7,12 @@ import icecube.daq.eventBuilder.monitoring.MonitoringData;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.FileDispatcher;
-import icecube.daq.io.SpliceablePayloadReader;
+import icecube.daq.io.SpliceableStreamReader;
 import icecube.daq.juggler.component.DAQCompException;
 import icecube.daq.juggler.component.DAQCompServer;
 import icecube.daq.juggler.component.DAQComponent;
 import icecube.daq.juggler.component.DAQConnector;
+import icecube.daq.juggler.component.DAQState;
 import icecube.daq.juggler.mbean.MemoryStatistics;
 import icecube.daq.juggler.mbean.SystemStatistics;
 import icecube.daq.payload.IByteBufferCache;
@@ -27,16 +28,22 @@ import icecube.daq.splicer.SpliceableComparator;
 import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.SplicerException;
-import icecube.daq.util.DOMRegistry;
+import icecube.daq.util.DOMRegistryException;
+import icecube.daq.util.DOMRegistryFactory;
 import icecube.daq.util.IDOMRegistry;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 
 import org.xml.sax.SAXException;
 
@@ -67,7 +74,7 @@ public class EBComponent
     private GlobalTriggerReader gtInputProcess;
 
     private IByteBufferCache rdoutDataMgr;
-    private SpliceablePayloadReader rdoutDataInputProcess;
+    private SpliceableStreamReader rdoutDataInputProcess;
 
     private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
 
@@ -77,10 +84,12 @@ public class EBComponent
     private SPDataAnalysis splicedAnalysis;
     private Splicer<Spliceable> splicer;
 
+    private String dispatcherDir;
     private Dispatcher dispatcher;
 
     private boolean validateEvents;
     private File configDir;
+    private IDOMRegistry domRegistry;
 
     /**
      * Create an event builder component.
@@ -90,21 +99,19 @@ public class EBComponent
     public EBComponent()
         throws DAQCompException
     {
-        this(false);
+        super(COMPONENT_NAME, 0);
+
+        validateEvents =
+            System.getProperty(PROP_VALIDATE_EVENTS) != null;
     }
 
     /**
-     * Create an event builder component.
-     *
-     * @param validateEvents if <tt>true</tt>, use a validating dispatcher
-     *
-     * @throws DAQCompException if component cannot be created
+     * Initialize event builder component
      */
-    public EBComponent(boolean validateEvents)
+    @Override
+    public void initialize()
         throws DAQCompException
     {
-        super(COMPONENT_NAME, 0);
-
         final int compId = 0;
 
         rdoutDataMgr = new VitreousBufferCache("EBRdOut", 2000000000);
@@ -153,10 +160,16 @@ public class EBComponent
         addSplicer(splicer);
 
         dispatcher = new FileDispatcher("physics", evtDataMgr);
+        if (dispatcherDir != null) {
+            dispatcher.setDispatchDestStorage(dispatcherDir);
+        }
 
         backEnd =
             new EventBuilderBackEnd(evtDataMgr, splicer, splicedAnalysis,
                                     dispatcher, validateEvents);
+        if (domRegistry != null) {
+            backEnd.setDOMRegistry(domRegistry);
+        }
 
         ReadoutRequestFactory rdoutReqFactory = new ReadoutRequestFactory(null);
 
@@ -183,8 +196,9 @@ public class EBComponent
 
         try {
             rdoutDataInputProcess =
-                new SpliceablePayloadReader(COMPONENT_NAME + "*RdoutData",
-                                            50000, splicer, hitRecFactory);
+                new SpliceableStreamReader(COMPONENT_NAME + "*RdoutData",
+                                            50000, splicer, hitRecFactory,
+                                            1100);
         } catch (IOException ioe) {
             throw new Error("Couldn't create ReadoutDataReader", ioe);
         }
@@ -198,10 +212,7 @@ public class EBComponent
 
         spReqOutputProcess.registerBufferManager(genMgr);
 
-        monData.setGlobalTriggerInputMonitor(gtInputProcess);
         monData.setBackEndMonitor(backEnd);
-
-        this.validateEvents = validateEvents;
     }
 
     /**
@@ -209,6 +220,7 @@ public class EBComponent
      *
      * @throws IOException if there is a problem
      */
+    @Override
     public void closeAll()
         throws IOException
     {
@@ -219,8 +231,7 @@ public class EBComponent
         try {
             dispatcher.close();
         } catch (DispatchException de) {
-            LOG.error("Cannot close dispatcher", de);
-            throw new IOException("Cannot close dispatcher: " + de);
+            throw new IOException("Cannot close dispatcher", de);
         }
 
         super.closeAll();
@@ -232,6 +243,7 @@ public class EBComponent
      * @param subrunNumber subrun number
      * @param startTime time of first good hit in subrun
      */
+    @Override
     public void commitSubrun(int subrunNumber, long startTime)
     {
         if (subrunNumber == 0) {
@@ -247,9 +259,14 @@ public class EBComponent
         backEnd.commitSubrun(subrunNumber, startTime);
     }
 
+    @Override
     public void configuring(String configName) throws DAQCompException
     {
         if (validateEvents) {
+            if (configDir == null) {
+                throw new Error("Configuration directory has not been set");
+            }
+
             PayloadChecker.configure(configDir, configName);
         }
     }
@@ -264,7 +281,7 @@ public class EBComponent
         return rdoutDataMgr;
     }
 
-    public SpliceablePayloadReader getDataReader()
+    public SpliceableStreamReader getDataReader()
     {
         return rdoutDataInputProcess;
     }
@@ -289,6 +306,7 @@ public class EBComponent
      *
      * @throws DAQCompException if the subrun number is not valid
      */
+    @Override
     public long getEvents(int subrun)
         throws DAQCompException
     {
@@ -335,11 +353,14 @@ public class EBComponent
      *
      * @throws DAQCompException if no data is found for the run
      */
+    @Override
     public long[] getRunData(int runNum)
         throws DAQCompException
     {
+        final boolean forcedSave = getState() == DAQState.FORCING_STOP;
+
         try {
-            return backEnd.getRunData(runNum);
+            return backEnd.getRunData(runNum, forcedSave);
         } catch (EventBuilderException ebe) {
             throw new DAQCompException("No final counts found for run " +
                                        runNum + "; state is " + getState(),
@@ -352,6 +373,7 @@ public class EBComponent
      *
      * @return current run number
      */
+    @Override
     public int getRunNumber()
     {
         return backEnd.getRunNumber();
@@ -377,9 +399,10 @@ public class EBComponent
      *
      * @return svn version id as a String
      */
+    @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 15570 2015-06-12 16:19:32Z dglo $";
+        return "$Id: EBComponent.java 17134 2018-10-09 15:10:23Z dglo $";
     }
 
     /**
@@ -395,6 +418,7 @@ public class EBComponent
      *
      * @param subrunNumber subrun number
      */
+    @Override
     public void prepareSubrun(int subrunNumber)
     {
         if (subrunNumber == 0) {
@@ -416,9 +440,13 @@ public class EBComponent
      * @param dirName The absolute path of directory where the dispatch files
      *                will be stored.
      */
+    @Override
     public void setDispatchDestStorage(String dirName)
     {
-        dispatcher.setDispatchDestStorage(dirName);
+        dispatcherDir = dirName;
+        if (dispatcher != null) {
+            dispatcher.setDispatchDestStorage(dirName);
+        }
     }
 
     /**
@@ -445,6 +473,7 @@ public class EBComponent
      *
      * @param firstTime time of first good hit in run
      */
+    @Override
     public void setFirstGoodTime(long firstTime)
     {
         backEnd.setFirstGoodTime(firstTime);
@@ -455,6 +484,7 @@ public class EBComponent
      *
      * @param dirName The absolute path of the global configuration directory
      */
+    @Override
     public void setGlobalConfigurationDir(String dirName)
     {
         configDir = new File(dirName);
@@ -464,21 +494,14 @@ public class EBComponent
                             "\" does not exist");
         }
 
-        IDOMRegistry domRegistry;
         try {
-            domRegistry = DOMRegistry.loadRegistry(dirName);
-        } catch (ParserConfigurationException pce) {
-            LOG.error("Cannot load DOM registry", pce);
-            domRegistry = null;
-        } catch (SAXException se) {
-            LOG.error("Cannot load DOM registry", se);
-            domRegistry = null;
-        } catch (IOException ioe) {
-            LOG.error("Cannot load DOM registry", ioe);
+            domRegistry = DOMRegistryFactory.load(dirName);
+        } catch (DOMRegistryException dre) {
+            LOG.error("Cannot load DOM registry", dre);
             domRegistry = null;
         }
 
-        if (domRegistry != null) {
+        if (backEnd != null && domRegistry != null) {
             backEnd.setDOMRegistry(domRegistry);
         }
     }
@@ -488,6 +511,7 @@ public class EBComponent
      *
      * @param lastTime time of last good hit in run
      */
+    @Override
     public void setLastGoodTime(long lastTime)
     {
         backEnd.setLastGoodTime(lastTime);
@@ -498,9 +522,23 @@ public class EBComponent
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
+    @Override
     public void setMaxFileSize(long maxFileSize)
     {
         dispatcher.setMaxFileSize(maxFileSize);
+    }
+
+    /**
+     * Should events be validated by PayloadChecker?
+     * NOTE: This should not be enabled on SPS!!!
+     * @param val <tt>true</tt> to enable event validation
+     */
+    public void setValidateEvents(boolean val)
+    {
+        validateEvents = val;
+        if (backEnd != null) {
+            backEnd.setValidateEvents(val);
+        }
     }
 
     /**
@@ -508,6 +546,7 @@ public class EBComponent
      *
      * @param runNumber run number
      */
+    @Override
     public void starting(int runNumber)
     {
         backEnd.reset();
@@ -521,6 +560,7 @@ public class EBComponent
      *
      * @throws DAQCompException if there is a problem switching the component
      */
+    @Override
     public void switching(int runNumber)
         throws DAQCompException
     {
@@ -541,12 +581,15 @@ public class EBComponent
     public static void main(String[] args)
         throws DAQCompException
     {
-        final boolean validateEvents =
-            System.getProperty(PROP_VALIDATE_EVENTS) != null;
-
+        ConsoleAppender appender = new ConsoleAppender();
+        appender.setWriter(new PrintWriter(System.out));
+        appender.setLayout(new PatternLayout("%p[%t] %L - %m%n"));
+        appender.setName("console");
+        Logger.getRootLogger().addAppender(appender);
+        Logger.getRootLogger().setLevel(Level.INFO);
         DAQCompServer srvr;
         try {
-            srvr = new DAQCompServer(new EBComponent(validateEvents), args);
+            srvr = new DAQCompServer(new EBComponent(), args);
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);

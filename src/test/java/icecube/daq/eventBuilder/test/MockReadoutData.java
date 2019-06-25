@@ -31,112 +31,134 @@ public class MockReadoutData
         this.endTime = new MockUTCTime(endTime);
     }
 
+    @Override
     public Object deepCopy()
     {
         return new MockReadoutData(uid, srcId.getSourceID(),
                                    startTime.longValue(), endTime.longValue());
     }
 
+    @Override
     public void dispose()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public List getDataPayloads()
     {
         return null;
     }
 
+    @Override
     public IUTCTime getFirstTimeUTC()
     {
         return startTime;
     }
 
+    @Override
     public List getHitList()
     {
         return null;
     }
 
+    @Override
     public IUTCTime getLastTimeUTC()
     {
         return endTime;
     }
 
+    @Override
     public int getNumHits()
     {
         return 0;
     }
 
+    @Override
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadInterfaceType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getPayloadType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public List getPayloads()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getReadoutDataPayloadNumber()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int getRequestUID()
     {
         return uid;
     }
 
+    @Override
     public ISourceID getSourceID()
     {
         return srcId;
     }
 
+    @Override
     public int getTriggerConfigID()
     {
         return -1;
     }
 
+    @Override
     public int getTriggerType()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public long getUTCTime()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public boolean isLastPayloadOfGroup()
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int length()
     {
         return 0;
     }
 
+    @Override
     public void loadPayload()
     {
         // unneeded
     }
 
+    @Override
     public void recycle()
     {
         if (recycled) {
@@ -146,11 +168,13 @@ public class MockReadoutData
         recycled = true;
     }
 
+    @Override
     public void setCache(IByteBufferCache cache)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {

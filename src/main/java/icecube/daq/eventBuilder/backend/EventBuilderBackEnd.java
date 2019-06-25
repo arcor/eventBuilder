@@ -7,6 +7,7 @@ import icecube.daq.eventBuilder.monitoring.BackEndMonitor;
 import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
+import icecube.daq.io.StreamMetaData;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventFactory;
 import icecube.daq.payload.IEventHitRecord;
@@ -77,6 +78,7 @@ public class EventBuilderBackEnd
          *
          * @return the usual comparison results
          */
+        @Override
         public int compareTo(Object obj)
         {
             if (obj == null) {
@@ -113,6 +115,7 @@ public class EventBuilderBackEnd
          *
          * @return <tt>true</tt> if the compared object is equal to this object
          */
+        @Override
         public boolean equals(Object obj)
         {
             return compareTo(obj) == 0;
@@ -133,6 +136,7 @@ public class EventBuilderBackEnd
          *
          * @return subrun number
          */
+        @Override
         public int hashCode()
         {
             return num;
@@ -195,6 +199,7 @@ public class EventBuilderBackEnd
          *
          * @return string
          */
+        @Override
         public String toString()
         {
             return "EventRunData[evts " + numEvents + ", first " +
@@ -230,7 +235,6 @@ public class EventBuilderBackEnd
     // lifetime monitoring counters
     private long prevRunTotalEvents;
     private long totalEventsSent;
-    private long totStopsSent;
 
     /** Current run number. */
     private int runNumber;
@@ -349,6 +353,7 @@ public class EventBuilderBackEnd
     /**
      * Increment the count of splicer.execute() calls.
      */
+    @Override
     public void addExecuteCall()
     {
         // XXX do nothing
@@ -382,6 +387,7 @@ public class EventBuilderBackEnd
      *         <tt>0</tt> if data is "within" request
      *         <tt>1</tt> if data is "later than" request
      */
+    @Override
     public int compareRequestAndData(IPayload reqPayload, IPayload dataPayload)
     {
         ITriggerRequestPayload req = (ITriggerRequestPayload) reqPayload;
@@ -419,6 +425,7 @@ public class EventBuilderBackEnd
      *
      * @param data payload
      */
+    @Override
     public void disposeData(ILoadablePayload data)
     {
         data.recycle();
@@ -429,6 +436,7 @@ public class EventBuilderBackEnd
      *
      * @param dataList list of data payload
      */
+    @Override
     public void disposeDataList(List dataList)
     {
         for (Object obj : dataList) {
@@ -439,6 +447,7 @@ public class EventBuilderBackEnd
     /**
      * Finish any tasks to be done just before the thread exits.
      */
+    @Override
     public void finishThreadCleanup()
     {
         if (runNumber < 0) {
@@ -460,10 +469,7 @@ public class EventBuilderBackEnd
         }
 
         // save run data for later retrieval
-        runData.put(runNumber,
-                    new EventRunData(getNumOutputsSent(), getFirstOutputTime(),
-                                     getLastOutputTime(), firstGoodTime,
-                                     lastGoodTime));
+        saveRunData();
 
         LOG.error("GoodTime Stats: UnknownBefore: " + numUnknownBeforeFirst +
                   "  DroppedBeforeFirst: " + numDroppedBeforeFirst +
@@ -471,18 +477,6 @@ public class EventBuilderBackEnd
                   "  KnownBeforeLast: " + numKnownBeforeLast +
                   "  DroppedAfterLast: " + numDroppedAfterLast +
                   "  TotalPossible: " + totalPossible);
-
-        totStopsSent++;
-    }
-
-    /**
-     * Get average number of readouts per event.
-     *
-     * @return readouts/event
-     */
-    public long getAverageReadoutsPerEvent()
-    {
-        return getAverageOutputDataPayloads();
     }
 
     /**
@@ -490,17 +484,19 @@ public class EventBuilderBackEnd
      *
      * @return most recent splicer.execute() list length
      */
+    @Override
     public long getCurrentExecuteListLength()
     {
         return execListLen;
     }
 
     /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
+     * Returns the number of units still available in the disk (measured
+     * in MB).  If it fails to check the disk space, then it returns -1.
      *
      * @return the number of units still available in the disk.
      */
+    @Override
     public long getDiskAvailable()
     {
         return dispatcher.getDiskAvailable();
@@ -512,6 +508,7 @@ public class EventBuilderBackEnd
      *
      * @return the total number of units in the disk.
      */
+    @Override
     public long getDiskSize()
     {
         return dispatcher.getDiskSize();
@@ -522,19 +519,13 @@ public class EventBuilderBackEnd
      *
      * @return event data
      */
+    @Override
     public long[] getEventData()
     {
-        return new long[] {getNumOutputsSent(), getLastOutputTime() };
-    }
-
-    /**
-     * Get current rate of events per second.
-     *
-     * @return events/second
-     */
-    public double getEventsPerSecond()
-    {
-        return getOutputsPerSecond();
+        StreamMetaData metadata = getMetaData();
+        return new long[] {
+            runNumber, metadata.getCount(), metadata.getTicks()
+        };
     }
 
     /**
@@ -542,6 +533,7 @@ public class EventBuilderBackEnd
      *
      * @return first event time
      */
+    @Override
     public long getFirstEventTime()
     {
         return getFirstOutputTime();
@@ -568,29 +560,10 @@ public class EventBuilderBackEnd
      *
      * @return number of bad events
      */
+    @Override
     public long getNumBadEvents()
     {
         return numBadEvents;
-    }
-
-    /**
-     * Get number of readouts which could not be loaded.
-     *
-     * @return number of bad readouts received
-     */
-    public long getNumBadReadouts()
-    {
-        return getNumBadDataPayloads();
-    }
-
-    /**
-     * Number of trigger requests which could not be loaded.
-     *
-     * @return number of bad trigger requests
-     */
-    public long getNumBadTriggerRequests()
-    {
-        return getNumBadRequests();
     }
 
     /**
@@ -598,6 +571,7 @@ public class EventBuilderBackEnd
      *
      * @return the number of bytes written to disk by the event builder
      */
+    @Override
     public long getNumBytesWritten()
     {
         return dispatcher.getNumBytesWritten();
@@ -608,29 +582,10 @@ public class EventBuilderBackEnd
      *
      * @return number of events written to file
      */
+    @Override
     public long getNumEventsDispatched()
     {
         return dispatcher.getNumDispatchedEvents();
-    }
-
-    /**
-     * Get number of events which could not be sent.
-     *
-     * @return number of failed events
-     */
-    public long getNumEventsFailed()
-    {
-        return getNumOutputsFailed();
-    }
-
-    /**
-     * Get number of empty events which were ignored.
-     *
-     * @return number of ignored events
-     */
-    public long getNumEventsIgnored()
-    {
-        return getNumOutputsIgnored();
     }
 
     /**
@@ -638,9 +593,21 @@ public class EventBuilderBackEnd
      *
      * @return number of events sent
      */
+    @Override
     public long getNumEventsSent()
     {
         return getNumOutputsSent();
+    }
+
+    /**
+     * Get number of events queued for output.
+     *
+     * @return number of events queued
+     */
+    @Override
+    public int getNumOutputsQueued()
+    {
+        return outputQueue.size();
     }
 
     /**
@@ -648,29 +615,10 @@ public class EventBuilderBackEnd
      *
      * @return number of cached readouts
      */
+    @Override
     public int getNumReadoutsCached()
     {
         return getNumDataPayloadsCached();
-    }
-
-    /**
-     * Get number of readouts thrown away.
-     *
-     * @return number of readouts thrown away
-     */
-    public long getNumReadoutsDiscarded()
-    {
-        return getNumDataPayloadsDiscarded();
-    }
-
-    /**
-     * Get number of readouts dropped while stopping.
-     *
-     * @return number of readouts dropped
-     */
-    public long getNumReadoutsDropped()
-    {
-        return getNumDataPayloadsDropped();
     }
 
     /**
@@ -678,6 +626,7 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts queued
      */
+    @Override
     public int getNumReadoutsQueued()
     {
         return getNumDataPayloadsQueued();
@@ -688,49 +637,10 @@ public class EventBuilderBackEnd
      *
      * @return number of readouts received
      */
+    @Override
     public long getNumReadoutsReceived()
     {
         return getNumDataPayloadsReceived();
-    }
-
-    /**
-     * Get number of events which could not be created.
-     *
-     * @return number of null events
-     */
-    public long getNumNullEvents()
-    {
-        return getNumNullOutputs();
-    }
-
-    /**
-     * Get number of null readouts received.
-     *
-     * @return number of null readouts received
-     */
-    public long getNumNullReadouts()
-    {
-        return getNumNullDataPayloads();
-    }
-
-    /**
-     * Get number of events queued for output.
-     *
-     * @return number of events queued
-     */
-    public int getNumOutputsQueued()
-    {
-        return outputQueue.size();
-    }
-
-    /**
-     * Number of trigger requests dropped while stopping.
-     *
-     * @return number of trigger requests dropped
-     */
-    public long getNumTriggerRequestsDropped()
-    {
-        return getNumRequestsDropped();
     }
 
     /**
@@ -738,6 +648,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests queued for the back end
      */
+    @Override
     public int getNumTriggerRequestsQueued()
     {
         return getNumRequestsQueued();
@@ -749,6 +660,7 @@ public class EventBuilderBackEnd
      *
      * @return number of trigger requests received for this run
      */
+    @Override
     public long getNumTriggerRequestsReceived()
     {
         return getNumRequestsReceived();
@@ -759,25 +671,17 @@ public class EventBuilderBackEnd
      *
      * @return total number of events sent during the previous run
      */
+    @Override
     public long getPreviousRunTotalEvents()
     {
         return prevRunTotalEvents;
     }
 
     /**
-     * Get current rate of readouts per second.
-     *
-     * @return readouts/second
-     */
-    public double getReadoutsPerSecond()
-    {
-        return getDataPayloadsPerSecond();
-    }
-
-    /**
      * Get the run data for the specified run.
      *
      * @param runNum run number
+     * @param forcedSave if <tt>true</tt>, use current data
      *
      * @return array of <tt>long</tt> values:<ol>
      *    <li>number of events
@@ -787,16 +691,21 @@ public class EventBuilderBackEnd
      *
      * @throws EventBuilderException if no data is found for the run
      */
-    public long[] getRunData(int runNum)
+    public long[] getRunData(int runNum, boolean forcedSave)
         throws EventBuilderException
     {
-        if (!runData.containsKey(runNum)) {
+        EventRunData evtData;
+        if (runData.containsKey(runNum)) {
+            evtData = runData.get(runNum);
+        } else if (forcedSave) {
+            evtData = saveRunData();
+        } else {
             LOG.error("No data found for run " + runNum);
             throw new EventBuilderException("No data found for run " + runNum);
         }
 
-        LOG.error("Run " + runNum + " EB data is " + runData.get(runNum));
-        return runData.get(runNum).toArray();
+        LOG.error("Run " + runNum + " EB data is " + evtData);
+        return evtData.toArray();
     }
 
     /**
@@ -812,6 +721,7 @@ public class EventBuilderBackEnd
      *
      * @return current subrun number
      */
+    @Override
     public int getSubrunNumber()
     {
         return subrunNumber;
@@ -848,114 +758,14 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Get current rate of trigger requests per second.
-     *
-     * @return trigger requests/second
-     */
-    public double getTriggerRequestsPerSecond()
-    {
-        return getRequestsPerSecond();
-    }
-
-    /**
-     * Get total number of readouts which could not be loaded since last reset.
-     *
-     * @return total number of bad readouts since last reset
-     */
-    public long getTotalBadReadouts()
-    {
-        return getTotalBadDataPayloads();
-    }
-
-    /**
-     * Total number of events since last reset which could not be sent.
-     *
-     * @return total number of failed events
-     */
-    public long getTotalEventsFailed()
-    {
-        return getTotalOutputsFailed();
-    }
-
-    /**
-     * Total number of empty events which were ignored since last reset.
-     *
-     * @return total number of ignored events
-     */
-    public long getTotalEventsIgnored()
-    {
-        return getTotalOutputsIgnored();
-    }
-
-    /**
-     * Total number of events sent since last reset.
-     *
-     * @return total number of events sent since last reset.
-     */
-    public long getTotalEventsSent()
-    {
-        return getTotalOutputsSent();
-    }
-
-    /**
-     * Total number of readouts thrown away since last reset.
-     *
-     * @return total number of readouts thrown away since last reset
-     */
-    public long getTotalReadoutsDiscarded()
-    {
-        return getTotalDataPayloadsDiscarded();
-    }
-
-    /**
      * Total number of readouts received since last reset.
      *
      * @return total number of readouts received since last reset
      */
+    @Override
     public long getTotalReadoutsReceived()
     {
         return getTotalDataPayloadsReceived();
-    }
-
-    /**
-     * Total number of stop messages received from the splicer.
-     *
-     * @return total number of received stop messages
-     */
-    public long getTotalSplicerStopsReceived()
-    {
-        return getTotalDataStopsReceived();
-    }
-
-    /**
-     * Get total number of trigger requests received from the global trigger
-     * since the program began executing.
-     *
-     * @return total number of trigger requests received
-     */
-    public long getTotalTriggerRequestsReceived()
-    {
-        return getTotalRequestsReceived();
-    }
-
-    /**
-     * Total number of stop messages received from the global trigger.
-     *
-     * @return total number of received stop messages
-     */
-    public long getTotalTriggerStopsReceived()
-    {
-        return getTotalRequestStopsReceived();
-    }
-
-    /**
-     * Total number of stop messages sent to the string processors
-     *
-     * @return total number of sent stop messages
-     */
-    public long getTotalStopsSent()
-    {
-        return totStopsSent;
     }
 
     /**
@@ -967,6 +777,7 @@ public class EventBuilderBackEnd
      * @return <tt>true</tt> if the data payload is part of the
      *         current request
      */
+    @Override
     public boolean isRequested(IPayload reqPayload, IPayload dataPayload)
     {
         return true;
@@ -981,6 +792,7 @@ public class EventBuilderBackEnd
      *
      * @return The EventPayload created for the current TriggerRequest.
      */
+    @Override
     public ILoadablePayload makeDataPayload(IPayload reqPayload,
                                             List dataList)
     {
@@ -1110,6 +922,7 @@ public class EventBuilderBackEnd
     /**
      * Reset the back end after it has been stopped.
      */
+    @Override
     public void reset()
     {
         if (!isReset) {
@@ -1133,6 +946,9 @@ public class EventBuilderBackEnd
             numKnownBeforeLast = 0;
             numDroppedAfterLast = 0;
             totalPossible = 0;
+
+            // clear the current year so it's set by the first event
+            year = 0;
 
             if (outputQueue.size() > 0) {
                 if (LOG.isErrorEnabled()) {
@@ -1172,12 +988,28 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Save the important data regarding this run.
+     *
+     * @return saved event count/time data
+     */
+    private EventRunData saveRunData()
+    {
+        StreamMetaData meta = getMetaData();
+        EventRunData evtData =
+            new EventRunData(meta.getCount(), getFirstOutputTime(),
+                             meta.getTicks(), firstGoodTime, lastGoodTime);
+        runData.put(runNumber, evtData);
+        return evtData;
+    }
+
+    /**
      * Send an output payload.
      *
      * @param output payload being sent
      *
      * @return <tt>true</tt> if event was sent
      */
+    @Override
     public boolean sendOutput(ILoadablePayload output)
     {
         if (outputThread == null) {
@@ -1212,6 +1044,15 @@ public class EventBuilderBackEnd
     }
 
     /**
+     * Set the current year.
+     */
+    public void setCurrentYear()
+    {
+        GregorianCalendar cal = new GregorianCalendar();
+        year = (short) cal.get(GregorianCalendar.YEAR);
+    }
+
+    /**
      * Set the DOM registry used to translate hit DOM IDs to channel IDs
      * @param domRegistry DOM registry
      */
@@ -1225,6 +1066,7 @@ public class EventBuilderBackEnd
      *
      * @param execListLen list length
      */
+    @Override
     public void setExecuteListLength(int execListLen)
     {
         this.execListLen = execListLen;
@@ -1264,6 +1106,7 @@ public class EventBuilderBackEnd
      *
      * @param payload request payload
      */
+    @Override
     public void setRequestTimes(IPayload payload)
     {
         // do nothing (required by RequestFiller)
@@ -1280,17 +1123,19 @@ public class EventBuilderBackEnd
     }
 
     /**
-     * Set the current year.
+     * Should events be validated by PayloadChecker?
+     * NOTE: This should not be enabled on SPS!!!
+     * @param val <tt>true</tt> to enable event validation
      */
-    public void setCurrentYear()
+    public void setValidateEvents(boolean val)
     {
-        GregorianCalendar cal = new GregorianCalendar();
-        year = (short) cal.get(GregorianCalendar.YEAR);
+        validateEvents = val;
     }
 
     /**
      * Inform the dispatcher that a new run is starting.
      */
+    @Override
     public void startDispatcher()
     {
         if (runNumber < 0) {
@@ -1485,6 +1330,7 @@ public class EventBuilderBackEnd
     /**
      * Inform back-end processor that the splicer has stopped.
      */
+    @Override
     public void splicerStopped()
     {
         if (isRunning()) {
@@ -1502,6 +1348,7 @@ public class EventBuilderBackEnd
     /**
      * If the thread is running, stop it.
      */
+    @Override
     public void stopThread()
         throws IOException
     {
@@ -1597,6 +1444,7 @@ public class EventBuilderBackEnd
         /**
          * Main event dispatching loop.
          */
+        @Override
         public void run()
         {
             ILoadablePayload event;
