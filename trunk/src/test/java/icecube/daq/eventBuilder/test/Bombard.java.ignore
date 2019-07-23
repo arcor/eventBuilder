@@ -1,0 +1,450 @@
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
+
+import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.MasterPayloadFactory;
+
+import java.io.IOException;
+
+import java.util.ArrayList;
+import java.util.Random;
+
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
+/**
+ * Generate a specified number of events, using some number of usable and
+ * discarded hits.
+ *
+ * For example, <tt>Bombard -d 10 -e 20 100</tt> will generate 100 events,
+ * each containing 20 hits, and each event is followed by 10 unusable hits
+ * which will be discarded.
+ */
+public class Bombard
+    extends EBTestCase
+{
+    abstract class Runner
+    {
+        private int numStrings;
+        private int numDomsPerString;
+
+        private StaticInputSource evtSrc;
+
+        Runner(int numStrings, int numDomsPerString)
+            throws IOException
+        {
+            this.numStrings = numStrings;
+            this.numDomsPerString = numDomsPerString;
+
+            evtSrc = new StaticInputSource();
+        }
+
+        abstract void createInput(int numStrings, int numDomsPerString,
+                                  StaticInputSource evtSrc);
+
+        public void main()
+            throws Exception
+        {
+            for (int i = 0; i < numStrings; i++) {
+                evtSrc.addStringProcessor((i * numDomsPerString) + 1,
+                                          numDomsPerString);
+            }
+
+            evtSrc.generateEngFmtHits();
+
+            IByteBufferCache bufMgr =
+                new ByteBufferCache(256, 50000000, 50000000);
+            MasterPayloadFactory masterFactory =
+                new MasterPayloadFactory(bufMgr);
+
+            MockDispatcher dispatcher = new MockDispatcher(masterFactory);
+            dispatcher.setSaveEvents(false);
+
+            MonitoringData monData = new MonitoringData();
+
+            final int runNum = 5;
+
+            initialize(evtSrc, bufMgr, masterFactory, dispatcher, monData,
+                       runNum);
+            evtSrc.setRunNumber(runNum);
+
+            createInput(numStrings, numDomsPerString, evtSrc);
+
+            final long startTime = System.currentTimeMillis();
+
+            startAll(evtSrc);
+
+            mainLoop(monData, 1000);
+
+            final long endTime = System.currentTimeMillis() - startTime;
+
+            System.err.println("BufMgr " + bufMgr);
+            System.err.println("MonData " + monData);
+
+            final double evtsPerSec = ((double) (numEvents * 1000) /
+                                       (double) endTime);
+            System.out.println("Processed " + evtsPerSec + " events/second");
+
+            evtSrc.validateMonitoringData(monData);
+            assertTrue(bufMgr.toString(), bufMgr.isBalanced());
+
+            if (dispatcher.getSaveEvents()) {
+                assertEquals("Bad number of events",
+                             numEvents, dispatcher.getNumberOfEvents());
+
+                evtSrc.validateEvents(dispatcher.events());
+            }
+        }
+    }
+
+    class EmptyRunner
+        extends Runner
+    {
+        EmptyRunner()
+            throws IOException
+        {
+            super(10, 60);
+        }
+
+        void createInput(int numStrings, int numDomsPerString,
+                         StaticInputSource evtSrc)
+        {
+            ArrayList rdOutList = new ArrayList();
+
+            long time = 1000;
+            long timeStep = 10;
+            for (int i = 0; i < numEvents; i++) {
+                for (int s = 0; s < numStrings; s++) {
+                    for (int d = 1; d <= numDomsPerString; d++) {
+                        final int domId = (s * numDomsPerString) + d;
+                        evtSrc.addHit(time++, domId);
+                    }
+                }
+
+                rdOutList.clear();
+                rdOutList.add(buildGlobalRequest(time, time + timeStep - 1));
+                evtSrc.addTriggerRequest(rdOutList);
+
+                if ((i % 20) == 5) {
+                    int s = (i / 7) % numStrings;
+                    int d = i % numDomsPerString;
+                    final int domId = (s * numDomsPerString) + d;
+                    evtSrc.addHit(time++, domId);
+                }
+
+                time += timeStep + 10;
+            }
+        }
+    }
+
+    class NormalRunner
+        extends Runner
+    {
+        private int numHitsPerEvent;
+        private int numHitsOutsideEvent;
+
+        NormalRunner(int numHitsPerEvent, int numHitsOutsideEvent)
+            throws IOException
+        {
+            super(10, 60);
+
+            this.numHitsPerEvent = numHitsPerEvent;
+            this.numHitsOutsideEvent = numHitsOutsideEvent;
+        }
+
+        private long generateHits(int numStrings, int numDomsPerString,
+                                  StaticInputSource evtSrc, Random rand,
+                                  long time, int numHits)
+        {
+            for (int n = 0; n < numHits; n++) {
+                int str = rand.nextInt(numStrings);
+                int dom = rand.nextInt(numDomsPerString - 1) + 1;
+                final int domId = (str * numDomsPerString) + dom;
+                evtSrc.addHit(time, domId);
+                time += 2;
+            }
+            return time;
+        }
+
+        void createInput(int numStrings, int numDomsPerString,
+                         StaticInputSource evtSrc)
+        {
+            ArrayList rdOutList = new ArrayList();
+
+            int expHits = numEvents * (numHitsPerEvent + numHitsOutsideEvent);
+
+            int hitsInEvts = 0;
+            int hitsNotInEvts = 0;
+
+            Random rand = new Random();
+
+            long time = 1000;
+            long timeStep = 10;
+            for (int i = 0; i < numEvents; i++) {
+                long startTime = time++;
+
+                time = generateHits(numStrings, numDomsPerString, evtSrc,
+                                    rand, time, numHitsPerEvent);
+
+                rdOutList.clear();
+                rdOutList.add(buildGlobalRequest(startTime, time - 1));
+                evtSrc.addTriggerRequest(rdOutList);
+
+                time = generateHits(numStrings, numDomsPerString, evtSrc,
+                                    rand, time, numHitsOutsideEvent);
+
+                time += 10;
+            }
+        }
+    }
+
+    class FullRunner
+        extends Runner
+    {
+        FullRunner()
+            throws IOException
+        {
+            super(10, 60);
+        }
+
+        void createInput(int numStrings, int numDomsPerString,
+                         StaticInputSource evtSrc)
+        {
+            ArrayList rdOutList = new ArrayList();
+
+            long time = 1000;
+            long timeStep = numStrings * numDomsPerString * 2;
+            for (int i = 0; i < numEvents; i++) {
+                rdOutList.clear();
+                rdOutList.add(buildGlobalRequest(time, time + timeStep - 1));
+                evtSrc.addTriggerRequest(rdOutList);
+
+                long hitTime = time + 1;
+                for (int s = 0; s < numStrings; s++) {
+                    for (int d = 1; d <= numDomsPerString; d++) {
+                        final int domId = (s * numDomsPerString) + d;
+                        evtSrc.addHit(hitTime++, domId);
+                    }
+                }
+
+                time += timeStep + 10;
+            }
+        }
+    }
+
+    private static final int RUNTYPE_UNKNOWN = -1;
+    private static final int RUNTYPE_EMPTY = 0;
+    private static final int RUNTYPE_FULL = 1;
+    private static final int RUNTYPE_NORMAL = 2;
+    private static final int RUNTYPE_SPS = 3;
+    private static final int RUNTYPE_SPTS = 4;
+
+    private static final String[] RUNTYPE = {
+        "empty",
+        "full",
+        "normal",
+        "sps",
+        "spts",
+    };
+
+    private static int numEvents = 20;
+    private static int runType = RUNTYPE_UNKNOWN;
+    private static int numDiscardedHits = -1;
+    private static int numEventHits = -1;
+    private static boolean dumpMonData = true;
+
+    public Bombard(String name)
+    {
+        super(name);
+    }
+
+    private static final String listRunTypes()
+    {
+        StringBuffer buf = new StringBuffer();
+
+        for (int i = 0; i < RUNTYPE.length; i++) {
+            if (buf.length() > 0) {
+                buf.append(", ");
+            }
+
+            buf.append(RUNTYPE[i]);
+        }
+
+        return buf.toString();
+    }
+
+    void monitorLoop(MonitoringData monData, long startTime)
+    {
+        if (dumpMonData) {
+            System.out.println("" + (System.currentTimeMillis() - startTime) +
+                               ": " + monData);
+        }
+    }
+
+    private static final void setDumpMonitorData(boolean val)
+    {
+        dumpMonData = val;
+    }
+
+    private static final boolean setNumberOfDiscardedHits(String arg)
+    {
+        try {
+            numDiscardedHits = Integer.parseInt(arg);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static final boolean setNumberOfEventHits(String arg)
+    {
+        try {
+            numEventHits = Integer.parseInt(arg);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static final boolean setNumberOfEvents(String arg)
+    {
+        try {
+            numEvents = Integer.parseInt(arg);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static final boolean setRunType(String arg)
+    {
+        for (int i = 0; i < RUNTYPE.length; i++) {
+            if (RUNTYPE[i].equalsIgnoreCase(arg)) {
+                runType = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static Test suite()
+    {
+        return new TestSuite(Bombard.class);
+    }
+
+    public void testRun()
+        throws Exception
+    {
+        switch (runType) {
+        case RUNTYPE_EMPTY:
+            new EmptyRunner().main();
+            break;
+        case RUNTYPE_FULL:
+            new FullRunner().main();
+            break;
+        case RUNTYPE_NORMAL:
+            new NormalRunner(numEventHits, numDiscardedHits).main();
+            break;
+        case RUNTYPE_SPS:
+            new NormalRunner(18, 23).main();
+            break;
+        case RUNTYPE_SPTS:
+            new NormalRunner(0, 41).main();
+            break;
+        default:
+            throw new Error("Run type #" + runType + " unimplemented");
+        }
+    }
+
+    public static final void main(String[] args)
+    {
+        boolean usage = false;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].charAt(0) == '-') {
+                if (args[i].charAt(1) == 'd') {
+                    i++;
+                    if (!setNumberOfDiscardedHits(args[i])) {
+                        System.err.println("Bad number of discarded hits '" +
+                                           args[i] + "'");
+                        usage = true;
+                    }
+                } else if (args[i].charAt(1) == 'e') {
+                    i++;
+                    if (!setNumberOfEventHits(args[i])) {
+                        System.err.println("Bad number of event hits '" +
+                                           args[i] + "'");
+                        usage = true;
+                    }
+                } else if (args[i].charAt(1) == 'l') {
+                    i++;
+                    if (!setLogLevel(args[i])) {
+                        System.err.println("Bad log level '" + args[i] +
+                                           "'");
+                        usage = true;
+                    }
+                } else if (args[i].charAt(1) == 'M') {
+                    setDumpMonitorData(false);
+                } else if (args[i].charAt(1) == 'r') {
+                    i++;
+                    if (!setRunType(args[i])) {
+                        System.err.println("Bad run type '" + args[i] +
+                                           "'");
+                        System.err.println("Valid run types are: " +
+                                           listRunTypes());
+                        usage = true;
+                    }
+                } else {
+                    System.err.println("Unknown option '" + args[i] + "'");
+                    usage = true;
+                }
+            } else {
+                if (!setNumberOfEvents(args[i])) {
+                    System.err.println("Unknown argument '" + args[i] + "'");
+                    usage = true;
+                }
+            }
+        }
+
+        if (!usage && (numDiscardedHits > 0 || numEventHits > 0)) {
+            if (numDiscardedHits <= 0) {
+                System.err.println("Specified number of event hits" +
+                                   " but not number of discarded hits");
+                usage = true;
+            } else if (numEventHits <= 0) {
+                System.err.println("Specified number of discarded hits" +
+                                   " but not number of event hits");
+                usage = true;
+            } else if (runType == RUNTYPE_UNKNOWN) {
+                runType = RUNTYPE_NORMAL;
+            } else if (runType != RUNTYPE_NORMAL) {
+                System.err.println("Specified number of discarded/event hits" +
+                                   " with non-normal run type");
+                usage = true;
+            }
+        }
+
+        if (!usage && runType == RUNTYPE_UNKNOWN) {
+            runType = RUNTYPE_EMPTY;
+        }
+
+        if (usage) {
+            System.err.println("java Bombard" +
+                               " [-d numDiscardedHits]" +
+                               " [-e numEventHits]" +
+                               " [-l logLevel]" +
+                               " [-M (disableMonitoringData)]" +
+                               " [-r runType]" +
+                               " [numEvents]" +
+                               "");
+            System.exit(1);
+        }
+
+        junit.textui.TestRunner.run(suite());
+    }
+}

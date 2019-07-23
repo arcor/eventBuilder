@@ -1,0 +1,630 @@
+package icecube.daq.eventBuilder.test;
+
+import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.common.DAQComponentInputProcess;
+import icecube.daq.common.DAQComponentOutputProcess;
+import icecube.daq.common.DAQComponentProcessManager;
+import icecube.daq.common.DAQdataChannelMBean;
+
+import icecube.daq.dispatch.Dispatcher;
+import icecube.daq.dispatch.DispatchException;
+
+import icecube.daq.eventBuilder.EventBuilderGlobalTrigPayloadInputEngine;
+import icecube.daq.eventBuilder.EventBuilderManager;
+import icecube.daq.eventBuilder.EventBuilderSPcachePayloadOutputEngine;
+import icecube.daq.eventBuilder.EventBuilderSPdataPayloadInputEngine;
+import icecube.daq.eventBuilder.EventBuilderSPreqPayloadOutputEngine;
+import icecube.daq.eventBuilder.SPDataAnalysis;
+
+import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
+
+import icecube.daq.eventBuilder.monitoring.MonitoringData;
+
+import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.MasterPayloadFactory;
+
+import icecube.daq.sim.GenericReadoutElement;
+
+import icecube.daq.splicer.SplicedAnalysis;
+import icecube.daq.splicer.Splicer;
+import icecube.daq.splicer.SplicerImpl;
+
+import icecube.daq.testUtil.FileWriterChannel;
+import icecube.daq.testUtil.InputSource;
+import icecube.daq.testUtil.InputSourceGeneratorMng;
+import icecube.daq.testUtil.InputSourceManager;
+import icecube.daq.testUtil.OutputDestination;
+
+import icecube.daq.trigger.IReadoutRequestElement;
+
+import java.io.File;
+
+import java.nio.channels.SelectableChannel;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.management.MBeanServer;
+
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+
+public class EBTestCase
+    extends TestCase
+{
+    private static final String ERROR_GT_ID = "errorGT";
+    private static final String ERROR_SPCACHE_ID = "errorSPCache";
+    private static final String ERROR_SPDATA_ID = "errorSPData";
+    private static final String ERROR_SPREQ_ID = "errorSPReq";
+
+    private static final String STOP_GT_ID = "stopGT";
+    private static final String STOP_SPCACHE_ID = "stopSPCache";
+    private static final String STOP_SPDATA_ID = "stopSPData";
+    private static final String STOP_SPREQ_ID = "stopSPReq";
+
+    private static final int READOUT_TYPE_IIIT_GLOBAL =
+        IReadoutRequestElement.READOUT_TYPE_IIIT_GLOBAL;
+    private static final int READOUT_TYPE_IT_GLOBAL =
+        IReadoutRequestElement.READOUT_TYPE_IT_GLOBAL;
+    private static final int READOUT_TYPE_II_GLOBAL =
+        IReadoutRequestElement.READOUT_TYPE_II_GLOBAL;
+    private static final int READOUT_TYPE_II_STRING =
+        IReadoutRequestElement.READOUT_TYPE_II_STRING;
+    private static final int READOUT_TYPE_II_MODULE =
+        IReadoutRequestElement.READOUT_TYPE_II_MODULE;
+    private static final int READOUT_TYPE_IT_MODULE =
+        IReadoutRequestElement.READOUT_TYPE_IT_MODULE;
+
+    private static boolean ignoreTearDown;
+    private static Level logLevel = Level.ERROR;
+
+    private Log log;
+
+    private Splicer splicer;
+    private EventBuilderGlobalTrigPayloadInputEngine gtInputProcess;
+    private EventBuilderSPreqPayloadOutputEngine spReqOutputProcess;
+    private EventBuilderSPdataPayloadInputEngine spDataInputProcess;
+    private EventBuilderSPcachePayloadOutputEngine spCacheOutputProcess;
+
+    private InputSourceManager gtInputSrcMng;
+    private InputSourceManager spInputSrcMng;
+
+    private ArrayList outputDests = new ArrayList();
+
+    public EBTestCase(String name)
+    {
+        super(name);
+
+        log = LogFactory.getLog(getClass());
+    }
+
+    private void addInputChannels(String engineName,
+                                  InputSourceManager inputSrcMng,
+                                  String farEndType,
+                                  DAQComponentInputProcess inputProc)
+        throws Exception
+    {
+        InputSource[] inputSrcs = inputSrcMng.getInputSources();
+        for (int i = 0; i < inputSrcs.length; i++) {
+            DAQdataChannelMBean dcInputSink =
+                new DAQdataChannelMBean(null, null, i, null, null);
+
+            dcInputSink.setFarEndType(farEndType);
+            dcInputSink.setFarEndID(i);
+
+            dcInputSink.setChannelType(DAQdataChannelMBean.DAQ_READ_CHANNEL);
+
+            dcInputSink.setSelectableChannel(inputSrcs[i].getSourceChannel());
+
+            inputProc.addDataChannel(dcInputSink);
+        }
+    }
+
+    private void addOutputChannels(String engineName,
+                                   OutputDestination[] dests,
+                                   DAQComponentOutputProcess outProc)
+        throws Exception
+    {
+        final String farEndType = DAQCmdInterface.DAQ_STRINGPROCESSOR;
+        final String chanType = DAQdataChannelMBean.DAQ_WRITE_CHANNEL;
+
+        for (int i = 0; i < dests.length; i++) {
+            DAQdataChannelMBean dcOutputSource =
+                new DAQdataChannelMBean(null, null, i, null, null);
+            dcOutputSource.setFarEndType(farEndType);
+            dcOutputSource.setFarEndID(i);
+            dcOutputSource.setChannelType(chanType);
+            dcOutputSource.setSelectableChannel(dests[i].getSinkChannel());
+
+            outProc.addDataChannel(dcOutputSource);
+            outputDests.add(dests[i]);
+        }
+    }
+
+    private void addOutputFileChannels(String engineName, String prefix,
+                                   int numStrProcs,
+                                   DAQComponentOutputProcess outProc)
+        throws Exception
+    {
+        final String farEndType = DAQCmdInterface.DAQ_STRINGPROCESSOR;
+        final String chanType = DAQdataChannelMBean.DAQ_WRITE_CHANNEL;
+
+        for (int i = 0; i < numStrProcs; i++) {
+            File tmpFile = File.createTempFile(prefix + "#" + i, ".eb");
+            tmpFile.deleteOnExit();
+
+            FileWriterChannel fwc =
+                new FileWriterChannel(tmpFile.getPath(), i);
+
+            DAQdataChannelMBean dcOutputSource =
+                new DAQdataChannelMBean(null, null, i, null, null);
+            dcOutputSource.setFarEndType(farEndType);
+            dcOutputSource.setFarEndID(i);
+            dcOutputSource.setChannelType(chanType);
+            dcOutputSource.setSelectableChannel(fwc.getSinkChannel());
+
+            outProc.addDataChannel(dcOutputSource);
+            outputDests.add(fwc);
+        }
+    }
+
+    GenericReadoutElement buildGlobalRequest(long firstTime, long lastTime)
+    {
+        GenericReadoutElement elem = new GenericReadoutElement();
+        elem.setReadoutType(READOUT_TYPE_IIIT_GLOBAL);
+        elem.setSourceId(-1);
+        elem.setDomId(-1);
+        elem.setFirstTime(firstTime);
+        elem.setLastTime(lastTime);
+        return elem;
+    }
+
+    private void checkStopped()
+        throws Exception
+    {
+        if (isInputEngineRunning()) {
+            fail("InputEngine is in RUNNING state");
+
+            stopInputProcessEngine();
+
+            try {
+                Thread.sleep(10000);
+            } catch (Exception ex) {
+                //
+            }
+        }
+
+        for (int i = 0; i < 500 && isOutputEngineRunning(); i++) {
+            try {
+                Thread.sleep(200);
+            } catch (Exception ex) {
+                //
+            }
+        }
+
+        if (isOutputEngineRunning()) {
+            fail("OutputEngine is in RUNNING state");
+
+            stopOutputProcessEngine();
+        }
+    }
+
+    /**
+     * Clean up after run has completed.
+     */
+    public void cleanup()
+    {
+        waitForStoppedOutput();
+    }
+
+    private void initInput(StaticInputSource evtSrc)
+        throws Exception
+    {
+        InputSource[] gtSrcs = new InputSource[] {
+            evtSrc.getTriggerRequestSource(),
+        };
+        gtInputSrcMng =
+            new InputSourceGeneratorMng(gtSrcs);
+        addInputChannels("GTInputEngine", gtInputSrcMng,
+                         DAQCmdInterface.DAQ_GLOBAL_TRIGGER,
+                         gtInputProcess);
+
+        spInputSrcMng =
+            new InputSourceGeneratorMng(evtSrc.getHitSources());
+        addInputChannels("SPDataInputEngine", spInputSrcMng,
+                         DAQCmdInterface.DAQ_STRINGPROCESSOR,
+                         spDataInputProcess);
+    }
+
+    private void initOutput(StaticInputSource evtSrc)
+        throws Exception
+    {
+        addOutputChannels("SPreqOutputEngine",
+                          evtSrc.getReadoutRequestDestinations(),
+                          spReqOutputProcess);
+        addOutputFileChannels("SPcacheOutputEngine", "spReq",
+                              evtSrc.getNumOfStringProcessors(),
+                              spCacheOutputProcess);
+
+        if (evtSrc != null) {
+            // give list of valid target SourceIDs to event generator 
+            Collection coll =
+                spReqOutputProcess.getPayloadDestinationCollection().
+                getAllSourceIDs();
+            evtSrc.setTargetSourceIds(coll);
+        }
+    }
+
+    void initialize(StaticInputSource evtSrc, IByteBufferCache bufMgr,
+                    MasterPayloadFactory masterFactory,
+                    MockDispatcher dispatcher, MonitoringData monData,
+                    int runNum)
+        throws Exception
+    {
+        EventBuilderManager ebMgr = new EventBuilderManager();
+        ebMgr.setMonitoringData(monData);
+        ebMgr.setDAQRunNumber(runNum);
+
+        SPDataAnalysis splicedAnalysis =
+            new SPDataAnalysis(masterFactory, ebMgr);
+        splicer = new SplicerImpl(splicedAnalysis);
+        splicer.addSplicerListener(splicedAnalysis);
+
+        EventBuilderBackEnd backEnd =
+            new EventBuilderBackEnd(masterFactory, bufMgr, splicer,
+                                    splicedAnalysis, dispatcher);
+
+        final MBeanServer mbeanServer = null;
+        final String componentName = DAQCmdInterface.DAQ_EVENTBUILDER;
+        final int componentID = 0;
+
+        // The interface between the front and back end
+        List triggerList =
+            Collections.synchronizedList(new ArrayList());
+
+        DAQComponentProcessManager processMgr = null;
+
+        gtInputProcess =
+            new EventBuilderGlobalTrigPayloadInputEngine
+            (mbeanServer, componentName, componentID, "globalTrigInput",
+             backEnd, bufMgr, masterFactory);
+
+        spReqOutputProcess =
+            new EventBuilderSPreqPayloadOutputEngine
+            (mbeanServer, componentName, componentID, "spReqOutput");
+
+        spDataInputProcess =
+            new EventBuilderSPdataPayloadInputEngine
+            (mbeanServer, componentName, componentID, "spDataInput",
+             bufMgr, masterFactory, splicer);
+
+        spCacheOutputProcess =
+            new EventBuilderSPcachePayloadOutputEngine
+            (mbeanServer, componentName, componentID, "spCacheOutput");
+
+        gtInputProcess.registerStopNotificationCallback
+            (processMgr, STOP_GT_ID);
+        gtInputProcess.registerErrorNotificationCallback
+            (processMgr, ERROR_GT_ID);
+        spReqOutputProcess.registerStopNotificationCallback
+            (processMgr, STOP_SPREQ_ID);
+        spReqOutputProcess.registerErrorNotificationCallback
+            (processMgr, ERROR_SPREQ_ID);
+        spDataInputProcess.registerStopNotificationCallback
+            (processMgr, STOP_SPDATA_ID);
+        spDataInputProcess.registerErrorNotificationCallback
+            (processMgr, ERROR_SPDATA_ID);
+        spCacheOutputProcess.registerStopNotificationCallback
+            (processMgr, STOP_SPCACHE_ID);
+        spCacheOutputProcess.registerErrorNotificationCallback
+            (processMgr, ERROR_SPCACHE_ID);
+
+        spReqOutputProcess.registerBufferManager(bufMgr);
+        spCacheOutputProcess.registerBufferManager(bufMgr);
+
+        gtInputProcess.start();
+        spReqOutputProcess.start();
+        spDataInputProcess.start();
+        spCacheOutputProcess.start();
+
+        gtInputProcess.registerManager(ebMgr);
+        backEnd.registerManager(ebMgr);
+
+        initInput(evtSrc);
+        initOutput(evtSrc);
+
+        gtInputProcess.
+            registerStringProcReqOutputEngine(spReqOutputProcess);
+        backEnd.
+            registerStringProcCacheOutputEngine(spCacheOutputProcess);
+    }
+
+    private boolean isInputEngineRunning()
+    {
+        return (gtInputProcess.isRunning() ||
+                spDataInputProcess.isRunning());
+    }
+
+    private boolean isOutputEngineRunning()
+    {
+        return (spReqOutputProcess.isRunning() ||
+                spCacheOutputProcess.isRunning());
+    }
+
+    private boolean isSplicerRunning()
+    {
+        return (splicer != null &&
+                splicer.getState() != Splicer.STOPPED);
+    }
+
+    void mainLoop(MonitoringData monData)
+    {
+        mainLoop(monData, 200);
+    }
+
+    void mainLoop(MonitoringData monData, int sleepUsecs)
+    {
+        final long startTime = System.currentTimeMillis();
+
+        while (isInputEngineRunning() || isOutputEngineRunning() ||
+               isSplicerRunning())
+        {
+            try {
+                Thread.sleep(sleepUsecs);
+            } catch (Exception ex) {
+                // ignore
+            }
+
+            monitorLoop(monData, startTime);
+        }
+
+        waitForStoppedOutput();
+    }
+
+    void monitorLoop(MonitoringData monData, long startTime)
+    {
+    }
+
+    static final void setIgnoreTearDown(boolean val)
+    {
+        ignoreTearDown = val;
+    }
+
+    static final boolean setLogLevel(String levelStr)
+    {
+        if (levelStr.equalsIgnoreCase("off") ||
+            levelStr.equalsIgnoreCase("none"))
+        {
+            logLevel = Level.OFF;
+        } else if (levelStr.equalsIgnoreCase("fatal")) {
+            logLevel = Level.FATAL;
+        } else if (levelStr.equalsIgnoreCase("error")) {
+            logLevel = Level.ERROR;
+        } else if (levelStr.equalsIgnoreCase("warn")) {
+            logLevel = Level.WARN;
+        } else if (levelStr.equalsIgnoreCase("info")) {
+            logLevel = Level.INFO;
+        } else if (levelStr.equalsIgnoreCase("debug")) {
+            logLevel = Level.DEBUG;
+        } else if (levelStr.equalsIgnoreCase("all")) {
+            logLevel = Level.ALL;
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected void setUp()
+    {
+        BasicConfigurator.resetConfiguration();
+        BasicConfigurator.configure(new MockAppender(logLevel));
+
+        gtInputProcess = null;
+        spDataInputProcess = null;
+    }
+
+    void startAll(StaticInputSource evtSrc)
+        throws Exception
+    {
+        startOutput();
+
+        startInput();
+        if (splicer != null) {
+            splicer.start();
+        }
+
+        evtSrc.startProcessing();
+    }
+
+    private void startInput()
+        throws Exception
+    {
+        spDataInputProcess.startProcessing();
+        spInputSrcMng.startProcessing();
+
+        gtInputProcess.startProcessing();
+        gtInputSrcMng.startProcessing();
+    }
+
+    private void startOutput()
+        throws Exception
+    {
+        spCacheOutputProcess.startProcessing();
+        spReqOutputProcess.startProcessing();
+
+        for (int i = 0; i < outputDests.size(); i++) {
+            OutputDestination outputDest =
+                (OutputDestination) outputDests.get(i);
+            outputDest.startProcessing();
+        }
+    }
+
+    private void stopInputProcessEngine()
+        throws Exception
+    {
+        spInputSrcMng.stopProcessing();
+        spDataInputProcess.forcedStopProcessing();
+
+        gtInputSrcMng.stopProcessing();
+        gtInputProcess.forcedStopProcessing();
+    }
+
+    private void stopOutputProcessEngine()
+    {
+        spCacheOutputProcess.forcedStopProcessing();
+        spReqOutputProcess.forcedStopProcessing();
+
+        for (int i = 0; i < outputDests.size(); i++) {
+            OutputDestination outputDest =
+                (OutputDestination) outputDests.get(i);
+            outputDest.stopProcessing();
+        }
+    }
+
+    private void tearDownGTInput()
+    {
+        Exception tearDownEx = null;
+        for (int reps = 0; reps < 5 && gtInputProcess != null &&
+                 /*gtInputProcess.isRunning()*/true; reps++)
+        {
+            try {
+                gtInputProcess.destroyProcessor();
+                tearDownEx = null;
+            } catch (Exception ex) {
+                tearDownEx = ex;
+            }
+
+            try { Thread.sleep(200); } catch (Exception ex) { }
+        }
+
+        if (gtInputProcess != null && gtInputProcess.isRunning()) {
+            log.error("Global Trigger could not be stopped",
+                      tearDownEx);
+        }
+    }
+
+    private void tearDownSPCacheOutput()
+    {
+        Exception tearDownEx = null;
+        for (int reps = 0; reps < 5 && spCacheOutputProcess != null &&
+                 /*spCacheOutputProcess.isRunning()*/true; reps++)
+        {
+            try {
+                spCacheOutputProcess.destroyProcessor();
+                tearDownEx = null;
+            } catch (Exception ex) {
+                tearDownEx = ex;
+            }
+
+            try { Thread.sleep(200); } catch (Exception ex) { }
+        }
+
+        if (spCacheOutputProcess != null &&
+            spCacheOutputProcess.isRunning())
+        {
+            log.error("SP Cache Processor could not be stopped",
+                      tearDownEx);
+        }
+    }
+
+    private void tearDownSPDataInput()
+    {
+        Exception tearDownEx = null;
+        for (int reps = 0; reps < 5 && spDataInputProcess != null &&
+                 /*spDataInputProcess.isRunning()*/true; reps++)
+        {
+            try {
+                spDataInputProcess.destroyProcessor();
+                tearDownEx = null;
+            } catch (Exception ex) {
+                tearDownEx = ex;
+            }
+
+            try { Thread.sleep(200); } catch (Exception ex) { }
+        }
+
+        if (spDataInputProcess != null &&
+            spDataInputProcess.isRunning())
+        {
+            log.error("Global Trigger could not be stopped",
+                      tearDownEx);
+        }
+    }
+
+    private void tearDownSPReqOutput()
+    {
+        Exception tearDownEx = null;
+        for (int reps = 0; reps < 5 && spReqOutputProcess != null &&
+                 /*spReqOutputProcess.isRunning()*/true; reps++)
+        {
+            try {
+                spReqOutputProcess.destroyProcessor();
+                tearDownEx = null;
+            } catch (Exception ex) {
+                tearDownEx = ex;
+            }
+
+            try { Thread.sleep(200); } catch (Exception ex) { }
+        }
+
+        if (spReqOutputProcess != null &&
+            spReqOutputProcess.isRunning())
+        {
+            log.error("SP Request Processor could not be stopped",
+                      tearDownEx);
+        }
+    }
+
+    private void tearDownSplicer()
+    {
+        if (splicer != null) {
+            try {
+                splicer.dispose();
+            } catch (Exception ex) {
+                log.error("Couldn't tear down splicer", ex);
+            }
+        }
+    }
+
+    protected void tearDown()
+    {
+        tearDownSplicer();
+        tearDownGTInput();
+        tearDownSPReqOutput();
+        tearDownSPDataInput();
+        tearDownSPCacheOutput();
+    }
+
+    private void waitForStoppedOutput()
+    {
+        while (true) {
+            boolean allStopped = true;
+            for (int i = 0; i < outputDests.size(); i++) {
+                OutputDestination outputDest =
+                    (OutputDestination) outputDests.get(i);
+                if (outputDest.isRunning()) {
+                    allStopped = false;
+                    break;
+                }
+            }
+
+            if (allStopped) {
+                break;
+            }
+
+            try { Thread.sleep(200); } catch (Exception ex) { }
+        }
+    }
+}
