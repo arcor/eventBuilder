@@ -81,12 +81,6 @@ public class MockReadoutData
     }
 
     @Override
-    public int getPayloadInterfaceType()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
