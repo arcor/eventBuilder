@@ -175,7 +175,7 @@ public class EventBuilderBackEndTest
         assertEquals("Bad config ID", -1, evt.getEventConfigID());
         assertEquals("Bad run number", runNum, evt.getRunNumber());
         assertEquals("Bad subrun number", subrunNum, evt.getSubrunNumber());
-        assertEquals("Bad UID", uid, evt.getEventUID());
+        assertEquals("Bad UID", uid, evt.getUID());
         assertEquals("Bad year", year, evt.getYear());
         assertNotNull("Null first time", evt.getFirstTimeUTC());
         assertEquals("Bad first time",
@@ -184,15 +184,7 @@ public class EventBuilderBackEndTest
         assertEquals("Bad last time",
                      lastTime, evt.getLastTimeUTC().longValue());
 
-/*
-        ITriggerRequestPayload evtReq = evt.getTriggerRequestPayload();
-        assertNotNull("Null trigger request", evtReq);
-        assertEquals("Bad trigger request", req, evtReq);
-
-        List rdpList = evt.getReadoutDataPayloads();
-        assertNotNull("Null data list", rdpList);
-        assertEquals("Bad data list length", hitList.size(), rdpList.size());
-*/
+        // XXX should validate trigger and hit records
     }
 
     public void testCreate()

@@ -83,12 +83,6 @@ public class MockTriggerRequest
     }
 
     @Override
-    public void dispose()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
     public boolean equals(Object obj)
     {
         return compareTo(obj) == 0;
@@ -98,12 +92,6 @@ public class MockTriggerRequest
     public IUTCTime getFirstTimeUTC()
     {
         return startTime;
-    }
-
-    @Override
-    public List getHitList()
-    {
-        throw new Error("Unimplemented");
     }
 
     @Override

@@ -3,7 +3,7 @@ package icecube.daq.eventBuilder;
 import icecube.daq.eventBuilder.backend.EventBuilderBackEnd;
 import icecube.daq.io.PushStreamReader;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.impl.TriggerRequestFactory;
 
@@ -73,7 +73,7 @@ public class GlobalTriggerReader
         }
 
         try {
-            ((ILoadablePayload) pay).loadPayload();
+            ((IPayload) pay).loadPayload();
         } catch (Exception ex) {
             LOG.error("Cannot load trigger request", ex);
             throw new IOException("Cannot load trigger request");

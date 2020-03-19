@@ -2,7 +2,7 @@ package icecube.daq.eventBuilder;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IDOMID;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.IReadoutRequestElement;
 import icecube.daq.payload.ISourceID;
@@ -59,13 +59,13 @@ public class EventBuilderReadoutRequestGenerator
     private ReadoutRequestFactory factory;
 
     // collection of ISourceIDs of all InIce string procs.
-    private Collection inIceSources;
+    private Collection<ISourceID> inIceSources;
 
     // collection of Source id's of all IceTop IDHs
-    private Collection iceTopSources;
+    private Collection<ISourceID> iceTopSources;
 
     // collection of Source id's of other hubs (only AMANDA, for now)
-    private Collection otherSources;
+    private Collection<ISourceID> otherSources;
 
     /**
      * Create a readout request generator.
@@ -103,7 +103,7 @@ public class EventBuilderReadoutRequestGenerator
                        lastTime.longValue(), domID.longValue());
 
         try {
-            ((ILoadablePayload) req).loadPayload();
+            ((IPayload) req).loadPayload();
         } catch (Exception e) {
             LOG.warn("ReadoutRequestGenerator", e);
         }
@@ -117,7 +117,7 @@ public class EventBuilderReadoutRequestGenerator
      *  in response to a Global request from a ReadoutRequestElement that
      *  came in the incoming TriggerRequestPayload.
      */
-    private void generateGlobalRequest(Collection requests,
+    private void generateGlobalRequest(Collection<IReadoutRequest> requests,
                                        int eventId,
                                        IUTCTime firstTime,
                                        IUTCTime lastTime,
@@ -145,20 +145,18 @@ public class EventBuilderReadoutRequestGenerator
     /**
      *  Generate ReadoutRequests for all strings of a given type.
      */
-    private void generateStringGlobalRequest(Collection requests,
-                                             Collection sources,
+    private void generateStringGlobalRequest(Collection<IReadoutRequest> reqs,
+                                             Collection<ISourceID> sources,
                                              int eventId,
                                              IUTCTime firstTime,
                                              IUTCTime lastTime,
                                              IUTCTime timeStamp)
     {
         // create readoutRequests for each string in icetop
-        Iterator iter = sources.iterator();
-        while (iter.hasNext()) {
-            ISourceID curr = (ISourceID) iter.next();
+        for (ISourceID curr : sources) {
 
-            generateStringRequest(requests, eventId, curr,
-                                  firstTime, lastTime, timeStamp);
+            generateStringRequest(reqs, eventId, curr, firstTime, lastTime,
+                                  timeStamp);
         }
     }
 
@@ -172,7 +170,7 @@ public class EventBuilderReadoutRequestGenerator
      *
      * @return the readout request for the string.
      */
-    private void generateStringRequest(Collection requests,
+    private void generateStringRequest(Collection<IReadoutRequest> requests,
                                        int eventId,
                                        ISourceID stringID,
                                        IUTCTime firstUTC,
@@ -186,7 +184,7 @@ public class EventBuilderReadoutRequestGenerator
                        lastUTC.longValue(), -1L);
 
         try {
-            ((ILoadablePayload) req).loadPayload();
+            ((IPayload) req).loadPayload();
         } catch (Exception e) {
             LOG.error("ReadoutRequestGenerator", e);
             return;
@@ -204,23 +202,19 @@ public class EventBuilderReadoutRequestGenerator
      *
      * @return list of targetted requests
      */
-    public Collection generator(Collection readoutElements, int eventId,
-                                IUTCTime timeStamp)
+    public Collection generator(Collection<IReadoutRequestElement> rdoutElems,
+                                int eventId, IUTCTime timeStamp)
     {
         //initialize to empty vectors to avoid Null pointer exceptions.
-        ArrayList eventReadoutRequests = new ArrayList();
+        ArrayList<IReadoutRequest> eventReadoutRequests =
+            new ArrayList<IReadoutRequest>();
 
-        // Go through the element list
-        Iterator iter = readoutElements.iterator();
-        while (iter.hasNext()) {
-
-            //  Some initialization stuff for this readout element
-            IReadoutRequestElement tmp = (IReadoutRequestElement) iter.next();
+        for (IReadoutRequestElement tmp : rdoutElems) {
 
             //readout type for the current element.
             int elementType = tmp.getReadoutType();
             ISourceID sid = tmp.getSourceID();
-            IDOMID domid = tmp.getDomID();
+            IDOMID domid = tmp.getDOMID();
             IUTCTime firstTime = tmp.getFirstTimeUTC();
             IUTCTime lastTime = tmp.getLastTimeUTC();
 
@@ -302,26 +296,26 @@ public class EventBuilderReadoutRequestGenerator
      *
      * @param sourceIds set of connected source IDs
      */
-    public void setDestinations(Collection sourceIds)
+    public void setDestinations(Collection<ISourceID> sourceIds)
     {
         if (sourceIds == null || sourceIds.size() == 0) {
             throw new Error("No source IDs specified");
         }
 
         if (otherSources == null) {
-            otherSources = new ArrayList();
+            otherSources = new ArrayList<ISourceID>();
         } else {
             otherSources.clear();
         }
 
         if (iceTopSources == null) {
-            iceTopSources = new ArrayList();
+            iceTopSources = new ArrayList<ISourceID>();
         } else {
             iceTopSources.clear();
         }
 
         if (inIceSources == null) {
-            inIceSources = new ArrayList();
+            inIceSources = new ArrayList<ISourceID>();
         } else {
             inIceSources.clear();
         }

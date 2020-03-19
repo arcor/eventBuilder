@@ -8,12 +8,11 @@ import icecube.daq.eventBuilder.exceptions.EventBuilderException;
 import icecube.daq.io.DispatchException;
 import icecube.daq.io.Dispatcher;
 import icecube.daq.io.StreamMetaData;
+import icecube.daq.payload.impl.EventFactory;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IEventFactory;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IHitRecordList;
-import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.ITriggerRequestPayload;
@@ -223,7 +222,7 @@ public class EventBuilderBackEnd
     private Dispatcher dispatcher;
 
     // Factory to make EventPayloads.
-    private IEventFactory eventFactory;
+    private EventFactory eventFactory;
 
     // per-run monitoring counters
     private int execListLen;
@@ -269,8 +268,7 @@ public class EventBuilderBackEnd
     private long prevYearTime;
 
     /** Output queue  -- ACCESS MUST BE SYNCHRONIZED. */
-    private List<ILoadablePayload> outputQueue =
-        new LinkedList<ILoadablePayload>();
+    private List<IPayload> outputQueue = new LinkedList<IPayload>();
     /** Output thread. */
     private OutputThread outputThread;
 
@@ -425,7 +423,7 @@ public class EventBuilderBackEnd
      * @param data payload
      */
     @Override
-    public void disposeData(ILoadablePayload data)
+    public void disposeData(IPayload data)
     {
         data.recycle();
     }
@@ -439,7 +437,7 @@ public class EventBuilderBackEnd
     public void disposeDataList(List dataList)
     {
         for (Object obj : dataList) {
-            disposeData((ILoadablePayload) obj);
+            disposeData((IPayload) obj);
         }
     }
 
@@ -792,8 +790,7 @@ public class EventBuilderBackEnd
      * @return The EventPayload created for the current TriggerRequest.
      */
     @Override
-    public ILoadablePayload makeDataPayload(IPayload reqPayload,
-                                            List dataList)
+    public IPayload makeDataPayload(IPayload reqPayload, List dataList)
     {
         // remember that we need to be reset
         isReset = false;
@@ -900,7 +897,7 @@ public class EventBuilderBackEnd
             subnum = subrunNumber;
         }
 
-        ILoadablePayload evt;
+        IPayload evt;
         if (EventVersion.VERSION < 5) {
             evt = eventFactory.createPayload(uid, ME, startUTC, endUTC, year,
                                              runNumber, subnum, req, dataList);
@@ -1007,7 +1004,7 @@ public class EventBuilderBackEnd
      * @return <tt>true</tt> if event was sent
      */
     @Override
-    public boolean sendOutput(ILoadablePayload output)
+    public boolean sendOutput(IPayload output)
     {
         if (outputThread == null) {
             throw new Error("Output thread is not running");
@@ -1430,7 +1427,7 @@ public class EventBuilderBackEnd
         @Override
         public void run()
         {
-            ILoadablePayload event;
+            IPayload event;
             while (outputThread != null) {
                 synchronized (outputQueue) {
                     if (outputQueue.size() == 0) {
@@ -1462,7 +1459,7 @@ public class EventBuilderBackEnd
          *
          * @return <tt>true</tt> if event was sent
          */
-        private boolean sendToDaqDispatch(ILoadablePayload event)
+        private boolean sendToDaqDispatch(IPayload event)
         {
             IEventPayload tmpEvent = (IEventPayload) event;
 
@@ -1490,7 +1487,7 @@ public class EventBuilderBackEnd
                 prevLastTime = tmpEvent.getLastTimeUTC().longValue();
             }
 
-            if (tmpEvent.getEventUID() == 1 && totalEventsSent > 0) {
+            if (tmpEvent.getUID() == 1 && totalEventsSent > 0) {
                 switchFile(prevRunNumber, runNumber);
             }
 

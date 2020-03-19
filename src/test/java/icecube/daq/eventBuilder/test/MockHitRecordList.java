@@ -4,9 +4,8 @@ import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IHitPayload;
 import icecube.daq.payload.IHitRecordList;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadException;
 import icecube.daq.util.IDOMRegistry;
 
@@ -61,7 +60,7 @@ class MockHitRecord
 }
 
 public class MockHitRecordList
-    implements IHitRecordList, ILoadablePayload, IWriteablePayload
+    implements IHitRecordList, IPayload
 {
     private int uid;
     private List<IEventHitRecord> recList;
@@ -87,12 +86,6 @@ public class MockHitRecordList
             hrl.addRecord(mock.getChannelID(), mock.getHitTime());
         }
         return hrl;
-    }
-
-    @Override
-    public void dispose()
-    {
-        throw new Error("Unimplemented");
     }
 
     @Override

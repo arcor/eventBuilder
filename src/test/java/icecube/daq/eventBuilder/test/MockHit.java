@@ -25,12 +25,6 @@ public class MockHit
     }
 
     @Override
-    public void dispose()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
     public short getChannelID()
     {
         throw new Error("Unimplemented");

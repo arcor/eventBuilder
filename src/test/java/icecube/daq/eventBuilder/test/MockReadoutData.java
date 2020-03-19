@@ -1,6 +1,7 @@
 package icecube.daq.eventBuilder.test;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IHitData;
 import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IUTCTime;
@@ -39,12 +40,6 @@ public class MockReadoutData
     }
 
     @Override
-    public void dispose()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
     public List getDataPayloads()
     {
         return null;
@@ -57,7 +52,7 @@ public class MockReadoutData
     }
 
     @Override
-    public List getHitList()
+    public List<IHitData> getHitList()
     {
         return null;
     }
@@ -93,21 +88,9 @@ public class MockReadoutData
     }
 
     @Override
-    public List getPayloads()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
     public int getReadoutDataPayloadNumber()
     {
         throw new Error("Unimplemented");
-    }
-
-    @Override
-    public int getRequestUID()
-    {
-        return uid;
     }
 
     @Override
@@ -126,6 +109,12 @@ public class MockReadoutData
     public int getTriggerType()
     {
         throw new Error("Unimplemented");
+    }
+
+    @Override
+    public int getUID()
+    {
+        return uid;
     }
 
     @Override
