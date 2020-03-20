@@ -1,7 +1,7 @@
 /*
  * class: RequestPayloadOutputEngine
  *
- * Version $Id: RequestPayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: RequestPayloadOutputEngine.java 17772 2020-03-20 14:31:55Z dglo $
  *
  * Date: May 23 2005
  *
@@ -10,8 +10,8 @@
 
 package icecube.daq.eventBuilder;
 
+import icecube.daq.eventbuilder.io.IPayloadDestinationCollection;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayloadDestinationCollection;
 
 /**
  * Request payload interface.

@@ -1,6 +1,6 @@
 package icecube.daq.eventBuilder;
 
-import icecube.daq.payload.IPayloadDestinationCollection;
+import icecube.daq.eventbuilder.io.IPayloadDestinationCollection;
 import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.IReadoutRequestElement;
 import icecube.daq.payload.ITriggerRequestPayload;
