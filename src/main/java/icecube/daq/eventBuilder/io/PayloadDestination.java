@@ -1,4 +1,4 @@
-package icecube.daq.eventbuilder.io;
+package icecube.daq.eventBuilder.io;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

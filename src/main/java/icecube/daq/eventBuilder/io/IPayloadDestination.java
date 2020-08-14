@@ -1,4 +1,4 @@
-package icecube.daq.eventbuilder.io;
+package icecube.daq.eventBuilder.io;
 
 import icecube.daq.payload.IPayload;
 

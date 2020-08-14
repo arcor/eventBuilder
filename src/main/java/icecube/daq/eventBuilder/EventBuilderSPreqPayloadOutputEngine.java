@@ -11,7 +11,7 @@
 
 package icecube.daq.eventBuilder;
 
-import icecube.daq.eventbuilder.io.SimpleDestinationOutputEngine;
+import icecube.daq.eventBuilder.io.SimpleDestinationOutputEngine;
 
 /**
  * This class ...does what?

@@ -8,7 +8,7 @@
  * (c) 2008 IceCube Collaboration
  */
 
-package icecube.daq.eventbuilder.io;
+package icecube.daq.eventBuilder.io;
 
 import icecube.daq.io.DAQSourceIdOutputProcess;
 import icecube.daq.io.QueuedOutputChannel;
