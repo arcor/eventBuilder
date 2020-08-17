@@ -401,7 +401,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17207 2018-11-08 16:08:59Z dglo $";
+        return "$Id: EBComponent.java 17851 2020-08-17 22:20:12Z dglo $";
     }
 
     /**
@@ -546,7 +546,7 @@ public class EBComponent
      * @param runNumber run number
      */
     @Override
-    public void starting(int runNumber)
+    public void starting(int runNumber, int domMode)
     {
         backEnd.reset();
         backEnd.setRunNumber(runNumber);
