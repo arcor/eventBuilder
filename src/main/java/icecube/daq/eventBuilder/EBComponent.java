@@ -401,7 +401,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17207 2018-11-08 16:08:59Z dglo $";
+        return "$Id: EBComponent.java 18034 2021-11-12 21:23:22Z bendfelt $";
     }
 
     /**
@@ -587,6 +587,16 @@ public class EBComponent
         Logger.getRootLogger().addAppender(appender);
         Logger.getRootLogger().setLevel(Level.INFO);
         DAQCompServer srvr;
+
+        try {
+            String compFullName = String.format("%s", COMPONENT_NAME);
+            DAQCompServer.primordialLogConfigure(compFullName, args);
+        } catch (Exception e) {
+            // fall back to console
+            Logger.getLogger(EBComponent.class).error("Could not configure logging", e);
+        }
+
+
         try {
             srvr = new DAQCompServer(new EBComponent(), args);
         } catch (IllegalArgumentException ex) {
