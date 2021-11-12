@@ -13,8 +13,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * User: nehar
@@ -28,8 +27,8 @@ import org.apache.commons.logging.LogFactory;
  */
 public class EventBuilderTriggerRequestDemultiplexer
 {
-    private static final Log LOG =
-        LogFactory.getLog(EventBuilderTriggerRequestDemultiplexer.class);
+    private static final Logger LOG =
+        Logger.getLogger(EventBuilderTriggerRequestDemultiplexer.class);
 
     /**
      *  The Generator object used to get a vector of readout requests
@@ -66,9 +65,7 @@ public class EventBuilderTriggerRequestDemultiplexer
     public boolean demux(ITriggerRequestPayload inputTriggerRequest)
     {
         if (payloadDest == null) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("StringProcRequestOutputEngine is null.");
-            }
+            LOG.error("Destination has not been set");
 
             return false;
         }
@@ -84,10 +81,7 @@ public class EventBuilderTriggerRequestDemultiplexer
         final int inSrcId = inputTriggerRequest.getSourceID().getSourceID();
         if (inSrcId != SourceIdRegistry.GLOBAL_TRIGGER_SOURCE_ID) {
             // ...ditto
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Source#" + inSrcId + " is not GlobaTrigger.");
-            }
-
+            LOG.error("Source#" + inSrcId + " is not GlobaTrigger.");
             return false;
         }
 
@@ -105,16 +99,10 @@ public class EventBuilderTriggerRequestDemultiplexer
         Collection readouts =
             readoutGenerator.generator(readoutElements, eventId, utcTime);
         if (readouts == null) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Generator gave back a null list");
-            }
-
+            LOG.error("Generator gave back a null list");
             return false;
         } else if (readouts.size() == 0) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Generator gave back an empty list");
-            }
-
+            LOG.error("Generator gave back an empty list");
             return false;
         }
 
@@ -130,7 +118,7 @@ public class EventBuilderTriggerRequestDemultiplexer
 
             List elemVec = tmpRRQ.getReadoutRequestElements();
 
-            if (LOG.isErrorEnabled() && elemVec.size() != 1) {
+            if (elemVec.size() != 1) {
                 LOG.error("Expected one element in readout request #" +
                           tmpRRQ.getUID() + ", not " +  elemVec.size());
             }
@@ -145,10 +133,8 @@ public class EventBuilderTriggerRequestDemultiplexer
                 dests.writePayload(tmpReadout.getSourceID(), reqPay);
                 reqPay.recycle();
             } catch (Exception e) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Problem while writing readout request" +
-                              " to source #" + tmpReadout.getSourceID(), e);
-                }
+                LOG.error("Problem while writing readout request to source #" +
+                          tmpReadout.getSourceID(), e);
             }
         }
 
@@ -163,10 +149,7 @@ public class EventBuilderTriggerRequestDemultiplexer
     public void registerOutputEngine(RequestPayloadOutputEngine oe)
     {
         if (oe == null) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Null payload output engine.");
-            }
-
+            LOG.error("Null payload output engine.");
             return;
         }
 

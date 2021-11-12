@@ -36,8 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Pull trigger requests from the front-end queue and readout data
@@ -209,8 +208,8 @@ public class EventBuilderBackEnd
     }
 
     /** Message logger. */
-    private static final Log LOG =
-        LogFactory.getLog(EventBuilderBackEnd.class);
+    private static final Logger LOG =
+        Logger.getLogger(EventBuilderBackEnd.class);
 
     /** Event builder source ID. */
     private static final ISourceID ME =
@@ -951,9 +950,7 @@ public class EventBuilderBackEnd
             year = 0;
 
             if (outputQueue.size() > 0) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Unwritten events queued at reset");
-                }
+                LOG.error("Unwritten events queued at reset");
 
                 synchronized (outputQueue) {
                     outputQueue.clear();
@@ -1163,26 +1160,20 @@ public class EventBuilderBackEnd
      */
     private void switchFile(int oldRun, int newRun)
     {
-        if (LOG.isErrorEnabled()) {
-            LOG.error("Switching from run " + oldRun + " to " + newRun);
-        }
+        LOG.error("Switching from run " + oldRun + " to " + newRun);
 
         try {
             dispatcher.dataBoundary(Dispatcher.STOP_PREFIX + oldRun);
         } catch (DispatchException de) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Could not inform dispatcher of run stop (switch" +
-                          " from " + oldRun + " to " + newRun + ")", de);
-            }
+            LOG.error("Could not inform dispatcher of run stop (switch" +
+                      " from " + oldRun + " to " + newRun + ")", de);
         }
 
         try {
             dispatcher.dataBoundary(Dispatcher.START_PREFIX + newRun);
         } catch (DispatchException de) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Could not inform dispatcher of run start (switch" +
-                          " from " + oldRun + " to " + newRun + ")", de);
-            }
+            LOG.error("Could not inform dispatcher of run start (switch" +
+                      " from " + oldRun + " to " + newRun + ")", de);
         }
     }
 
@@ -1279,11 +1270,9 @@ public class EventBuilderBackEnd
             try {
                 dispatcher.dataBoundary(message);
             } catch (DispatchException de) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Could not inform dispatcher of subrun change" +
-                              " (" + oldSubrunNumber + " to " +
-                              newSubrunNumber + ")", de);
-                }
+                LOG.error("Could not inform dispatcher of subrun change" +
+                          " (" + oldSubrunNumber + " to " +
+                          newSubrunNumber + ")", de);
             }
         }
     }
@@ -1311,17 +1300,13 @@ public class EventBuilderBackEnd
     public void setSwitchRunNumber(int num)
     {
         if (num < 0) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Ignoring invalid switch run number " + num);
-            }
+            LOG.error("Ignoring invalid switch run number " + num);
             return;
         }
 
         if (switchNumber > 0) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Overriding previous switch run " + switchNumber +
-                          " with new value " + num);
-            }
+            LOG.error("Overriding previous switch run " + switchNumber +
+                      " with new value " + num);
         }
 
         switchNumber = num;
@@ -1337,10 +1322,8 @@ public class EventBuilderBackEnd
             try {
                 addDataStop();
             } catch (IOException ioe) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Cannot send final data stop" +
-                              " after splicer stopped", ioe);
-                }
+                LOG.error("Cannot send final data stop" +
+                          " after splicer stopped", ioe);
             }
         }
     }
@@ -1533,7 +1516,7 @@ public class EventBuilderBackEnd
 
                 if (hasMaxConsecutiveErrors() || hasMaxTotalErrors()) {
                     failed = true;
-                } else if (LOG.isErrorEnabled()) {
+                } else {
                     LOG.error("Could not dispatch event", de);
                 }
             }
