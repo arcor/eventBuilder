@@ -36,15 +36,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-
-import org.xml.sax.SAXException;
 
 /**
  * Event builder component.
@@ -143,7 +138,7 @@ public class EBComponent
                                                   LAST_SPLICEABLE);
         } else {
             final int totChannels = DAQCmdInterface.DAQ_MAX_NUM_STRINGS +
-                DAQCmdInterface.DAQ_MAX_NUM_IDH;
+                DAQCmdInterface.DAQ_MAX_NUM_IDH + DAQCmdInterface.DAQ_NUM_NON_STRING_IN_ICE_HUBS;
             try {
                 splicer = new PrioritySplicer<Spliceable>("EBSorter",
                                                           splicedAnalysis,
@@ -401,7 +396,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 18034 2021-11-12 21:23:22Z bendfelt $";
+        return "$Id: EBComponent.java 18081 2022-06-02 21:00:35Z bendfelt $";
     }
 
     /**
