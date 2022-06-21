@@ -36,15 +36,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.log4j.Logger;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-
-import org.xml.sax.SAXException;
 
 /**
  * Event builder component.
@@ -143,7 +138,7 @@ public class EBComponent
                                                   LAST_SPLICEABLE);
         } else {
             final int totChannels = DAQCmdInterface.DAQ_MAX_NUM_STRINGS +
-                DAQCmdInterface.DAQ_MAX_NUM_IDH;
+                DAQCmdInterface.DAQ_MAX_NUM_IDH + DAQCmdInterface.DAQ_NUM_NON_STRING_IN_ICE_HUBS;
             try {
                 splicer = new PrioritySplicer<Spliceable>("EBSorter",
                                                           splicedAnalysis,
@@ -401,7 +396,7 @@ public class EBComponent
     @Override
     public String getVersionInfo()
     {
-        return "$Id: EBComponent.java 17851 2020-08-17 22:20:12Z dglo $";
+        return "$Id: EBComponent.java 18103 2022-06-21 21:24:44Z bendfelt $";
     }
 
     /**
@@ -587,6 +582,16 @@ public class EBComponent
         Logger.getRootLogger().addAppender(appender);
         Logger.getRootLogger().setLevel(Level.INFO);
         DAQCompServer srvr;
+
+        try {
+            String compFullName = String.format("%s", COMPONENT_NAME);
+            DAQCompServer.primordialLogConfigure(compFullName, args);
+        } catch (Exception e) {
+            // fall back to console
+            Logger.getLogger(EBComponent.class).error("Could not configure logging", e);
+        }
+
+
         try {
             srvr = new DAQCompServer(new EBComponent(), args);
         } catch (IllegalArgumentException ex) {
